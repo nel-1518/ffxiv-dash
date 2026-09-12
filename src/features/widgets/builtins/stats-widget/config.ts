@@ -7,7 +7,7 @@ export type StatsConfig = {
 }
 
 export const STATS_DEFAULT_CONFIG: StatsConfig = {
-  value: 68,
+  value: 0,
   max: 100,
 }
 

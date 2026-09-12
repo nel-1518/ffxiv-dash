@@ -162,7 +162,6 @@ function WidgetSection({ widgetOptions }: { widgetOptions: { label: string; valu
       <Form.Item label="组件类型" name={['widget', 'key']}>
         <Select options={widgetOptions} />
       </Form.Item>
-
       <Form.Item label="标题" name={['widget', 'title']}>
         <Input placeholder="自定义组件" maxLength={60} />
       </Form.Item>
@@ -176,6 +175,15 @@ function WidgetSection({ widgetOptions }: { widgetOptions: { label: string; valu
       ) : (
         <Typography.Text type="warning">该组件类型未注册，无法编辑其配置。</Typography.Text>
       )}
+
+      {spec ? (
+        <div>
+          <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12, lineHeight: 1.7 }}>
+            {spec.description}
+          </Typography.Text>
+        </div>
+      ) : null}
+
     </>
   )
 }

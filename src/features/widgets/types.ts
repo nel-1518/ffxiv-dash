@@ -25,6 +25,8 @@ export type WidgetSpec<C = Record<string, unknown>> = {
   key: string
   /** 类型选择器里显示的名称。 */
   label: string
+  /** 用途介绍：在编辑弹窗选定该类型后展示给用户看，说明这个组件能做什么。 */
+  description: string
   /** 新建时的默认标题。 */
   defaultTitle: string
   /** 新建项目时的默认配置。 */

@@ -291,6 +291,7 @@ antd 的 CSS 变量只挂在组件自身（`html/body` 取不到），光换算�
    export const weatherWidgetSpec = defineWidget<WeatherConfig>({
      key: 'weather',            // 会写进用户数据，发布后不要改
      label: '天气',
+     description: '显示指定城市当前的天气与温度，数据每 10 分钟刷新一次。', // 编辑弹窗里展示的用途说明
      defaultTitle: '今日天气',
      defaultConfig: WEATHER_DEFAULT_CONFIG,
      normalizeConfig: normalizeWeatherConfig,
