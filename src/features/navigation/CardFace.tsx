@@ -103,13 +103,26 @@ function LinkFace({
     <Flex
       align="center"
       gap={8}
-      // 悬停浮起只在浏览模式生效：编辑模式不挂类名，卡片就是静止的（见 global.css）
-      className={editMode ? undefined : 'dash-link-card'}
+      /*
+       * `dash-link-card` 表示"这是导航卡"（悬停浮起、拖拽虚影用）；
+       * `dash-card-surface` 是**卡片表面**这个概念的标记：底色/投影/毛玻璃，
+       * 以及主题对卡片的适配（如银海"深色主题 + 浅色卡"的文字翻转）都挂在它上面。
+       * 组件卡由 WidgetShell 挂同一个类，两边共用一套规则（见 global.css）。
+       *
+       * ⚠️ 两种模式都挂：曾经只在浏览模式挂，结果编辑模式下整块适配全掉了。
+       * 编辑模式要的"卡片静止"由悬停规则自己保证 —— 抬起判定挂在浏览模式的
+       * `.dash-link-cell` 上，没有它卡片不会动。
+       */
+      className="dash-link-card dash-card-surface"
       style={{
         padding: '6px 8px',
-        border: '1px solid var(--ant-color-border-secondary)',
-        borderRadius: 'var(--ant-border-radius)',
-        background: 'var(--ant-color-bg-container)',
+        // 描边 / 底色 / 圆角都留给主题（见 global.css 的 --dash-card-*）：
+        // 变量取不到时退回 antd 令牌 —— 拖拽虚影等场景不会突然变透明、没描边或变直角
+        border: '1px solid var(--dash-card-border, var(--ant-color-border-secondary))',
+        // 导航卡只有一行高，圆角用单独的小一档（--dash-card-radius-sm），
+        // 跟组件卡共用同一个值会在这种扁卡上变成叶子形
+        borderRadius: 'var(--dash-card-radius-sm, var(--ant-border-radius))',
+        background: 'var(--dash-card-bg, var(--ant-color-bg-container))',
         minWidth: 0,
       }}
     >

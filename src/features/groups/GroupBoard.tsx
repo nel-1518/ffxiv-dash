@@ -219,7 +219,7 @@ export function GroupBoard({
       onDragEnd={handleDragEnd}
       onDragCancel={() => setActiveId(null)}
     >
-      <Flex vertical gap={16}>
+      <Flex vertical>
         {rows.map((row) => (
             <Row key={row.entries[0].id} gutter={[16, 16]} align="stretch">
               {row.entries.map((entry) => (

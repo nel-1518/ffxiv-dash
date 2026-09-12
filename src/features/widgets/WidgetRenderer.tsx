@@ -51,6 +51,8 @@ function WidgetShell({
   return (
     <Card
       size="small"
+      // 卡片表面（底色/投影/毛玻璃 + 主题对卡片的适配），与导航卡的类名一致
+      className="dash-card-surface"
       // 内容区留白固定 16px：antd size="small" 的默认是 12px，组件卡用更松的一档
       styles={{ body: { padding: 16 } }}
       title={

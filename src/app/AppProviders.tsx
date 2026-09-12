@@ -1,7 +1,9 @@
+import { useEffect } from 'react'
 import { App, ConfigProvider } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
 import { BoardProvider } from '../state/BoardProvider.tsx'
 import { createAppTheme } from './theme-config.ts'
+import { useTheme } from './themes/hooks.ts'
 import type { ReactNode } from 'react'
 
 /**
@@ -11,10 +13,22 @@ import type { ReactNode } from 'react'
  * BoardProvider 在 App 之内，它要用 App.useApp() 的 message 提示保存失败。
  */
 export function AppProviders({ children }: { children: ReactNode }): ReactNode {
+  const themeKey = useTheme()
+
+  /*
+   * 主题的 CSS 变量按 `[data-dash-theme='<key>']` 定义在样式表里，属性要挂在
+   * `<html>` 上 —— 这样 `html/body` 与 portal 到 body 的弹窗都能命中
+   * （`.dash-shell` 之外的元素拿不到挂在壳子上的变量）。
+   * `main.tsx` 已在渲染前设过一次（避免刷新时闪一下默认配色），这里负责后续切换。
+   */
+  useEffect(() => {
+    document.documentElement.dataset.dashTheme = themeKey
+  }, [themeKey])
+
   return (
     <ConfigProvider
       locale={zhCN}
-      theme={createAppTheme()}
+      theme={createAppTheme(themeKey)}
       // 表单校验的默认文案走 antd 中文包，这里只补两条项目内更常用的
       form={{
         validateMessages: {

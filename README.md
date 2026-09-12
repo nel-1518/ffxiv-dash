@@ -30,26 +30,35 @@ pnpm preview    # 预览构建产物
 src/
   app/                    应用外壳与全局装配
     AppProviders.tsx        ConfigProvider(中文/主题) → App → BoardProvider
-    theme-config.ts         主题唯一改动点（当前用 antd 默认主题）
+    theme-config.ts         基线主题 + 把主题规格合成 antd ThemeConfig
     AppShell.tsx            布局外壳；将来接路由的挂载点
+    background-layer.ts     外观快照 + 主题预设 → 背景层样式（纯函数，无 React）
+    themes/                 八套主题，一套一个文件夹
+      types.ts              ThemeSpec（antd 令牌 / 默认背景 / 默认卡片外观）
+      index.ts              注册表（Record<ThemeKey, ThemeSpec>，缺一套会编译报错）
+      hooks.ts              useTheme()
+      appearance-sync.ts    换主题时把该主题的背景与卡片参数写进外观偏好
+      <key>/index.ts        该主题的 antd 令牌与元信息
+      <key>/theme.css       该主题的 --dash-* 变量（按需）
   core/                   与 React 无关的通用能力
     ids.ts                  全项目唯一 id 生成入口（含非安全上下文降级）
     guards.ts               通用类型守卫（isRecord）
-    theme-preference.ts     主题偏好（light / dark / auto）的读写
+    theme-preference.ts     主题偏好（默认-浅色 / 默认-深色 / 苍穹 / 红莲 / 暗影 / 晓月 / 金曦 / 银海）
+    appearance/
+      store.ts              外观偏好（背景来源 / 模糊 / 亮度 / 卡片不透明度 / 卡片模糊）
+      image-store.ts        上传的背景图片存 IndexedDB（不进导出）
+      hooks.ts              useAppearance()
+    clock/
+      store.ts              全局秒级时钟（引用计数订阅，无 Provider）
+      hooks.ts              useClock() / useNow()
+    world.ts                中国区服务器表（大区 / 世界）
     favicon.ts              网站图标第三方接口封装
     favicon-cache.ts        图标失败负缓存（避免离线时反复重试）
-    api/
-      types.ts              ApiSource 数据来源描述
-      errors.ts             ApiError / 中文文案 / 可重试判定
-      config.ts             baseURL、超时、重试次数（可运行时覆盖）
-      client.ts             request()：超时、重试、错误归一化
     storage/
       types.ts              BoardDoc / Group / Item 数据模型
       schema.ts             校验、归一化、版本迁移
       persistent.ts         localStorage 读写（含回退与归一化回写）
       default-board.ts      初始演示数据
-  hooks/
-    useAsyncData.ts         统一的异步数据 hook（所有访问 API 的组件都走这里）
   state/                    仪表盘状态
     board-types.ts          action 与 actions 类型
     board-reducer.ts        纯 reducer，全部不可变更新
@@ -60,20 +69,22 @@ src/
   features/
     dashboard/              顶栏、编辑弹窗、表单
     search/                 搜索弹窗、链接检索、搜索引擎注册表
-    settings/               系统设置弹窗（通用设置 / 数据管理）
+    settings/               系统设置弹窗（外观 / 数据管理）
+      SettingsDialog.tsx      左侧分组 + 面板容器（分区是数据驱动的）
+      AppearanceSettingsPanel.tsx 外观外壳：主题 → 背景 → 卡片
+      appearance/             外观面板的三个自洽子模块
+        ThemePicker.tsx         八选一 + 换主题时同步背景与卡片参数
+        BackgroundSection.tsx   背景来源四选一 + 三种编辑器 + 图片显示
+        Tunings.tsx             滑块行 + 背景显示 / 卡片底色两组调节
+      DataSettingsPanel.tsx   导入导出
     groups/                 分组面板、拖拽编排、分组表单
     navigation/             导航卡片、卡片栅格、可拖拽卡片
-    widgets/                组件框架（注册表 + 渲染器 + 数据）
+    widgets/                组件框架（注册表 + 渲染器）
       types.ts              WidgetSpec / WidgetRenderProps / defineWidget
       registry.ts           注册表（不导入任何具体组件，避免循环依赖）
-      useWidgetData.ts      apiSource → loading/error/ready 状态
       useFavicon.ts         图标接口 hook
       WidgetRenderer.tsx    统一卡片外壳 + 未注册组件降级
-      WidgetStates.tsx      错误/未配置等复用状态块
-      api-source.ts         数据源归一化与请求分派
-      ApiSourceFormFields.tsx 共用的"数据来源"表单字段
-      refresh-interval.ts   秒/毫秒换算 + 状态色
-      builtins/             内置组件，每个一个目录
+      builtins/             内置组件，每个一个目录（stats / pvp-map / market）
   views/
     DashboardPage.tsx       页面组装
   styles/global.css         仅页面背景、字体栈、少量基线
@@ -202,21 +213,36 @@ overlay 的 `height` / `top` 跟随 `visualViewport`（`--vv-top` / `--vv-height
 
 | 分组 | 内容 |
 | --- | --- |
-| 通用设置 | 主题：浅色 / 深色 / 跟随系统，选择结果写进 `localStorage`（`ffxiv-dash:theme:v1`） |
+| 外观 | 主题（八选一，默认-浅色 / 默认-深色 / 银海 已做完）；背景（无·跟随主题 / 纯色 / 图片链接 / 上传图片，图片固定铺满裁切、可调模糊·亮度）；卡片（不透明度、毛玻璃模糊） |
 | 数据管理 | 把看板导出为 JSON；或从 JSON 导入覆盖当前看板 |
 
-**主题目前只做了 UI 与持久化，尚未真的变色。** 落地时有两个接入点：
-`src/app/theme-config.ts` 改切 `theme.darkAlgorithm`；
-`global.css` 里 `html/body` 的底色要额外用 `data-theme` 属性兜底——
-antd 的 CSS 变量只挂在组件自身（`html/body` 取不到），光换算法页面底色不会跟着变。
-面板里写明了这一点，免得选了「深色」以为坏了。
+以上参数都**立即生效**；主题与外观偏好都不属于看板数据（各自独立 key），因此不进导出。
+
+**换主题会连外观一起换**（`app/themes/appearance-sync.ts`）——**主题会盖掉你自己调过的值**：
+
+| 项 | 规则 |
+| --- | --- |
+| 背景 | 主题自带图（银海是 `/bg/8-evercold.webp`）就自动写进「图片链接」并把模糊/亮度改成预设值；主题不带图（其余五套还没做）就退回「无」 |
+| 卡片 | 取 `ThemeSpec.cards` 的不透明度 / 毛玻璃模糊 |
+| 主题没声明的项 | 回到基线（背景 →「无」、卡片 → 62 / 12），**不沿用上一套主题留下的值** |
+
+背景写成「图片链接」而不是留个隐形回落，是为了让这张图的参数能在设置里直接调
+（「图片显示」一节只在图片来源下才出现）。换完随时可以自己再改。
+被盖掉的值不会丢：颜色 / 地址 / 上传文件名都还在状态里（上传的图也仍在 IndexedDB），
+点回对应来源就回来了。点到已选中的主题不做任何事（不会把调过的滑块重置）。
+
+「背景来源 = 无」= 跟随主题自带的背景（主题有图就显示图，没图才只剩底色）。
+主题细节见下面「主题」一节。
+
+原来的「通用设置」里只有主题一项，主题搬到「外观」后该分区空了，整个分区已删除。
 
 **导入导出复用落盘格式**：`core/storage/persistent.ts` 的 `serializeBoardDoc` / `parseBoardDoc`
 产出与读取的都是 `{ version, board }` 这个信封，校验也走与启动时同一套 `sanitizeBoardDoc`。
 因此导出的文件既能被别人导入，也能直接当作 `localStorage` 的值用；反过来，
 把本地原始值导出来也照样能读。导入经 state 层的 `replaceDoc` action 整体替换，
 替换前弹二次确认（列出行数，且是不可撤销的危险操作）。
-扩展方式：往 `SettingsDialog.tsx` 的 `SECTIONS` 追加一项，并在面板分发里补一个分支。
+扩展方式：往 `SettingsDialog.tsx` 的 `SECTIONS` 追一项（标签 / 图标 / 面板各一个字段）即可，
+导航与面板由同一份数据驱动，不必再去补分支。
 
 ### 拖拽规则
 
@@ -304,19 +330,16 @@ antd 的 CSS 变量只挂在组件自身（`html/body` 取不到），光换算�
 
 完成后它会自动出现在"组件类型"下拉与组件配置区。
 
-### 组件要访问 API 怎么做
+### 组件要访问接口怎么做
 
-有两条路，都在 `core/api` 之上，不需要碰网络细节：
+**没有统一的请求层**（早先"数据来源 = HTTP 接口"那套能力已整体删除，`core/api` 已不存在）。
+需要联网的组件自己封装，可参考 `builtins/market-widget/` 的分工：
 
-- **通用数据源（推荐，零代码）**：让用户在表单里选「数据来源 = HTTP 接口」并填地址。
-  `useWidgetData` 会把结果显示在 `Render` 的 `data` 里（`data.status` 为 `loading | error | ready`），
-  URL 为空时自动不发请求。适合"取回 JSON 直接展示"的组件。
-- **组件自己请求**：需要状态码、耗时等请求细节时（参考
-  `builtins/http-status-widget/fields.tsx`），在 `Render` 里用
-  `useAsyncData((signal) => request({ path, signal }), [deps])`；
-  错误用 `toErrorMessage(error)` 转中文，`isAbortError` 判断主动取消。
+- `universalis.ts` 只管 URL / 请求 / 解析（模块级**按 URL 在飞去重**，避免重复请求）；
+- `cache.ts` 管 localStorage 缓存（带 TTL、写入时顺手清过期）；
+- 组件在 `Render` 里自己渲染加载与失败态（市场卡把状态挤在标题行右侧，不占版面）。
 
-两种方式都自动获得：超时控制、按策略指数退避重试、卸载/依赖变化时 abort、中文错误文案。
+`WidgetRenderProps` 只给 `{ config, item }`，**没有任何异步态**。
 
 ## 网站图标
 
@@ -336,12 +359,83 @@ https://ico.faviconkit.net/favicon/{domain}?sz=64
 
 ## 主题
 
-当前使用 **antd 默认主题**。后续要随主题切换（暗色、自定义主色、FFXIV 配色）时：
+设置 → 外观里有八套主题：**默认-浅色 / 默认-深色** 与 **苍穹 / 红莲 / 暗影 / 晓月 / 金曦 / 银海**。
 
-- 改 `src/app/theme-config.ts` 的返回值即可，例如 `theme.algorithm = theme.darkAlgorithm`、
-  `token.colorPrimary = ...`。
-- 自定义样式一律引用 antd 的 CSS 变量（`var(--ant-color-*)`、`var(--ant-border-radius)`），
-  因此换主题时这些地方会自动跟随，**不需要逐个改组件**。
+- **默认-浅色（默认主题）**：就是基线本身（`ThemeSpec.antd` 为空），不维护任何色值 ——
+  基线改了什么它就跟着改什么。
+- **默认-深色**：antd 深色算法（`darkAlgorithm`）的原生观感，只覆盖 `colorBgLayout`
+  （基线里的浅灰版必须盖掉，否则会变成"浅色页面 + 深色卡片"）。
+  ⚠️ 它**不需要**银海那套"把卡片内文字整体翻成浅色"的写法：那边是"深色主题 + 浅色卡片"
+  的错配才要补，这里卡片与页面同属深色系，正文色直接来自深色令牌。
+- **银海**：完整配色（参考官方专题站 <https://na.finalfantasyxiv.com/evercold/>，
+  只取颜色/边框/阴影，不带站内的图片与视频）。
+- 其余五套（苍穹 / 红莲 / 暗影 / 晓月 / 金曦）选用后会沿用基线主题，等各自配色做好。
+
+### 一套主题 = 一个文件夹
+
+主题键用资料片英文名（两套中性底色除外），与 `public/bg/` 里的背景图一一对应：
+
+| 主题 | 键 | 背景图 |
+| --- | --- | --- |
+| 默认-浅色 | `default-light`（默认） | —— |
+| 默认-深色 | `default-dark` | —— |
+| 苍穹 | `heavensward` | `3-heavensward` |
+| 红莲 | `stormblood` | `4-stormblood` |
+| 暗影 | `shadowbringers` | `5-shadowbringers` |
+| 晓月 | `endwalker` | `6-endwalker` |
+| 金曦 | `dawntrail` | `7-dawntrail` |
+| 银海 | `evercold` | `8-evercold` |
+
+```
+src/app/themes/<key>/index.ts     该主题的 antd 令牌（叠在基线之上）与元信息
+src/app/themes/<key>/theme.css    该主题的 --dash-* 变量（只改 antd 令牌的主题不需要）
+```
+
+- 新增主题：把文件夹复制一份，改 `key`/`label`/令牌，再在 `core/theme-preference.ts` 的
+  `THEME_KEYS` 与注册表里各加一行 —— 注册表是 `Record<ThemeKey, ThemeSpec>`，
+  **漏一套会直接编译报错**，不会出现"选择器里有、注册表里没有"的空档。
+- 所有主题都以 `app/theme-config.ts` 的 **基线主题**为底，各主题只声明要覆盖的项；
+  因此"还没做配色"的主题（`antd: {}`）与加主题系统之前完全一致，不会把界面改坏。
+- 删主题：删文件夹 + 删两处键，**不需要清理任何残留**（见下面的"切主题不用清变量"）。
+- ⚠️ 主题键会写进 `localStorage`（`ffxiv-dash:theme:v1`），发布后不要再改名；
+  改过名也没关系：校验通不过的旧值会自动回落到默认主题。
+
+### 两套机制各管一半
+
+| 机制 | 管什么 | 位置 |
+| --- | --- | --- |
+| antd 令牌 | 组件自身的颜色/圆角/字体、弹窗与浮层 | `<key>/index.ts` |
+| `--dash-*` 变量 | antd 变量管不到的地方：`html/body` 底色、卡片底色与描边、投影 | `<key>/theme.css` |
+
+`theme.css` 里的变量写在 `[data-dash-theme='<key>']` 作用域下，属性由 `AppProviders`
+挂到 `<html>` 上（这样 portal 到 body 的弹窗也能命中）。没被新主题定义的变量会自动回落到
+`global.css` 里 `:root` 的默认值 —— **切主题不需要清理旧变量**。
+
+### 两个坑
+
+- ⚠️ 变量替换发生在**声明它的元素**上，别写 `--a: rgb(var(--ant-color-…)/…)` 这种跨作用域链式引用：
+  拿不到值的变量会让整条声明直接失效（应该把回退写在**使用处**：`var(--dash-x, var(--ant-color-y))`）。
+- ⚠️ antd 的 `--ant-color-primary` **不等于**你传的 `colorPrimary`：它是色板第 6 档（palette[5]），
+  会比种子色深一档（银海传 `#73bfe6`，实际渲染 `#65a5c7`）。想完全对色得反推种子，一般没必要。
+
+### 银海：深色页面上的浅色卡
+
+做法都在 `themes/evercold/theme.css`，另有三个必须知道的点：
+
+- **卡片内的 antd 组件要把变量逐个重写**。antd 6 会给每个组件自身的根元素再挂一份
+  `css-var-*` 作用域（变量就定义在那个类上），只把变量写在卡片根上，卡片**里面的**
+  `<Typography>` / `<Progress>` 会把深色那套盖回去。因此覆盖规则的选择器列表里
+  **连 `*` 一起选**，把同一套浅色变量写到卡片内每一个元素上（特异性 `(0,3,0)` 才压得住组件的 `(0,1,0)`）。
+  顺带的好处：我们自己的 `.dash-market-*` / `.dash-stats-*`（用 `var(--ant-color-*)`）会自动跟着变。
+- ⚠️ **组件级令牌（`--ant-<组件>-*`）不在上面那批里**：它们是构建时按 `colorText` 算好后写死的字面量，
+  使用时不再回头读 `--ant-color-*`。深色算法算出来的值落在白卡上就是「白画在白上」——
+  实测漏网的是进度环的底槽 `--ant-progress-remaining-color` 与环心数字 `--ant-progress-circle-text-color`，
+  必须按名字点掉。将来新增组件若出现同类问题，把该组件根上声明的 `--ant-*` 属性列出来再定点覆盖。
+- **参考站的数值按「尺寸 + 密度」两道折算，不能照搬**：参考元素是一张 981×630 的大卡
+  （圆角 24 / 发光 32 / 内边距 48），而我们组件卡约 200×150、导航卡约 200×44，且是成排密铺的。
+  ① 尺寸：圆角按比例收到 `16px 6px`（组件卡）/ `12px 4px`（导航卡，24px 会超过单行卡的一半高），
+  内边距不跟；② 密度：32px 的发光收成「贴边一圈白边 + 很淡的外晕」，
+  20 张卡的白光叠在一起会糊成一片雾、卡反而与底色分不开。悬停浮起只有一张卡被指到，可以放开一点。
 
 ## 环境变量
 

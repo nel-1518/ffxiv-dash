@@ -1,26 +1,30 @@
 import { useState } from 'react'
 import { Modal } from 'antd'
-import { DatabaseOutlined, SettingOutlined } from '@ant-design/icons'
-import { GeneralSettingsPanel } from './GeneralSettingsPanel.tsx'
+import { BgColorsOutlined, DatabaseOutlined } from '@ant-design/icons'
+import { AppearanceSettingsPanel } from './AppearanceSettingsPanel.tsx'
 import { DataSettingsPanel } from './DataSettingsPanel.tsx'
 
-export type SettingsSectionKey = 'general' | 'data'
-
 type SettingsSection = {
-  key: SettingsSectionKey
+  key: string
   label: string
   icon: React.ReactNode
+  Panel: () => React.ReactNode
 }
 
 /**
  * 左侧分组。
  *
- * **扩展点**：新增一组设置只需要往这里追加一项，并在下面的面板分发里补一个分支。
+ * **扩展点**：新增一组设置只需要往这里追加一项（label / icon / 面板各一个）——
+ * 面板与 tab 是同一份数据驱动的，不必再去下面补分支。
+ * 原来的「通用设置」只装了主题一项，主题搬到「外观」后它空了，因此整个分区一并去掉。
  */
-const SECTIONS: readonly SettingsSection[] = [
-  { key: 'general', label: '通用设置', icon: <SettingOutlined /> },
-  { key: 'data', label: '数据管理', icon: <DatabaseOutlined /> },
-]
+const SECTIONS = [
+  { key: 'appearance', label: '外观', icon: <BgColorsOutlined />, Panel: AppearanceSettingsPanel },
+  { key: 'data', label: '数据管理', icon: <DatabaseOutlined />, Panel: DataSettingsPanel },
+] as const satisfies readonly SettingsSection[]
+
+/** 分区键由 `SECTIONS` 推导，保证"导航里有、面板分发里没有"这种空档不可能出现。 */
+export type SettingsSectionKey = (typeof SECTIONS)[number]['key']
 
 export type SettingsDialogProps = {
   onClose: () => void
@@ -34,7 +38,8 @@ export type SettingsDialogProps = {
  * antd 的 cssVar 类会打在 `.ant-modal` 自身上，因此弹窗内部照样能用 `var(--ant-color-*)`。
  */
 export function SettingsDialog({ onClose }: SettingsDialogProps): React.ReactNode {
-  const [active, setActive] = useState<SettingsSectionKey>('general')
+  const [active, setActive] = useState<SettingsSectionKey>('appearance')
+  const { Panel } = SECTIONS.find((section) => section.key === active) ?? SECTIONS[0]
 
   return (
     <Modal
@@ -75,7 +80,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps): React.ReactNod
           aria-labelledby={`dash-settings-tab-${active}`}
           tabIndex={0}
         >
-          {active === 'general' ? <GeneralSettingsPanel /> : <DataSettingsPanel />}
+          <Panel />
         </div>
       </div>
     </Modal>

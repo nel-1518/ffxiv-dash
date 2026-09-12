@@ -38,7 +38,12 @@ export function GroupPanel({
     <Card
       className="dash-group-panel"
       variant="borderless"
-      styles={{ body: { padding: 16 } }}
+      /*
+       * 正文上内边距收窄到 8px：表头没有分割线了，标题与第一行卡片之间
+       * 只剩表头自己的居中留白（40 - 25 ≈ 7px），再叠 16 就散开了。
+       * 左右与下方仍是 16px，卡片与分组边缘的关系不变。
+       */
+      styles={{ body: { padding: '8px 16px 16px' } }}
       title={
         <Flex align="center" gap={8} style={{ minWidth: 0 }}>
           <Typography.Text strong>{group.title}</Typography.Text>
