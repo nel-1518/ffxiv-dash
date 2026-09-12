@@ -56,6 +56,13 @@ function buildInitialValues(item: Item | undefined, defaultKind: ItemKind): Item
  * 关键点：
  * - 组件类型下拉与"组件专属字段"都由注册表驱动 —— 新增一个组件只需注册，这里不用改代码。
  * - 项目类型只允许其注册表声明的内容种类。
+ * - ⚠️ **不要给这个 Form 加 `preserve={false}`**（GroupForm 有，这里不能有）：
+ *   切换组件类型时新类型的 `FormFields` 是全新挂载的，StrictMode 在 dev 下会把新挂载
+ *   组件的 effect 跑两遍（挂载→清理→再挂载）；清理时 rc-field-form 发现 preserve 为
+ *   false，就会把该字段的值从 store 里删掉 —— 判据是 `getInitialValue(namePath)`，
+ *   而它读的是 Form 的 `initialValues`（这里始终是统计卡的默认配置），于是刚写进去的
+ *   新类型默认值会被当成脏值清掉（PvP 的「显示下一个地图」就这么被清成了未勾选）。
+ *   表单的"干净"由 `clearOnDestroy` + Modal 的 `destroyOnHidden` 保证，不靠这个属性。
  */
 export function ItemForm({ form, formId, groupType, item, onFinish }: ItemFormProps): React.ReactNode {
   const widgetOptions = useMemo(() => listWidgetOptions(), [])
@@ -108,7 +115,6 @@ export function ItemForm({ form, formId, groupType, item, onFinish }: ItemFormPr
       initialValues={initialValues}
       onFinish={handleFinish}
       clearOnDestroy
-      preserve={false}
     >
       <Form.Item name="kind" initialValue={allowedKind} hidden>
         <Input />
@@ -160,7 +166,24 @@ function WidgetSection({ widgetOptions }: { widgetOptions: { label: string; valu
   return (
     <>
       <Form.Item label="组件类型" name={['widget', 'key']}>
-        <Select options={widgetOptions} />
+        <Select
+          options={widgetOptions}
+          onChange={(nextKey: string) => {
+            /*
+             * 标题始终与组件类型保持一致：换类型就把标题重置成新类型的默认标题，
+             */
+            const next = getWidget(nextKey)
+            form.setFieldValue(['widget', 'title'], next?.defaultTitle ?? '')
+            /*
+             * 配置也必须跟着换。新建时的 config 来自 `buildInitialValues` 里写死的
+             * 统计卡默认值，不换的话新类型的字段会取到 undefined —— PvP 地图的
+             * 「显示下一个地图」开关就显示成关，保存时才被 normalizeConfig 补成开，
+             * 界面与实际落库的值对不上。
+             * 传整个对象（而不是合并）是为了顺手丢掉上一个类型残留的字段。
+             */
+            form.setFieldValue('config', { ...(next?.defaultConfig ?? {}) })
+          }}
+        />
       </Form.Item>
       <Form.Item label="标题" name={['widget', 'title']}>
         <Input placeholder="自定义组件" maxLength={60} />
