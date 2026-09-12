@@ -16,7 +16,7 @@ export type TopbarProps = {
   editMode: boolean
   onToggleEditMode: () => void
   onCreateGroup: () => void
-  /** 打开系统设置。 */
+  /** 打开设置。 */
   onOpenSettings: () => void
 }
 
@@ -155,7 +155,7 @@ export function Topbar({
 
         {/*
           编辑开关：浏览时是普通图标按钮，进入编辑模式后变成主色实心圆并按成"完成"。
-          排在新项目与系统设置之间，系统设置仍是最右（沿用既有约定）。
+          排在新项目与设置之间，设置仍是最右（沿用既有约定）。
         */}
         <Button
           type={editMode ? 'primary' : 'text'}
@@ -183,8 +183,8 @@ export function Topbar({
           className="dash-topbar-icon"
           icon={<SettingOutlined />}
           onClick={onOpenSettings}
-          title="系统设置"
-          aria-label="系统设置"
+          title="设置"
+          aria-label="设置"
         />
       </Flex>
     </Flex>

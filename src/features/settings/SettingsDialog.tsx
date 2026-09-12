@@ -27,7 +27,7 @@ export type SettingsDialogProps = {
 }
 
 /**
- * 系统设置弹窗：左侧分组导航 + 右侧内容。
+ * 设置弹窗：左侧分组导航 + 右侧内容。
  *
  * 用 antd `Modal` 而不是像搜索弹窗那样自绘浮层：这里不需要 visualViewport 适配，
  * 也没有"边打字边保持焦点"的需求，交给 Modal 处理焦点陷阱与 Esc 更省事。
@@ -40,7 +40,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps): React.ReactNod
     <Modal
       className="dash-settings-modal"
       open
-      title="系统设置"
+      title="设置"
       onCancel={onClose}
       footer={null}
       width={760}

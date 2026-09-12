@@ -166,10 +166,10 @@ function LinkFace({
         </div>
 
         <Flex vertical style={{ minWidth: 0, flex: 1 }}>
-          <Typography.Text strong ellipsis style={{ fontSize: 12 }}>
+          <Typography.Text strong ellipsis>
             {item.name}
           </Typography.Text>
-          <Typography.Text type="secondary" ellipsis style={{ fontSize: 11 }}>
+          <Typography.Text type="secondary" ellipsis style={{ fontSize: 12 }}>
             {item.desc || item.url}
           </Typography.Text>
         </Flex>
