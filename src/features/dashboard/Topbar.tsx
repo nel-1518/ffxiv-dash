@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { Button, Flex, Input, Typography } from 'antd'
 import { CheckOutlined, EditOutlined, PlusOutlined, SearchOutlined, SettingOutlined } from '@ant-design/icons'
 import { ConvertToEorzeaTimeString } from './EorzeaTimeConvert.ts'
+import { useNow } from '../../core/clock/hooks.ts'
 import type { InputRef } from 'antd'
 
 export type TopbarProps = {
@@ -59,13 +60,8 @@ export function Topbar({
   onCreateGroup,
   onOpenSettings,
 }: TopbarProps): React.ReactNode {
-  const [now, setNow] = useState(() => new Date())
+  const now = useNow()
   const searchRef = useRef<InputRef>(null)
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 1000)
-    return () => window.clearInterval(timer)
-  }, [])
 
   /*
    * 进页就把光标放进搜索框，省掉"先点一下再打字"。

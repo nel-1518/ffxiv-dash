@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { Flex, Form, Switch, Typography } from 'antd'
 import {
   CC_MAP_NAMES,
@@ -11,6 +10,7 @@ import {
   getNextFrontlineMap,
 } from './rotation.ts'
 import { PVP_CALENDAR_URL } from './config.ts'
+import { useNow } from '../../../../core/clock/hooks.ts'
 import type { PvpMapConfig } from './config.ts'
 import type { WidgetRenderProps } from '../../types.ts'
 
@@ -24,21 +24,6 @@ export function PvpMapFormFields(): React.ReactNode {
       <Switch />
     </Form.Item>
   )
-}
-
-/**
- * 每秒刷新一次「现在」。
- *
- * 时长只显示到分钟，但轮换时刻本身需要"到点就翻"，所以仍按秒刷新；
- * 两个战场的地图与时长都由同一份 `now` 推导，一个 tick 驱动全部读数。
- */
-function useNow(): Date {
-  const [now, setNow] = useState(() => new Date())
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 1000)
-    return () => window.clearInterval(timer)
-  }, [])
-  return now
 }
 
 /**
