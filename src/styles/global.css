@@ -1032,6 +1032,87 @@ a:hover {
   }
 }
 
+/*
+ * 物品价格卡
+ *
+ * NQ / HQ 各占一块浅底圆角块（沿用 PvP 卡的信息块语言），
+ * 每块三行「标签 + 读数」。读数用等宽数字：价格刷新时宽度不跳、整行不抖。
+ * 基准价的比较结论只用颜色表达（高于=红、低于=绿）
+ */
+.dash-market-block {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+}
+
+/* 该物品没有 HQ 版本时整个 HQ 块不会渲染，所以这里不需要"压暗"之类的样式 */
+.dash-market-quality {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}
+
+/* 最低价的出处：贴在价格下方并右对齐，落在价格数字正下方 */
+.dash-market-origin {
+  display: block;
+  text-align: right;
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45));
+}
+
+.dash-market-label {
+  flex: none;
+  font-size: 11px;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}
+
+/*
+ * 读数行。
+ *
+ * 窄卡里两个品质块并排时，七位数的价格会和左侧标签抢位置 —— 挤不下时宁可让数字
+ * **换到下一行**（`margin-left: auto` 保证换行后仍右对齐），也不要互相压扁。
+ * 标签 `flex: none` 不参与压缩，所以换行的永远是数字那一侧。
+ */
+.dash-market-row {
+  flex-wrap: wrap;
+  /* 行高压紧：卡里有 5 行这样的文字，行高不压就没法比统计卡矮 */
+  line-height: 1.3;
+}
+
+.dash-market-row .dash-market-value {
+  margin-left: auto;
+}
+
+.dash-market-value {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
+  white-space: nowrap;
+}
+
+/* 无数据时不显示 0，用破折号并把颜色压淡 */
+.dash-market-value.is-blank {
+  font-weight: 400;
+  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45));
+}
+
+.dash-market-value.is-above {
+  color: var(--ant-color-error, #ff4d4f);
+}
+
+.dash-market-value.is-below {
+  color: var(--ant-color-success, #52c41a);
+}
+
 /* 尊重用户的动效偏好：拖拽与卡片过渡全部关掉 */
 @media (prefers-reduced-motion: reduce) {
   *,
