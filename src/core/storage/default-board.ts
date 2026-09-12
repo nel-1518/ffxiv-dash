@@ -97,10 +97,11 @@ export function createDefaultBoard(): BoardDoc {
         items: [
           { 
             id: createId(),
-             kind: 'link',
-             name: '游戏充值',
-             url: 'https://pay.sdo.com/item/GWPAY-100001900', 
-             desc: '' 
+            kind: 'link',
+            name: '游戏充值',
+            url: 'https://pay.sdo.com/item/GWPAY-100001900', 
+            desc: '',
+            icon: '🕹️',
           },
           {
             id: createId(),
@@ -108,6 +109,7 @@ export function createDefaultBoard(): BoardDoc {
             name: '道具商城',
             url: 'https://qu.sdo.com/tools-shop?merchantId=1',
             desc: '',
+            icon: '🛒',
           },
           { 
             id: createId(), 
@@ -115,6 +117,7 @@ export function createDefaultBoard(): BoardDoc {
             name: '道具仓库', 
             url: 'https://qu.sdo.com/personal-center?merchantId=1#itemindex-100001900-1', 
             desc: '', 
+            icon: '📦',
           },
           { 
             id: createId(), 
@@ -122,6 +125,7 @@ export function createDefaultBoard(): BoardDoc {
             name: '周边商城', 
             url: 'https://qu.sdo.com/surround-shop?merchantId=1', 
             desc: '', 
+            icon: '🛍️',
           },
           { 
             id: createId(), 
@@ -129,6 +133,7 @@ export function createDefaultBoard(): BoardDoc {
             name: '积分商城', 
             url: 'https://qu.sdo.com/unit-shop?merchantId=1', 
             desc: '', 
+            icon: '🎟️',
           },
           { 
             id: createId(), 
@@ -136,6 +141,7 @@ export function createDefaultBoard(): BoardDoc {
             name: '后勤补给站', 
             url: 'https://actff1.web.sdo.com/project/141028dgf/index.html', 
             desc: '', 
+            icon: '🚚',
           },
           { 
             id: createId(), 
@@ -143,7 +149,7 @@ export function createDefaultBoard(): BoardDoc {
             name: '陆行鸟礼物站', 
             url: 'https://ffpay.sdo.com/pc/giftsStation/index.html#/index', 
             desc: '', 
-            icon: 'https://ffpay.sdo.com/favicon.ico',
+            icon: '🎁',
           },
         ],
       },
@@ -158,21 +164,24 @@ export function createDefaultBoard(): BoardDoc {
              kind: 'link',
              name: '幻化（光之收藏家）',
              url: 'https://ff14risingstones.web.sdo.com/pc/index.html#/glamour', 
-             desc: '' 
+             desc: '',
+             icon: 'https://ff14risingstones.web.sdo.com/favicon.ico',
           },
           { 
             id: createId(), 
             kind: 'link', 
             name: '投影外观数据', 
             url: 'https://ff14risingstones.web.sdo.com/pc/index.html#/statistics/glamour', 
-            desc: '', 
+            desc: '',
+            icon: 'https://ff14risingstones.web.sdo.com/favicon.ico',
           },
           { 
             id: createId(),
              kind: 'link',
              name: '副本招募',
              url: 'https://ff14risingstones.web.sdo.com/pc/index.html#/recruit/party', 
-             desc: '' 
+             desc: '',
+             icon: 'https://ff14risingstones.web.sdo.com/favicon.ico',
           },
           {
             id: createId(),
@@ -180,34 +189,39 @@ export function createDefaultBoard(): BoardDoc {
             name: '萌新招待',
             url: 'https://ff14risingstones.web.sdo.com/pc/index.html#/recruit/beginner',
             desc: '',
+            icon: 'https://ff14risingstones.web.sdo.com/favicon.ico',
           },
           { 
             id: createId(), 
             kind: 'link', 
             name: '纷争前线数据', 
             url: 'https://ff14risingstones.web.sdo.com/pc/index.html#/statistics/frontline', 
-            desc: '', 
+            desc: '',
+            icon: 'https://ff14risingstones.web.sdo.com/favicon.ico',
           },
           { 
             id: createId(), 
             kind: 'link', 
             name: '捕鱼人数据', 
             url: 'https://ff14risingstones.web.sdo.com/pc/index.html#/statistics/fishing', 
-            desc: '', 
+            desc: '',
+            icon: 'https://ff14risingstones.web.sdo.com/favicon.ico',
           },
           { 
             id: createId(), 
             kind: 'link', 
             name: '零式数据', 
             url: 'https://ff14risingstones.web.sdo.com/pc/index.html#/statistics/savage', 
-            desc: '', 
+            desc: '',
+            icon: 'https://ff14risingstones.web.sdo.com/favicon.ico',
           },
           { 
             id: createId(), 
             kind: 'link', 
             name: '绝境战数据', 
             url: 'https://ff14risingstones.web.sdo.com/pc/index.html#/statistics/ultimate', 
-            desc: '', 
+            desc: '',
+            icon: 'https://ff14risingstones.web.sdo.com/favicon.ico',
           },
         ],
       },
