@@ -47,7 +47,6 @@
    * —— 它就是用户看到的那条"竖线"（一开始误诊成悬停光晕了）。
    */
   --dash-card-shadow: 0 0 #0000;
-  --dash-card-border: transparent;
   --dash-card-border-width: 0;
 
   /*
@@ -90,15 +89,6 @@
       rgb(4 0 51 / 0.86) 100%
     );
   }
-}
-
-/*
- * 组件卡（antd Card）自己带一条 1px 边框，而 `--dash-card-border*` 只管导航卡
- * （那是 `CardFace` 的 inline style 读的），所以这里单独点掉。
- * ⚠️ 同样要归零宽度而不是只把颜色设透明 —— 理由见上面 `--dash-card-border-width` 那段。
- */
-[data-dash-theme='shadowbringers'] .ant-card.dash-card-surface {
-  border-width: 0;
 }
 
 /*

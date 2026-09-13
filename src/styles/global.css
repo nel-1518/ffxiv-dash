@@ -173,9 +173,18 @@ body {
   -webkit-backdrop-filter: var(--dash-card-backdrop, none);
 }
 
-/* 组件卡比导航卡高得多，圆角分开给（导航卡的写在 CardFace 的 inline style 里） */
+/*
+ * 组件卡比导航卡高得多，圆角分开给（导航卡的写在 CardFace 的 inline style 里）。
+ *
+ * 描边宽度也在这里统一读 `--dash-card-border-width`（默认 1px = antd 原本的线宽）：
+ * 导航卡那条 border 写在 `CardFace` 的 inline style 里、读的是同一个变量，
+ * 于是"主题想真无边框"只需要把变量归零 —— 两边自动一致。
+ * ⚠️ 光把 `--dash-card-border` 设成 `transparent` 是不够的：那 1px 的位置还在，
+ * 卡片左右边缘仍会显一条发丝线。
+ */
 .ant-card.dash-card-surface {
   border-radius: var(--dash-card-radius, var(--ant-border-radius-lg));
+  border-width: var(--dash-card-border-width, 1px);
 }
 
 /*

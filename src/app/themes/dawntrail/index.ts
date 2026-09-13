@@ -59,5 +59,5 @@ export const dawntrailSpec: ThemeSpec = {
   /*
    * 卡片与页面同属暖深色系（站点自己的面板就是 `rgba(26,16,5,.9)` 的暖棕黑）
    */
-  cards: { alpha: 85, blur: 1 },
+  cards: { alpha: 80, blur: 1 },
 }

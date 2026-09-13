@@ -32,7 +32,10 @@
   --dash-card-radius: 16px 6px;
   /* 导航卡只有一行高（≈44px），再收一档 —— 24px 会超过半张卡高，看着像叶子 */
   --dash-card-radius-sm: 12px 4px;
-  --dash-card-border: transparent;
+  /*
+   * 描边取消：宽度归零。
+   */
+  --dash-card-border-width: 0;
 
   /*
    * 深底上的浮层（弹窗、搜索卡）仍是深色，投影走冷色深投影；
@@ -55,13 +58,18 @@
  * 作用域用 `dash-card-surface`（组件卡与导航卡都挂这个类，见 CardFace / WidgetRenderer）：
  * 它是"卡片表面"这个概念的唯一入口，不再依赖 `.dash-sortable-item > .ant-card` 那种 DOM 结构。
  *
+ * ⚠️ **顶栏要排除在外**（`:not(.dash-topbar)`）：它也挂 `dash-card-surface`（为了共用
+ * 毛玻璃），但底色是用户改过的**半透明白玻璃**（`rgba(255,255,255,.25)`）——
+ * 那层白太透，透出来的是压暗后的冰原（深色），合成亮度只有 0.11 上下，
+ * 这套 `#333` 压上去只有 **1.9:1**，整条栏读不了。顶栏的令牌见文件末尾那段。
+ *
  * 这样写还有个好处：我们自己的 `.dash-market-*` / `.dash-stats-*` 这些
  * 用 `var(--ant-color-*)` 的地方会跟着一起变，将来新增组件也不用再补规则。
  *
  * 色值取样自站点：正文 `#333`、次要 `#666`。
  */
-[data-dash-theme='evercold'] .dash-card-surface,
-[data-dash-theme='evercold'] .dash-card-surface * {
+[data-dash-theme='evercold'] .dash-card-surface:not(.dash-topbar),
+[data-dash-theme='evercold'] .dash-card-surface:not(.dash-topbar) * {
   --ant-color-text: #333333;
   /* ⚠️ 标题色要单独给：顶栏的问候语是 Typography.Title，读的是 heading 而不是 text */
   --ant-color-text-heading: #333333;
@@ -143,8 +151,58 @@
 }
 
 /* 卡片自身有底色，文字直接继承它，省得每个后代都自己声明 */
-[data-dash-theme='evercold'] .dash-card-surface {
+[data-dash-theme='evercold'] .dash-card-surface:not(.dash-topbar) {
   color: var(--ant-color-text);
+}
+
+/*
+ * 顶栏：**半透明白玻璃**（用户改的：`rgba(255,255,255,.25)` + `blur(10px)`）。
+ *
+ * （黑底 `#000` + 正文 `#ccc` + 冰蓝 `#73bfe6`），强调色直接用主色，不再另立。
+ *
+ * ⚠️ 变量必须连 `*` 一起选：antd 6 会给顶栏里每个组件（Typography / Button）的根元素
+ * 再挂一份 `css-var-*`，只写在 `.dash-topbar` 上会被它们盖回去 —— 与浅色岛同一个坑。
+ * ⚠️ 不透明度仍是 25%：文字改用白色来适配。
+ */
+[data-dash-theme='evercold'] .dash-topbar,
+[data-dash-theme='evercold'] .dash-topbar * {
+  --ant-color-text: #ffffff;
+  /* 问候语是 Typography.Title，读的是 heading 而不是 text */
+  --ant-color-text-heading: #ffffff;
+  --ant-color-text-secondary: rgba(255, 255, 255, 0.72);
+  /* antd 的 type="secondary" 用的是 description 而不是 secondary */
+  --ant-color-text-description: rgba(255, 255, 255, 0.72);
+  --ant-color-text-quaternary: rgba(255, 255, 255, 0.65);
+  --ant-color-text-placeholder: rgba(255, 255, 255, 0.55);
+  --ant-color-icon: rgba(255, 255, 255, 0.7);
+  --ant-color-icon-hover: #ffffff;
+  /*
+   * 搜索框那一圈发丝描边：深色主题给的是 `rgba(255,255,255,.18)`，
+   * 压在 25% 的白玻璃上只有约 1.4:1 —— 等于没有，提到 .32 才看得出那个胶囊。
+   * （focus 态用的是 `--ant-color-primary-border` = 银海钢蓝，本来就看得见，没动。）
+   */
+  --ant-color-border: rgba(255, 255, 255, 0.32);
+  /*
+   * ⚠️ 顶栏那几个图标按钮是 antd 的 `text` 变体，链到**组件级** token
+   * `--ant-button-text-*` —— 它们不回头读 `--ant-color-icon`，必须按名字点掉
+   * （同理见上面编辑模式那批按钮、以及银海浅色岛里那组 `--ant-progress-*`）。
+   */
+  --ant-button-text-text-color: rgba(255, 255, 255, 0.78);
+  --ant-button-text-text-hover-color: #ffffff;
+  --ant-button-text-text-active-color: #ffffff;
+  --ant-button-text-hover-bg: rgba(255, 255, 255, 0.16);
+}
+
+[data-dash-theme='evercold'] .dash-topbar {
+  --dash-card-bg: rgba(255, 255, 255, 0.25);
+  /*
+   * 顶栏不要白色阴影
+   * ⚠️ 写成**零尺寸透明投影**而不是 `none`：`.dash-card-surface` 的 `box-shadow`
+   * 直接吃这个变量，而链接卡悬停时它还会被拼进 `box-shadow` 列表 ——
+   * 列表里出现 `none` 会让整条声明失效（与 global.css `:root` 那行默认值同源）。
+   */
+  --dash-card-shadow: 0 0 #0000;
+  backdrop-filter: blur(10px);
 }
 
 /*
