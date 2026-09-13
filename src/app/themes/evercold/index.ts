@@ -38,10 +38,8 @@ export const evercoldSpec: ThemeSpec = {
   },
   background: {
     url: '/bg/8-evercold.webp',
-    // 站点本身就是压暗的深色基调：亮度压到 60%（= 旧的「蒙版 40%」，两者逐像素等价）
     brightness: 60,
     blur: 1,
   },
-  // 浅色玻璃压在冰原图上：要透出一点底（alpha < 100），又不能糊到看不清卡里的字
-  cards: { alpha: 80, blur: 1 },
+  cards: { alpha: 85, blur: 1 },
 }

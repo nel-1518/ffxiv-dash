@@ -24,13 +24,10 @@
   --dash-card-rgb-2: 26 22 17;
 
   /*
-   * 圆角：站点用的是 20 / 32px，但那是给大块元素的；
-   * 我们组件卡≈200×150、导航卡≈200×44，按尺寸折算到 16 / 12（银海那轮定下的规矩）。
-   * 描边不用在这里写：`--dash-card-border` 缺省会退回 `colorBorderSecondary`，
-   * 而它已经是那条淡金发丝边了。
+   * 不用圆角
    */
-  --dash-card-radius: 16px;
-  --dash-card-radius-sm: 12px;
+  --dash-card-radius: 0px;
+  --dash-card-radius-sm: 0px;
 
   /*
    * 深底上深投影看不见，所以悬停浮起让**暖金光晕**当主角（银海那边用的是白光）。
