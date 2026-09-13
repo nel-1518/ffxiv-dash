@@ -124,6 +124,25 @@ body {
 }
 
 /*
+ * 背景暗角（vignette）。
+ *
+ * 主题按需给 `--dash-bg-vignette`，缺省 `none` = 什么都不画（其余主题不受影响）。
+ * 它必须画在**背景图之上**：`::after` 是 `.dash-bg` 的最后一个子节点，
+ * 而 `.dash-bg-image` 也是定位元素 —— 同层时按 DOM 顺序绘制，`::after` 在后。
+ * ⚠️ 只加一层遮罩、不动内容层的 z-index：内容仍是 `.ant-layout-content { z-index: 1 }`，
+ * 所以暗角只压暗画面，不会盖住卡片。
+ * ⚠️ 只在**有背景图**时才有这个节点（AppShell 按 `background` 决定是否渲染 `.dash-bg`），
+ * 无图时自然没有暗角 —— 这也是合理的：它是给图用的。
+ */
+.dash-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--dash-bg-vignette, none);
+}
+
+/*
  * 卡片：半透明 + 毛玻璃（设置 → 外观 → 卡片）。
  *
  * 这些参数由「主题 + AppShell」共同下发：
