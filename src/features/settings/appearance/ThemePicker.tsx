@@ -1,4 +1,3 @@
-import { Typography } from 'antd'
 import { THEME_KEYS, setTheme } from '../../../core/theme-preference.ts'
 import { getThemeSpec } from '../../../app/themes/index.ts'
 import { syncAppearanceWithTheme } from '../../../app/themes/appearance-sync.ts'
@@ -28,21 +27,19 @@ export function ThemePicker(): React.ReactNode {
   }
 
   return (
-    <>
-      <div className="dash-settings-options is-grid" role="radiogroup" aria-label="主题">
-        {THEME_KEYS.map((key) => (
-          <button
-            key={key}
-            type="button"
-            role="radio"
-            aria-checked={theme === key}
-            className={`dash-settings-option${theme === key ? ' is-active' : ''}`}
-            onClick={() => handleSelect(key)}
-          >
-            {getThemeSpec(key).label}
-          </button>
-        ))}
-      </div>
-    </>
+    <div className="dash-settings-options is-grid" role="radiogroup" aria-label="主题">
+      {THEME_KEYS.map((key) => (
+        <button
+          key={key}
+          type="button"
+          role="radio"
+          aria-checked={theme === key}
+          className={`dash-settings-option${theme === key ? ' is-active' : ''}`}
+          onClick={() => handleSelect(key)}
+        >
+          {getThemeSpec(key).label}
+        </button>
+      ))}
+    </div>
   )
 }
