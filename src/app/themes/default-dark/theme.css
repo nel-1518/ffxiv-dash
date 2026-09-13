@@ -1,14 +1,19 @@
 /*
  * 默认-深色 —— antd 令牌管不到的那部分。
  *
- * 只三项：页面兜底底色，以及两类在纯黑底上需要重压的投影。
- * 卡片底色不在这里改（保持默认的纯白 + `cards.alpha: 8`，见 index.ts），
- * 正文色也不需要翻转（见 index.ts 的说明）。
+ * 页面兜底底色、卡片通道值，以及两类在纯黑底上需要重压的投影。
+ * 正文色不需要翻转（见 index.ts 的说明）。
  */
 
 [data-dash-theme='default-dark'] {
   /* 与 token.colorBgLayout 一致（global.css 里 html/body 的兜底也用这个） */
   --dash-page-bg: #000000;
+
+  /*
+   * 卡片：纯色深灰 `#1e1e1e`，**不乘透明度**（`cards.alpha: 100`，见 index.ts）。
+   */
+  --dash-card-rgb: 30 30 30;
+  --dash-card-rgb-2: 30 30 30;
 
   /*
    * 弹窗与搜索卡本身是 #1f1f1f（antd 深色的 colorBgElevated），

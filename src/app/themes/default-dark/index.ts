@@ -26,7 +26,7 @@ export const defaultDarkSpec: ThemeSpec = {
     },
   },
   cards: {
-    alpha: 8,
+    alpha: 100,
     blur: 0,
   },
 }
