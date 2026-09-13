@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { App, Divider, Flex } from 'antd'
+import { App, Flex } from 'antd'
 import { useBoard, useBoardActions } from '../state/hooks.ts'
 import { EditDialog } from '../features/dashboard/EditDialog.tsx'
 import { Topbar } from '../features/dashboard/Topbar.tsx'
@@ -80,6 +80,7 @@ export function DashboardPage(): React.ReactNode {
 
   return (
     <Flex vertical gap={20}>
+      {/* 顶栏在内容列之外：它自己就是页面顶端那条全宽元素 */}
       <Topbar
         keyword={search.keyword}
         onKeywordChange={search.handleKeywordChange}
@@ -91,16 +92,26 @@ export function DashboardPage(): React.ReactNode {
         onOpenSettings={() => setSettingsOpen(true)}
       />
 
-      <Divider style={{ margin: 0 }} />
+      {/*
+       * 不再需要页头与看板之间的分割线：顶栏自己就是一条有底的横幅（`dash-card-surface`），
+       * 下沿已经是分界，再叠一条限宽的细线反而会与全宽的底错位。
+       * 与看板的间距由外层 Flex 的 gap 给。
+       */}
 
-      <GroupBoard
-        groups={doc.groups}
-        editMode={editMode}
-        onAddItem={(groupId) => setModalState({ mode: 'item', groupId, itemId: null })}
-        onEditGroup={(groupId) => setModalState({ mode: 'group', groupId })}
-        onEditItem={(groupId, itemId) => setModalState({ mode: 'item', groupId, itemId })}
-        onRemoveItem={removeItem}
-      />
+      {/*
+       * 看板包在内容列里（居中限宽 + 两侧留白）；顶栏**不在里面** ——
+       * 它是页面顶端的一整条元素，要能自然地铺满整个视口宽度。
+       */}
+      <div className="dash-container">
+        <GroupBoard
+          groups={doc.groups}
+          editMode={editMode}
+          onAddItem={(groupId) => setModalState({ mode: 'item', groupId, itemId: null })}
+          onEditGroup={(groupId) => setModalState({ mode: 'group', groupId })}
+          onEditItem={(groupId, itemId) => setModalState({ mode: 'item', groupId, itemId })}
+          onRemoveItem={removeItem}
+        />
+      </div>
 
       <EditDialog
         state={modalState}

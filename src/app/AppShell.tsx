@@ -44,9 +44,11 @@ export function AppShell(): React.ReactNode {
         </div>
       ) : null}
       <Layout.Content>
-        <div className="dash-container">
-          <DashboardPage />
-        </div>
+        {/*
+         * 内容列（`.dash-container`）由页面自己包 —— 顶栏要待在它外面才能铺满整个视口。
+         * 这里只负责把视图放进 Layout 里。
+         */}
+        <DashboardPage />
       </Layout.Content>
     </Layout>
   )

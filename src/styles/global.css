@@ -16,6 +16,19 @@
     'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   /* 页面底色。与 theme-config.ts 的 token.colorBgLayout 保持一致。 */
   --dash-page-bg: #f0f2f5;
+  /*
+   * 页面顶部留白。
+   * 由顶栏那条元素自己吃掉（它要顶到页面最上边），所以单独抽成变量：
+   * 一处改，窄屏断点与顶栏的纵向内边距同时跟上。
+   */
+  --dash-page-pad-top: 10px;
+  /*
+   * 内容列两侧留白。
+   * ⚠️ **必须在 :root 里给到**（窄屏断点只负责覆盖它）：
+   * `.dash-container` 与顶栏都直接吃这个变量，一旦解析不到，`padding-inline` 会退成 0，
+   * 整个页面（包括看板）都会顶到屏幕边缘。
+   */
+  --dash-page-pad-x: clamp(12px, 10vw, 100px);
   /* 搜索弹窗卡片的大投影。antd 没有对应的 token，因此在这里立一个本地的。 */
   --dash-shadow-xl:
     0 12px 32px -8px rgba(15, 23, 42, 0.24), 0 2px 8px rgba(15, 23, 42, 0.08);
@@ -174,10 +187,16 @@ body {
   box-shadow: none;
 }
 
+/*
+ * 内容列：居中限宽 + 两侧留白。看板用它；
+ * 顶栏自己吃下同一套换算（见 `.dash-topbar` 的 padding-inline），两边左缘因此对齐。
+ */
 .dash-container {
   max-width: 1600px;
-  margin: 0 auto;
-  padding: 24px clamp(12px, 10vw, 100px) 48px;
+  margin-inline: auto;
+  padding-inline: var(--dash-page-pad-x);
+  /* 顶部不给留白：与顶栏的间距由 DashboardPage 的 flex gap 给 */
+  padding-block: 0 48px;
 }
 
 /* antd Typography 的标题字号在仪表盘里偏大，整体收一档 */
@@ -197,8 +216,13 @@ a:hover {
 
 /* 窄屏收窄页面内边距 */
 @media (max-width: 768px) {
+  :root {
+    --dash-page-pad-top: 14px;
+    --dash-page-pad-x: 14px;
+  }
+
   .dash-container {
-    padding: 14px 14px 32px;
+    padding-block: 0 32px;
   }
 }
 
@@ -524,7 +548,7 @@ a:hover {
 /*
  * 顶栏
  *
- * 也不做卡片：**无底色、无描边、无阴影、无圆角**，内容直接落在页面浅灰底上。
+ * 也不做卡片：**无底色、无描边、无阴影、无圆角**，内容直接落在页面底上。
  * 这样它读起来是「页头」而不是「第一张与看板抢视线的卡片」；
  * 与看板的分隔交给 DashboardPage 里紧跟着的 Divider。
  *
@@ -532,17 +556,35 @@ a:hover {
  * 1. 一条主色竖条做视觉锚点，让页头左缘与下方看板对齐且一眼可定位；
  * 2. 严格的字号/颜色层次：问候语是主（18px/700），时间是次（12px 等宽数字）；
  * 3. 控件统一为「透明底 + 大圆角」：搜索框胶囊、新建按钮正圆。
+ *
+ * ⚠️ 顶栏还会挂 `dash-card-surface`：它那块底与卡片同源，主题只要适配过一次卡片，
+ * 顶栏就自动跟着走（银海那边就是这么拿到"浅色表面 + 深色文字"的）。
  */
 .dash-topbar {
-  position: relative;
-  width: 100%;
   /*
-   * 高度由内容自己撑，只留极小纵向内边距。
-   * 横向内边距必须是 0：竖条要精确落在内容列左缘（与卡片左缘同一条线），
-   * 留给它的「呼吸」交给 padding-left 只会让它变成看起来没对齐的偏移。
+   * 页面顶端的一整条元素：铺满视口宽度（所以不需要 `50% - 50vw` 那种出血技巧，
+   * 也不需要 `overflow-x: clip` 去拦多余的宽度），同时把内容卡在内容列里。
+   *
+   * 横向 padding 的算式 = `.dash-container` 那套「居中限宽 + 两侧留白」的等价写法：
+   * 视口宽时取 `(100% - 1600px) / 2 + 留白`（内容列居中、最宽 1600），
+   * 窄屏时 `max()` 自动退回到普通的留白。两个值必须一起改，否则竖条会与卡片左缘差开。
+   *
+   * 顶部留白也算进这条元素里：有底时才不会出现"底从半空开始"的断裂感。
    */
-  padding: 4px 0;
+  padding-block: var(--dash-page-pad-top) 12px;
+  padding-inline: max(var(--dash-page-pad-x), calc((100% - 1600px) / 2 + var(--dash-page-pad-x)));
 }
+
+/*
+ * 顶栏的底由 `.dash-card-surface`（见上面「卡片表面」那一节）统一提供：
+ * **与卡片同一套材质**（底色、毛玻璃、投影），无圆角，下面一条平直的下沿。
+ *
+ * 为什么从"不做卡片"改成有底：顶栏当初故意浮在页面底上，但一旦有背景图就站不住了 ——
+ * 实测 Dawntrail 那张图在顶栏那一带平均亮度 0.434、最亮处 0.70（照片的天空），
+ * 浅色问候语压在上面只有约 1.2:1，靠渐隐压暗也只能救回来一部分，观感又像蒙了一层。
+ * 现在它和卡片是同一套东西：可读性彻底解决，八个主题的观感也一致
+ *（默认主题那两套没有背景图，底条只是比页面底略亮一层的"页头"）。
+ */
 
 .dash-topbar-brand {
   min-width: 0;
@@ -584,6 +626,9 @@ a:hover {
  * 时间读数
  *
  * tabular-nums 保证秒数跳动时宽度不抖；字距略微放开，读起来像仪表读数。
+ * ⚠️ 颜色用正文级（`--ant-color-text`）而不是 secondary/tertiary：实测底条背后的亮度
+ * 约 0.058，secondary（`#999999`）只剩 3.4:1、tertiary 更低 —— 12px 小字不够看。
+ * 主次仍由字号与字重区分（`18px/700` vs `12px`），不靠把字压灰。
  */
 .dash-time-chip {
   display: inline-flex;
@@ -593,7 +638,7 @@ a:hover {
   line-height: 20px;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
-  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+  color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
 }
 
 .dash-time-chip .xiv {
@@ -641,6 +686,16 @@ a:hover {
   border-color: var(--ant-color-primary, #1677ff);
   /* 只留一圈很淡的聚焦环：纯色描边在浅灰底上不好校对焦点位置 */
   box-shadow: 0 0 0 3px var(--ant-color-primary-bg, rgba(5, 145, 255, 0.12));
+}
+
+/*
+ * 占位文字抬一档：antd 默认的 `colorTextPlaceholder` 在深色主题下是
+ * `rgba(255,255,255,.25)` 这一级，压在底条上基本看不见（"搜索已保存的链接…"）。
+ * 用 secondary（约 3.4:1）—— 比正文（`--ant-color-text`）暗一档，既能当提示，
+ * 又不会让空输入框看起来像已经填了字。
+ */
+.dash-topbar-search .ant-input::placeholder {
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
 }
 
 /* 主按钮：正圆，与胶囊搜索框同一套大圆角语言 */

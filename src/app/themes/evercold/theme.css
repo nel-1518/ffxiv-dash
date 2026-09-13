@@ -63,6 +63,8 @@
 [data-dash-theme='evercold'] .dash-card-surface,
 [data-dash-theme='evercold'] .dash-card-surface * {
   --ant-color-text: #333333;
+  /* ⚠️ 标题色要单独给：顶栏的问候语是 Typography.Title，读的是 heading 而不是 text */
+  --ant-color-text-heading: #333333;
   --ant-color-text-secondary: #666666;
   --ant-color-text-tertiary: rgba(51, 51, 51, 0.65);
   --ant-color-text-quaternary: rgba(51, 51, 51, 0.45);

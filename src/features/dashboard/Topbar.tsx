@@ -113,7 +113,20 @@ export function Topbar({
   }
 
   return (
-    <Flex className="dash-topbar" align="center" justify="space-between" gap={18} wrap>
+    /*
+     * 顶栏就是**页面顶端的一整条元素**：它自己铺满视口宽度，
+     * 同时靠 CSS 的 padding-inline 把内容卡在内容列里（与看板左右对齐）。
+     *
+     * `dash-card-surface` 表示"这一层的底色/投影/毛玻璃跟卡片同源"（见 global.css）：
+     * 于是换主题时顶栏自动跟着走，银海那种"深色主题 + 浅色表面"的适配也不用再写一份。
+     */
+    <Flex
+      className="dash-topbar dash-card-surface"
+      align="center"
+      justify="space-between"
+      gap={18}
+      wrap
+    >
       <Flex className="dash-topbar-brand" align="center" gap={12}>
         <span className="dash-topbar-accent" aria-hidden="true" />
 
