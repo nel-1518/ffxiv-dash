@@ -8,8 +8,7 @@
 src/app/themes/
   index.ts             注册表 Record<ThemeKey, ThemeSpec>（少一套会编译报错）
   types.ts             ThemeSpec / ThemeBackground / ThemeCards
-  appearance-sync.ts   换主题时把该主题的背景与卡片参数写进外观偏好
-  hooks.ts             useTheme()
+  appearance-sync.ts    applyTheme：一次写入主题 + 该主题配套的背景与卡片参数
   <key>/index.ts       该主题的 antd 令牌 + 元信息
   <key>/theme.css      该主题的 `--dash-*` 变量（按需）
 ```

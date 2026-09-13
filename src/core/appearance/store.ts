@@ -1,9 +1,11 @@
+import { DEFAULT_THEME, isThemeKey } from '../theme-preference.ts'
+import type { ThemeKey } from '../theme-preference.ts'
+
 /**
- * 外观偏好（纯逻辑，无 React）。
+ * 外观偏好（纯逻辑，无 React）：主题 + 背景 + 卡片，三样共用一个键。
  *
- * 目前只有「背景」一项。与主题偏好一样，它**不属于看板数据**：
- * 独立落一个 localStorage 键，因此 `serializeBoardDoc` 导出时天然不会带上它，
- * 导入别人的看板也不会把自己的背景冲掉。
+ * 它**不属于看板数据**：独立落一个 localStorage 键，因此 `serializeBoardDoc`
+ * 导出时天然不会带上它，导入别人的看板也不会把自己的外观冲掉。
  *
  * 背景分四种来源（`source`）：
  * - `none`   不设背景，回落到主题的 colorBgLayout
@@ -21,6 +23,8 @@
 export type AppearanceSource = 'none' | 'color' | 'url' | 'upload'
 
 export type AppearanceState = {
+  /** 当前主题；可选值与默认值在 `../theme-preference.ts`。 */
+  theme: ThemeKey
   source: AppearanceSource
   /** `color` 模式的颜色，`#rgb` / `#rrggbb`。 */
   color: string
@@ -50,6 +54,7 @@ export type AppearanceState = {
 export type AppearanceSnapshot = AppearanceState & { imageUrl: string | null }
 
 export const DEFAULT_APPEARANCE: AppearanceState = {
+  theme: DEFAULT_THEME,
   source: 'none',
   color: '#1f2937',
   url: '',
@@ -125,6 +130,7 @@ export function normalizeAppearance(raw: unknown): AppearanceState {
   const url = asString(source.url)
 
   return {
+    theme: isThemeKey(source.theme) ? source.theme : DEFAULT_THEME,
     source: sourceKey,
     color: isColorValue(color) ? color.toLowerCase() : DEFAULT_APPEARANCE.color,
     url: isImageUrl(url) ? url : '',
@@ -139,7 +145,11 @@ export function normalizeAppearance(raw: unknown): AppearanceState {
   }
 }
 
-const STORAGE_KEY = 'ffxiv-dash:appearance:v1'
+/**
+ * 键名带 v2：结构从"只有外观"变成"主题 + 外观"。早期的 `appearance:v1`
+ * 与更早的 `theme:v1` 都不再读写，留着它们只会得到半新半旧的值。
+ */
+const STORAGE_KEY = 'ffxiv-dash:appearance:v2'
 
 function readStored(): AppearanceState {
   try {
@@ -195,6 +205,16 @@ export function getAppearance(): AppearanceSnapshot {
 }
 
 /**
+ * 当前主题 —— 单独给一个"只读原始值"的入口，供 `useTheme()` 使用。
+ *
+ * `useSyncExternalStore` 拿这个字符串做 `Object.is` 比较，所以换背景图
+ * （会重建含 `imageUrl` 的快照）不会顺带让主题的消费者重渲染。
+ */
+export function getTheme(): ThemeKey {
+  return state.theme
+}
+
+/**
  * 记录/替换上传图片的 object URL。
  *
  * 传新 URL 时会 revoke 上一个 —— object URL 不会被 GC 自动回收，
@@ -222,7 +242,7 @@ export function subscribeAppearance(listener: Listener): () => void {
 /**
  * 补丁式更新：归一化 → 落盘 → 通知订阅者。
  *
- * 落盘失败（配额满 / 隐私模式）只告警，界面照样生效 —— 背景是锦上添花的东西，
+ * 落盘失败（配额满 / 隐私模式）只告警，界面照样生效 —— 外观是锦上添花的东西，
  * 不该因为它存不下就打断用户。
  */
 export function setAppearance(patch: Partial<AppearanceState>): AppearanceState {

@@ -1,8 +1,7 @@
 import { Layout } from 'antd'
 import { DashboardPage } from '../views/DashboardPage.tsx'
-import { useAppearance } from '../core/appearance/hooks.ts'
+import { useAppearance, useTheme } from '../core/appearance/hooks.ts'
 import { getThemeSpec } from './themes/index.ts'
-import { useTheme } from './themes/hooks.ts'
 import { describeBackground } from './background-layer.ts'
 
 /**

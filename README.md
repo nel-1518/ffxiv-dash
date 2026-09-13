@@ -36,18 +36,17 @@ src/
     themes/                 八套主题，一套一个文件夹
       types.ts              ThemeSpec（antd 令牌 / 默认背景 / 默认卡片外观）
       index.ts              注册表（Record<ThemeKey, ThemeSpec>，缺一套会编译报错）
-      hooks.ts              useTheme()
-      appearance-sync.ts    换主题时把该主题的背景与卡片参数写进外观偏好
+      appearance-sync.ts    applyTheme：一次写入主题 + 该主题配套的背景与卡片参数
       <key>/index.ts        该主题的 antd 令牌与元信息
       <key>/theme.css       该主题的 --dash-* 变量（按需）
   core/                   与 React 无关的通用能力
     ids.ts                  全项目唯一 id 生成入口（含非安全上下文降级）
     guards.ts               通用类型守卫（isRecord）
-    theme-preference.ts     主题偏好（默认-浅色 / 默认-深色 / 苍穹 / 红莲 / 暗影 / 晓月 / 金曦 / 银海）
+    theme-preference.ts     主题键的类型与清单（八套主题的名字 / 默认主题）
     appearance/
-      store.ts              外观偏好（背景来源 / 模糊 / 亮度 / 卡片不透明度 / 卡片模糊）
+      store.ts              外观偏好：主题 + 背景 + 卡片，三样共用一个 localStorage 键
       image-store.ts        上传的背景图片存 IndexedDB（不进导出）
-      hooks.ts              useAppearance()
+      hooks.ts              useAppearance() / useTheme()
     clock/
       store.ts              全局秒级时钟（引用计数订阅，无 Provider）
       hooks.ts              useClock() / useNow()
@@ -415,8 +414,8 @@ src/app/themes/<key>/theme.css    该主题的 --dash-* 变量（只改 antd 令
 - 删主题：删文件夹 + 删两处键，**不需要清理任何残留**（变量没定义就回落到 `:root` 默认值）。
 - 卡片是浅色的主题（银海、晓月）：卡内要整体翻成深色文字；
   顶栏与卡片不同色的主题还得用 `:not(.dash-topbar)` 把两者拆开。见 `docs/themes.md`。
-- ⚠️ 主题键会写进 `localStorage`（`ffxiv-dash:theme:v1`），发布后不要再改名；
-  改过名也没关系：校验通不过的旧值会自动回落到默认主题。
+- ⚠️ 主题键会写进 `localStorage`（`ffxiv-dash:appearance:v2` 的 `theme` 字段），
+  发布后不要再改名；改过名也没关系：校验通不过的旧值会自动回落到默认主题。
 
 ### 两套机制各管一半
 

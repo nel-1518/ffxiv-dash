@@ -3,7 +3,7 @@ import { App, ConfigProvider } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
 import { BoardProvider } from '../state/BoardProvider.tsx'
 import { createAppTheme } from './theme-config.ts'
-import { useTheme } from './themes/hooks.ts'
+import { useTheme } from '../core/appearance/hooks.ts'
 import type { ReactNode } from 'react'
 
 /**
