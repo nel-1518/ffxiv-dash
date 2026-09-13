@@ -40,11 +40,17 @@ src/app/themes/
 深色主题 + 浅色卡片（银海、晓月）时，卡内 antd 组件要整体换成深色文字，否则白字压白卡。
 
 它是**刻意重复**的：两套的卡片底色与层次关系都不同，各自留着更好改；
-新增浅色卡主题时照抄一份、换掉基色即可，不要重新推导：
+新增浅色卡主题时照抄一份、换掉色值即可，不要重新推导 —— 漏掉一类就会在卡里留下一块深色补丁：
 
 - 文字翻深（`#333` / `#666`）
 - 填充与描边换成"深色叠加"—— 深色主题里它们是白色叠加，亮卡上等于隐形
+- **控件底色**（`--ant-color-bg-container`）换成浅色 —— 深色主题给的是深色，卡里的按钮 / 输入框会变成**一块深斑**
+- **主色**（`--ant-color-primary`）换成浅底版 —— 深色主题的主色是为暗底提亮的，压在浅卡上只有约 2.4:1
 - 组件级 token（`--ant-progress-*`、`--ant-button-text-*`、error 族）要**按名字**点掉 —— 它们是构建时算好后写死的字面量，不回头读 `--ant-color-*`
+
+主色**必须手给浅底版**，antd 不会帮你压深：`getDesignToken` 在浅色算法下返回的就是种子色本身，而主题的种子本来就是为深底挑的。进度环的颜色是 `--ant-progress-default-color`，**不跟**主色，要同步点掉。
+
+⚠️ 但 `--ant-color-success` **不要动**：进度环满值 / 异常态的 `stroke` 是 antd 用**内联样式**写死的，改令牌只会让环和读数不同色。
 
 选择器上有两个坑：
 
@@ -74,6 +80,7 @@ src/app/themes/
 - `Typography.Title` 读的是 `--ant-color-text-heading`，不是 `text`
 - 卡片边框是 `:where(.css-…).ant-card-bordered { border: var(--ant-line-width) … }`，`:where()` 特异性记 0，整条只有 `(0,1,0)`；我们的 `.ant-card.dash-card-surface` 是 `(0,2,0)`
 - 内部类名与 5.x 不同：`.ant-select-content`、`.ant-modal-container`
+- **`Progress` 满值 / 异常态把颜色内联写在 SVG 的 `stroke` 上**（不是 `var()`），CSS 追不上，要压只能 `!important`；常规态才走 `var(--ant-progress-default-color)`
 
 ## 卡片底色的合成
 

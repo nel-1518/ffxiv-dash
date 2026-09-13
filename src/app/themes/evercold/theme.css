@@ -1,6 +1,6 @@
 /*
  * 银海（Evercold）—— antd 令牌管不到的那部分。
- * 色值取自官方专题站的计算样式；浅色卡的令牌覆盖在 islands.css。
+ * 色值取自官方专题站的计算样式。
  *
  * 卡片是"深色页面 + 浅色玻璃"：白 → 淡蓝的磨砂渐变、一圈纯白外发光、不对称圆角。
  * ⚠️ 发光/圆角都是按**我们的卡片尺寸与密度**折算过的，不能照搬站点的 32px / 24px。
@@ -19,7 +19,6 @@
   --dash-card-shadow: 0 0 2px 0 rgb(255 255 255 / 0.55), 0 0 10px 0 rgba(255, 255, 255, 0.18);
   --dash-link-lift-shadow: 0 0 2px 0 rgb(255 255 255 / 0.55), 0 0 10px 0 rgba(255, 255, 255, 0.18);
   --dash-shadow-xl: 0 12px 32px -8px rgba(3, 10, 18, 0.62), 0 2px 8px rgba(3, 10, 18, 0.42);
-
 }
 
 /*
@@ -46,9 +45,14 @@
   --ant-color-icon: rgba(51, 51, 51, 0.55);
   --ant-color-icon-hover: rgba(51, 51, 51, 0.85);
 
+  /* 主色：深色主题为暗底把它提亮了，落在浅卡上不够深，这里给一支浅底版 */
+  --ant-color-primary: #457c9c;
   /* 主色的几种"淡底"在深色算法下是深色，落到亮卡上会变成一块脏色 */
   --ant-color-primary-bg: rgb(101 165 199 / 0.14);
   --ant-color-primary-border: rgb(101 165 199 / 0.35);
+
+  /* 卡内控件的底色：深色主题给的是深色，落在浅卡上会变成一块深斑（进度卡的加减按钮） */
+  --ant-color-bg-container: #ffffff;
 
   /* 填充与交互底：深色主题里它们都是"白色叠加"，亮卡上等于看不见 */
   --ant-color-fill: rgb(107 131 179 / 0.2);
@@ -78,13 +82,18 @@
    * 组件级 token：构建时按 colorText 等算好后写死在组件根上，
    * 使用时**不**回头读 --ant-color-*，必须按名字点掉。
    */
+  /* 进度环的颜色也是组件级 token，不跟 --ant-color-primary */
+  --ant-progress-default-color: #457c9c;
   --ant-progress-remaining-color: rgba(51, 51, 51, 0.12);
   --ant-progress-circle-text-color: #333333;
   --ant-button-text-text-color: rgba(51, 51, 51, 0.65);
   --ant-button-text-text-hover-color: rgba(51, 51, 51, 0.88);
   --ant-button-text-text-active-color: rgba(51, 51, 51, 0.88);
   --ant-button-text-hover-bg: rgb(107 131 179 / 0.12);
-  /* 危险按钮换浅色主题那套红（深色算法给的红底落在亮卡上会脏） */
+  /* 危险按钮换浅色主题那套红（深色算法给的红底落在亮卡上会脏）
+   * ⚠️ 只改 error，不要动 success：进度环满值/异常态的 stroke 是 antd **内联**写死的，
+   * 改 --ant-color-success 只会让环和读数不同色。
+   */
   --ant-color-error: #cf1322;
   --ant-color-error-hover: #ff4d4f;
   --ant-color-error-active: #a8071a;
