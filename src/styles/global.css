@@ -133,7 +133,13 @@ body {
  *   --dash-card-shadow       常驻投影（主题按需给，银海是一圈纯白外发光）
  *   --dash-card-radius     组件卡圆角（主题按需给）
  *   --dash-card-radius-sm  导航卡圆角 —— 它与组件卡高矮差好几倍，不能共用一套值
- *   --dash-card-border        描边（主题按需给）
+ *   --dash-card-border        描边颜色（主题按需给）
+ *   --dash-card-border-width  描边宽度，默认 1px —— 想要"真无边框"得把它归零：
+ *                             只把颜色设成 `transparent` 时那 1px 还在，边缘仍会留一条发丝线
+ *   --dash-card-bg-hover      悬停时的底色覆盖（主题按需给，暗影用它铺那层紫罗兰渐变）
+ *                             ⚠️ 只能以**变量**形式给：导航卡的底色写在 `CardFace` 的
+ *                             inline style 里（`var(--dash-card-bg-hover, var(--dash-card-bg, …))`），
+ *                             inline style 的特异性最高，任何 CSS 规则都压不过它
  *
  * 底色在这里拼成 `linear-gradient(135deg, rgb(R G B / α), rgb(R2 G2 B2 / α))`，
  * 让两种卡片共用同一套变量：导航卡是自绘的 Flex（底色/描边/圆角写在 inline style 里，

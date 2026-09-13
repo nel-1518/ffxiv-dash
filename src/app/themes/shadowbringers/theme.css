@@ -1,0 +1,115 @@
+/*
+ * 暗影（Shadowbringers）—— antd 令牌管不到的那部分。
+ *
+ * 与银海/金曦/晓月同一套约定：只写这里要改的几项，没写的自动沿用 global.css 里 `:root` 的默认值，
+ * 因此切主题不需要清理任何残留。
+ *
+ * 卡片照站点首页那排 `.new_content__list`（实测计算样式）来做：
+ *   a          300×437、圆角 16px、底色 `rgba(0,0,0,.5)`、整块可点、overflow hidden
+ *   a::before  紫罗兰 → 深蓝黑渐变 `linear-gradient(to bottom, rgb(80,71,178), rgba(4,0,51,.8))`，默认 opacity 0
+ *   a:hover    `translateY(-10px)`，同时那层渐变 opacity 1
+ *   a span     18px `#968cff` 的 "LEARN MORE"，居中贴底
+ * 归纳起来就是三件事：**半透明黑底 + 悬浮时浮起并铺一层紫罗兰渐变 + 紫罗兰当强调色**。
+ *
+ * ⚠️ 参考卡是 300×437 的大卡，数值不能照搬（见 README「参考元素的数值不能照搬」）：
+ * 圆角按尺寸收一档，浮起量沿用全局既有的 2px，底色的黑里掺一点紫让它接上站点那三层紫黑
+ * （`#000` / `#20202e` / `#282640`）。
+ */
+
+[data-dash-theme='shadowbringers'] {
+  /* 页面底色：比 antd 的 colorBgLayout 再深一点，作为背景图之外的兜底 */
+  --dash-page-bg: #0d0b12;
+
+  /*
+   * 卡片：近黑的紫黑渐变。
+   * 参考卡是 `rgba(0,0,0,.5)`，这里两端取站点那两层区块色 `#282640` / `#20202e` 压暗后的味道。
+   * ⚠️ 必须显式给通道值：默认两端是**纯白**，白加透明度压在深底上会变成一层灰雾。
+   */
+  --dash-card-rgb: 26 25 38;
+  --dash-card-rgb-2: 18 17 28;
+
+  /*
+   * 圆角：站点自己就是两档 —— 8px（按钮、面板、tab）与 16px（参考卡这种大卡）。
+   * 参考卡是 16px / 437px 高 ≈ 3.7% 高度；我们的卡小一个数量级，
+   * 按尺寸收到 14px（组件卡 ≈200×150）/ 10px（导航卡 ≈200×44）。
+   */
+  --dash-card-radius: 14px;
+  --dash-card-radius-sm: 10px;
+
+  /*
+   * 卡片不要阴影也不要边框（用户要求）：卡片与背景的分界只靠底色深浅。
+   * ⚠️ 投影必须写成**零尺寸的透明投影**而不是 `none`：它会被拼进 `box-shadow` 列表
+   * （悬停时是「浮起光晕, 常驻投影」），列表里出现 `none` 会让整条声明失效
+   * （与 global.css `:root` 里那行默认值同一个理由）。
+   * ⚠️ 边框则**必须把宽度也归零**：`CardFace` 的 inline style 写的是
+   * `var(--dash-card-border-width, 1px) solid var(--dash-card-border, …)`，
+   * 只把颜色设成 `transparent` 时那 1px 的位置还在，卡片左右边缘仍会显一条发丝线
+   * —— 它就是用户看到的那条"竖线"（一开始误诊成悬停光晕了）。
+   */
+  --dash-card-shadow: 0 0 #0000;
+  --dash-card-border: transparent;
+  --dash-card-border-width: 0;
+
+  /*
+   * 悬停时也不要光晕（用户要求）。
+   * 那条"左右竖线"就是这里第二段的 `0 0 2px` 细光 —— 它不带偏移，在卡片**四边均匀**
+   * 铺开，上下被卡片自己的底色压住、左右两侧就变成两条竖线（很容易被当成边框）。
+   * ⚠️ 同样要写成**零尺寸透明投影**而不是 `none`：它会被拼进 hover 的
+   * `box-shadow: var(--dash-link-lift-shadow), var(--dash-card-shadow)` 列表里，
+   * 出现 `none` 会让整条声明失效。
+   * 于是 hover 时只剩「浮起 + 那层紫渐变」，与"卡片不要阴影"的要求一致。
+   */
+  --dash-link-lift-shadow: 0 0 #0000;
+
+  /* 弹窗与搜索卡这类浮层：深紫黑的投影，比默认那套浅色主题的投影重得多 */
+  --dash-shadow-xl: 0 12px 32px -8px rgba(4, 2, 16, 0.72), 0 2px 8px rgba(4, 2, 16, 0.5);
+}
+
+/*
+ * 导航卡悬浮：照搬参考卡的 `.new_content__list a:hover` —— 铺一层"紫罗兰 → 深蓝黑"的渐变。
+ * 站点原式是 `linear-gradient(to bottom, rgb(80,71,178) 0%, rgba(4,0,51,0.8) 100%)`，
+ * 这里把两端的 alpha 提到接近实色：我们的卡比参考卡小得多，底下又压着背景图，
+ * 太透就看不出那层紫了。
+ *
+ * ⚠️ 悬停判定要挂在 `.dash-link-cell` 上（全局既有写法）：卡片抬起后会从指针下方移开，
+ * 判定挂在卡片本身会立刻失焦、卡片落回、又命中悬停 —— 表现为高频抖动。
+ * 所以选择器是 `.dash-link-cell:hover > .dash-link-card`，而不是 `.dash-link-card:hover`。
+ *
+ * ⚠️ 给的是**变量**而不是直接写 `background`：导航卡的底色是 `CardFace` 的 inline style
+ * 写的（`var(--dash-card-bg, …)`），inline style 的特异性最高，任何 CSS 规则都压不过它。
+ * `--dash-card-bg-hover` 就是为这件事留的钩子，它在 inline style 里作为第一级回退被读。
+ *
+ * ⚠️ 只做**导航卡**：组件卡里有进度环、地图块这些自己的用色，
+ * 整块换成紫底会让它们全部失衡（参考卡本身就是"整块可点的链接卡"）。
+ */
+@media (hover: hover) and (pointer: fine) {
+  [data-dash-theme='shadowbringers'] .dash-link-cell:hover > .dash-link-card {
+    --dash-card-bg-hover: linear-gradient(
+      to right,
+      rgb(80 71 178 / 0.92) 0%,
+      rgb(4 0 51 / 0.86) 100%
+    );
+  }
+}
+
+/*
+ * 组件卡（antd Card）自己带一条 1px 边框，而 `--dash-card-border*` 只管导航卡
+ * （那是 `CardFace` 的 inline style 读的），所以这里单独点掉。
+ * ⚠️ 同样要归零宽度而不是只把颜色设透明 —— 理由见上面 `--dash-card-border-width` 那段。
+ */
+[data-dash-theme='shadowbringers'] .ant-card.dash-card-surface {
+  border-width: 0;
+}
+
+/*
+ * 卡片标题/名称：**链接卡一律用白色**（用户要求 —— 紫色压在紫黑卡上偏暗，
+ * 也会和悬停时那层紫底撞色），组件卡的标题仍留给紫罗兰当主题色。
+ * 两个选择器以前写在一起共用 `#a99fff`，现在按"可点 vs 内容"拆开。
+ */
+[data-dash-theme='shadowbringers'] .dash-card-surface .ant-card-head-title {
+  color: #a99fff;
+}
+
+[data-dash-theme='shadowbringers'] .dash-link-card .ant-typography:not(.ant-typography-secondary) {
+  color: #ffffff;
+}

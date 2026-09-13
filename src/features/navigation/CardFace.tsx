@@ -117,12 +117,22 @@ function LinkFace({
       style={{
         padding: '6px 8px',
         // 描边 / 底色 / 圆角都留给主题（见 global.css 的 --dash-card-*）：
-        // 变量取不到时退回 antd 令牌 —— 拖拽虚影等场景不会突然变透明、没描边或变直角
-        border: '1px solid var(--dash-card-border, var(--ant-color-border-secondary))',
+        // 变量取不到时退回 antd 令牌 —— 拖拽虚影等场景不会突然变透明、没描边或变直角。
+        // ⚠️ 拆成三个 longhand：简写里塞两个变量时，只要有一个算不出值整条声明就会失效。
+        // ⚠️ 宽度也做成变量：有的主题（暗影）要的是"连位置都不留"的真无边框，
+        // 光把颜色设成 `transparent` 是不够的 —— 那 1px 还在，卡片边缘会留一条发丝线。
+        borderWidth: 'var(--dash-card-border-width, 1px)',
+        borderStyle: 'solid',
+        borderColor: 'var(--dash-card-border, var(--ant-color-border-secondary))',
         // 导航卡只有一行高，圆角用单独的小一档（--dash-card-radius-sm），
         // 跟组件卡共用同一个值会在这种扁卡上变成叶子形
         borderRadius: 'var(--dash-card-radius-sm, var(--ant-border-radius))',
-        background: 'var(--dash-card-bg, var(--ant-color-bg-container))',
+        /*
+         * ⚠️ 底色写在这里（inline style），所以主题的 CSS 规则**压不过它** ——
+         * 想换底色只能走变量：`--dash-card-bg-hover` 是悬停时的钩子（主题按需给，
+         * 暗影就是用它铺那层紫罗兰渐变的），缺省时逐级退回卡片底色。
+         */
+        background: 'var(--dash-card-bg-hover, var(--dash-card-bg, var(--ant-color-bg-container)))',
         minWidth: 0,
       }}
     >
