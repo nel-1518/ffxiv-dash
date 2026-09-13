@@ -207,6 +207,20 @@ body {
 }
 
 /*
+ * 卡片标题 / 导航卡名称的主题色。
+ * 主题给 `--dash-card-title-color`（导航卡可另给 `--dash-link-name-color`）即可，
+ * 缺省沿用正文色 —— 与没这条规则时的行为一致。
+ * ⚠️ 写在样式表而不是主题里：以前八套各自重复同一条选择器，改一处要改八遍。
+ */
+.dash-card-surface .ant-card-head-title {
+  color: var(--dash-card-title-color, var(--ant-color-text));
+}
+
+.dash-link-card .ant-typography:not(.ant-typography-secondary) {
+  color: var(--dash-link-name-color, var(--dash-card-title-color, var(--ant-color-text)));
+}
+
+/*
  * 项目（分组）卡片：背景透明、没有投影。
  *
  * 它只是个容器 —— 让卡片直接落在页面背景上，分组只靠表头说话。

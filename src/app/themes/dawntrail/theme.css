@@ -1,52 +1,19 @@
 /*
  * 金曦（Dawntrail）—— antd 令牌管不到的那部分。
- *
- * 与银海同一套约定：只写这里需要改的几项，没写的自动沿用 global.css 里 `:root` 的默认值，
- * 因此切主题不需要清理任何残留。
- *
- * ⚠️ 与银海最大的不同：这里**没有**"浅色岛"那一段：站点自己的面板就是暖棕黑
- * （`rgba(26,16,5,.9)`），卡片与页面同属深色系，正文色直接来自深色令牌，天然统一，
- * 也就没有组件级令牌需要按名字点掉。
+ * 色值取自官方专题站的计算样式：暖黑底 `#1a1918` + 亮金 `#ffd966` + 古金 `#d9bf57`。
  */
 
 [data-dash-theme='dawntrail'] {
-  /* 页面底色：比 colorBgLayout 再暖再暗一点，作为背景图之外的兜底 */
   --dash-page-bg: #16140f;
 
-  /*
-   * 卡片：暖深棕的斜向渐变。
-   */
   --dash-card-rgb: 38 32 24;
   --dash-card-rgb-2: 26 22 17;
-
-  /*
-   * 不用圆角
-   */
   --dash-card-radius: 0px;
   --dash-card-radius-sm: 0px;
-
-  /*
-   * 描边取消：宽度归零。
-   */
   --dash-card-border-width: 0;
+  --dash-card-title-color: #e8cc70;
 
-  /*
-   * 深底上深投影看不见，所以悬停浮起让**暖金光晕**当主角（银海那边用的是白光）。
-   * 金色比白收敛，光晕可以比银海放开一点。
-   */
   --dash-link-lift-shadow:
-    -2px 5px 16px -3px rgba(255, 200, 90, 0.28), 0 0 2px 0 rgb(255, 244, 128 / 0.35);
-
-  /* 弹窗与搜索卡这类浮层：暖黑的深投影，比默认那套浅色主题的投影重得多 */
+    -2px 5px 16px -3px rgba(255, 200, 90, 0.28), 0 0 2px 0 rgb(255 244 128 / 0.35);
   --dash-shadow-xl: 0 12px 32px -8px rgba(10, 6, 0, 0.72), 0 2px 8px rgba(10, 6, 0, 0.5);
-}
-
-/*
- * 卡片标题/名称用站点的亮金压一档。
- * 站点那支是 32px 的 `h3`，我们是 13-14px 的小字：`#e8cc70` 在暖棕卡上约 10:1，
- * 仍然亮得起来但不会糊成一片（做法与银海把钢蓝压深一档同理）。
- */
-[data-dash-theme='dawntrail'] .dash-card-surface .ant-card-head-title,
-[data-dash-theme='dawntrail'] .dash-link-card .ant-typography:not(.ant-typography-secondary) {
-  color: #e8cc70;
 }

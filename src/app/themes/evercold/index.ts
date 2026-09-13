@@ -5,18 +5,16 @@ import './theme.css'
 /**
  * 银海（Evercold）。
  *
- * 取色自官方专题站 <https://na.finalfantasyxiv.com/evercold/> 的计算样式（实测采样）：
- * 近黑的冷底 `#18191a`、冰蓝强调 `#73bfe6`、正文 `#cccccc`、钢蓝标题 `#6b83b3`、
- * 金色点缀 `#f5d349`；分区靠"上缘亮线 + 柔和辉光"而不是实边框。
+ * 色值取自官方专题站 <https://na.finalfantasyxiv.com/evercold/> 的计算样式：
+ * 近黑的冷底 `#18191a` + 冰蓝 `#73bfe6` + 正文 `#cccccc` + 钢蓝标题 `#6b83b3`。
  *
- * 只取颜色/边框/阴影，站点里的图片与视频一概不用；背景用本地那张
- * `public/bg/8-evercold.webp`（整体是偏暗的蓝灰冰原，与深色底正好搭）。
+ * ⚠️ 卡片是**亮色玻璃**（站点的「信息卡」），卡内文字整体翻深色（见 `theme.css`）；
+ * 顶栏另走一条半透明白玻璃 + 白字的路。
  */
 export const evercoldSpec: ThemeSpec = {
   key: 'evercold',
   label: '银海',
   antd: {
-    // 深色底靠 darkAlgorithm 派生整套中性色，再按站点色值覆盖关键项
     algorithm: antdTheme.darkAlgorithm,
     token: {
       colorPrimary: '#73bfe6',
@@ -36,10 +34,6 @@ export const evercoldSpec: ThemeSpec = {
       borderRadius: 8,
     },
   },
-  background: {
-    url: '/bg/8-evercold.webp',
-    brightness: 60,
-    blur: 1,
-  },
+  background: { url: '/bg/8-evercold.webp', brightness: 60, blur: 1 },
   cards: { alpha: 85, blur: 1 },
 }

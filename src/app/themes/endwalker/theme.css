@@ -1,169 +1,90 @@
 /*
  * 晓月（Endwalker）—— antd 令牌管不到的那部分。
+ * 色值取自官方专题站的计算样式与样式表；浅色卡的令牌覆盖在 islands.css。
  *
- * 与银海/金曦同一套约定：只写这里要改的几项，没写的自动沿用 global.css 里 `:root` 的默认值，
- * 因此切主题不需要清理任何残留。
- *
- * 层次是"暗页面 + 暗顶栏 + **亮卡片**"（与其余五套深色主题都不同）：
- * 顶栏与卡片本来共用 `dash-card-surface` 这一层材质，这里用 `:not(.dash-topbar)`
- * 把两者拆开 —— 顶栏重算一条更暗的底，卡片换成冷白玻璃并补一整套浅色令牌。
- *
- * 色值取自官方专题站的计算样式与样式表采样。
+ * 层次是"暗页面 + 暗顶栏 + 亮卡片"：卡片纯色 `#F5F5FA`（站点那套极淡冷白的底色）。
  */
 
 [data-dash-theme='endwalker'] {
-  /* 页面底色：比 antd 的 colorBgLayout 再冷再暗一点，作为背景图之外的兜底 */
   --dash-page-bg: #14161c;
 
-  /*
-   * 卡片：**纯色** `#F5F5FA`。
-   * 这个色在站点样式表里本来就出现过 12 次 —— 正是它那套"极淡冷白"的底色：
-   * 比纯白低一点点、带一丝蓝紫，压在冷色背景图上不会像一张贴上去的白纸。
-   * ⚠️ 仍要显式给通道值：`--dash-card-rgb` 的默认是**纯白**。
-   * 两端给成同一个值，`.dash-shell` 拼出来的那条 linear-gradient 就是纯色底
-   * （不是"取消渐变属性"，而是让它两端相等 —— 卡片底色的合成只认这两个变量）。
-   */
   --dash-card-rgb: 245 245 250;
   --dash-card-rgb-2: 245 245 250;
-
-  /*
-   * 圆角：站点是 8px（`endwalker-xiv_link li a`），比金曦的 20/32 与银海的不对称角都小 ——
-   * 这正是晓月的调性（利落、冷硬）。按我们的卡片尺寸仍要放大一档：
-   * 组件卡≈200×150 用 12px，导航卡≈200×44 用 8px。
-   */
   --dash-card-radius: 12px;
   --dash-card-radius-sm: 8px;
-
-  /*
-   * 描边取消：宽度归零 —— 卡片与背景只靠底色深浅分界。
-   */
   --dash-card-border-width: 0;
+  --dash-card-title-color: #4a5580;
 
-  /*
-   * 亮卡要在暗页面上浮起来，投影就得是**深色**的
-   * （站点按钮是零投影，但那是深底上的暗色按钮，语境不同）。
-   */
   --dash-card-shadow: 0 2px 10px -2px rgb(4 6 18 / 0.5), 0 1px 2px rgb(4 6 18 / 0.3);
-
-  /* 悬停浮起同样是深色投影，外加一圈靛蓝紫的薄光（晓月那支渐变里的蓝紫） */
   --dash-link-lift-shadow:
     -2px 6px 18px -4px rgba(4, 6, 18, 0.62), 0 0 2px 0 rgb(122 140 214 / 0.5);
-
-  /* 弹窗与搜索卡这类浮层：冷黑的深投影，比默认那套浅色主题的投影重得多 */
   --dash-shadow-xl: 0 12px 32px -8px rgba(4, 6, 18, 0.72), 0 2px 8px rgba(4, 6, 18, 0.5);
+
 }
 
 /*
- * 顶栏：**暗色**卡片（与下面的亮卡刻意分成两层）。
+ * 卡片是纯色 #F5F5FA，卡内 antd 组件要整体换成深色文字，否则白字压白卡。
+ * 原理与维护要点见 docs/themes.md。
  *
- * ⚠️ `--dash-card-bg` 是在 `.dash-shell` 上算好的，`.dash-topbar` 只是**继承**它 ——
- * 所以"让顶栏换个底色"不能靠改 `--dash-card-rgb`（那样追不上已经算完的那条变量），
- * 必须在顶栏**自己身上**重写 `--dash-card-bg`。
- *
- * ⚠️ 不透明度仍取 `--dash-card-alpha`（设置里那个"卡片不透明度"滑块）：
- * 顶栏与卡片只是底色不同，不该出现"滑块只作用一半"的行为。
- */
-[data-dash-theme='endwalker'] .dash-topbar {
-  --dash-card-bg: linear-gradient(
-    135deg,
-    rgb(20 24 32 / var(--dash-card-alpha, 1)) 0%,
-    rgb(12 15 21 / var(--dash-card-alpha, 1)) 100%
-  );
-  /* 下沿一条发丝线：晓月站里所有分区都是靠这种 1px 冷灰线划界的 */
-  border-bottom: 1px solid rgba(188, 188, 204, 0.14);
-}
-
-/*
- * ── 浅色岛：卡片内的文字整体翻成深色 ──
- *
- * ⚠️ 关键：antd 6 会给**每个组件自身的根元素**再挂一份 `css-var-*` 作用域
- * （变量就定义在那个类上），所以只把变量写在卡片根上，卡片**里面的 antd 组件
- * 会把它们盖回深色那套** —— 副标题就是这样一度还是白色的。
- * 因此这里连 `*` 一起选：把同一套浅色变量写到卡片内**每一个元素**上，
- * 组件自己的作用域（特异性 0,1,0）就压不过我们（0,3,0）了。
- *
- * ⚠️ `:not(.dash-topbar)` 一个字都不能少：顶栏也挂 `dash-card-surface`
- * （为了共用毛玻璃与投影），但它是**暗色**的 —— 一旦被卷进浅色岛，
- * 就会变成"深色文字压在暗底上"，整条顶栏全看不见。
- *
- * 色值取样自站点的浅色区块：正文 `#333`、次要 `#666`；
- * 填充与描边用靛蓝灰紫（站点渐变起点 `#3d4d99` 的去饱和版），比银海的钢蓝更冷。
+ * ⚠️ 连 `*` 一起选是必须的：antd 6 给每个组件自身的根元素再挂一份 `css-var-*`
+ * 作用域，只写在卡片根上会被卡里的组件盖回去。
+ * ⚠️ 顶栏排除在外（`:not(.dash-topbar)`）：它也挂 `dash-card-surface` 以共用毛玻璃，
+ * 但底色是暗的，卷进来会变成"深字压暗底"。
  */
 [data-dash-theme='endwalker'] .dash-card-surface:not(.dash-topbar),
 [data-dash-theme='endwalker'] .dash-card-surface:not(.dash-topbar) * {
+  /* 文字 */
   --ant-color-text: #333333;
-  /* ⚠️ 标题色要单独给：`Typography.Title` 读的是 heading 而不是 text */
   --ant-color-text-heading: #333333;
   --ant-color-text-secondary: #666666;
   --ant-color-text-tertiary: rgba(51, 51, 51, 0.65);
   --ant-color-text-quaternary: rgba(51, 51, 51, 0.45);
-  /* antd 的 type="secondary" 用的是 description 而不是 secondary，必须单独给 */
+  /* antd 的 type="secondary" 读的是 description 而不是 secondary */
   --ant-color-text-description: #666666;
   --ant-color-text-placeholder: rgba(51, 51, 51, 0.35);
   --ant-color-text-disabled: rgba(51, 51, 51, 0.3);
   --ant-color-icon: rgba(51, 51, 51, 0.55);
   --ant-color-icon-hover: rgba(51, 51, 51, 0.85);
 
-  /* 主色的几种"淡底"在深色算法下是深色，落到亮卡上会变成一块脏色，重给一遍 */
-  --ant-color-primary-bg: rgba(122, 140, 214, 0.14);
-  --ant-color-primary-border: rgba(122, 140, 214, 0.35);
+  /* 主色的几种"淡底"在深色算法下是深色，落到亮卡上会变成一块脏色 */
+  --ant-color-primary-bg: rgb(122 140 214 / 0.14);
+  --ant-color-primary-border: rgb(122 140 214 / 0.35);
 
-  /*
-   * 填充/交互底也全是"白色叠加"（深色主题的写法），亮卡上等于看不见：
-   * 悬停要变深、进度环的底槽要看得见、禁用态要发灰 —— 一律换成靛蓝灰紫的透明色。
-   */
-  --ant-color-fill: rgba(96, 110, 170, 0.2);
-  --ant-color-fill-secondary: rgba(96, 110, 170, 0.16);
-  --ant-color-fill-tertiary: rgba(96, 110, 170, 0.12);
-  --ant-color-fill-quaternary: rgba(96, 110, 170, 0.07);
-  --ant-color-fill-content: rgba(96, 110, 170, 0.12);
-  --ant-color-fill-content-hover: rgba(96, 110, 170, 0.2);
-  --ant-color-fill-alter: rgba(96, 110, 170, 0.05);
-  --ant-color-bg-blur: rgba(96, 110, 170, 0.05);
-  --ant-color-bg-text-hover: rgba(96, 110, 170, 0.12);
-  --ant-color-bg-text-active: rgba(96, 110, 170, 0.2);
-  --ant-control-item-bg-hover: rgba(96, 110, 170, 0.12);
-  --ant-control-item-bg-active-disabled: rgba(96, 110, 170, 0.18);
-  --ant-control-tmp-outline: rgba(96, 110, 170, 0.05);
-  --ant-color-bg-container-disabled: rgba(96, 110, 170, 0.06);
+  /* 填充与交互底：深色主题里它们都是"白色叠加"，亮卡上等于看不见 */
+  --ant-color-fill: rgb(96 110 170 / 0.2);
+  --ant-color-fill-secondary: rgb(96 110 170 / 0.16);
+  --ant-color-fill-tertiary: rgb(96 110 170 / 0.12);
+  --ant-color-fill-quaternary: rgb(96 110 170 / 0.07);
+  --ant-color-fill-content: rgb(96 110 170 / 0.12);
+  --ant-color-fill-content-hover: rgb(96 110 170 / 0.2);
+  --ant-color-fill-alter: rgb(96 110 170 / 0.05);
+  --ant-color-bg-blur: rgb(96 110 170 / 0.05);
+  --ant-color-bg-text-hover: rgb(96 110 170 / 0.12);
+  --ant-color-bg-text-active: rgb(96 110 170 / 0.2);
+  --ant-control-item-bg-hover: rgb(96 110 170 / 0.12);
+  --ant-control-item-bg-active-disabled: rgb(96 110 170 / 0.18);
+  --ant-control-tmp-outline: rgb(96 110 170 / 0.05);
+  --ant-color-bg-container-disabled: rgb(96 110 170 / 0.06);
 
   /* 描边族 */
-  --ant-color-border: rgba(96, 110, 170, 0.35);
-  --ant-color-border-secondary: rgba(96, 110, 170, 0.22);
-  --ant-color-split: rgba(96, 110, 170, 0.18);
+  --ant-color-border: rgb(96 110 170 / 0.35);
+  --ant-color-border-secondary: rgb(96 110 170 / 0.22);
+  --ant-color-split: rgb(96 110 170 / 0.18);
 
-  /*
-   * 深色主题的 `colorShadow` 是白的（用白影在深底上提亮），亮卡上要用深影。
-   * 注意 `--ant-color-bg-solid*` 那组没动：它们是开关滑块、标记点这类"实心块"，
-   * 本来就该是近乎白的，亮卡上依然成立。
-   */
+  /* 深色主题的 colorShadow 是白的（在深底上提亮），亮卡上要用深影 */
   --ant-color-shadow: rgba(51, 51, 51, 0.14);
 
   /*
-   * ⚠️ 还有一类漏网的：antd 的**组件级 token**（`--ant-<组件>-*`）是构建时按
-   * `colorText`、`colorFillSecondary` 算好后**写死**在组件根上的字面量，
-   * 使用时并**不**回头读 `--ant-color-*`，所以上面那批覆盖管不到它们。
-   * 深色算法算出来的值落在亮卡上就是"白画在白上"，必须按名字点掉。
+   * 组件级 token：构建时按 colorText 等算好后写死在组件根上，
+   * 使用时**不**回头读 --ant-color-*，必须按名字点掉。
    */
-  /* 进度环（组件卡里的进度卡）：底槽 `rgba(255,255,255,.12)` 亮卡上看不见、环心文字 `#ccc` 太浅 */
   --ant-progress-remaining-color: rgba(51, 51, 51, 0.12);
   --ant-progress-circle-text-color: #333333;
-
-  /*
-   * 卡内操作按钮（**只在编辑模式出现**：编辑 / 删除）。
-   * 链子是 `.ant-btn.ant-btn-color-default.ant-btn-variant-text` → `--ant-button-text-*`，
-   * 实测在深色主题下写死为 `#cccccc`（图标）与 `rgba(255,255,255,.08)`（悬停底），亮卡上看不见。
-   */
   --ant-button-text-text-color: rgba(51, 51, 51, 0.65);
   --ant-button-text-text-hover-color: rgba(51, 51, 51, 0.88);
   --ant-button-text-text-active-color: rgba(51, 51, 51, 0.88);
-  --ant-button-text-hover-bg: rgba(96, 110, 170, 0.12);
-  /*
-   * 危险按钮（删除）走 error 族，实测直接引用 `--ant-color-error` / `-error-bg`，
-   * 深色算法给的是 `#ff7a90` + 深红底（亮卡上的悬停底会脏），换成浅色主题那套红。
-   * 图标色取 `#cf1322` 而不是 antd 浅色默认的 `#ff4d4f`：后者在亮卡上只约 3.5:1，
-   * 同样理由见下面标题那个靛蓝。
-   */
+  --ant-button-text-hover-bg: rgb(96 110 170 / 0.12);
+  /* 危险按钮换浅色主题那套红（深色算法给的红底落在亮卡上会脏） */
   --ant-color-error: #cf1322;
   --ant-color-error-hover: #ff4d4f;
   --ant-color-error-active: #a8071a;
@@ -171,18 +92,21 @@
   --ant-color-error-bg-active: #ffccc7;
 }
 
-/* 卡片自身有底色，文字直接继承它，省得每个后代都自己声明 */
+/* 卡片自己有底色，文字直接继承，省得每个后代都声明 */
 [data-dash-theme='endwalker'] .dash-card-surface:not(.dash-topbar) {
   color: var(--ant-color-text);
 }
 
 /*
- * 卡片标题/名称用站点那支夜空蓝紫（渐变起点 `#3d4d99`）压深一档。
- * 原色在亮卡上约 8.9:1，但饱和度偏高，13-14px 的小字会显重、发闷，
- * 所以往灰里调一档到 `#4a5580`（约 6.5:1）——
- * 做法与银海把钢蓝压深、金曦把亮金压暗同理。
+ * 顶栏：暗色，与亮卡片分成两层。
+ * `--dash-card-bg` 是在 `.dash-shell` 上算好的，所以要在顶栏**自己身上**重写（见 docs/themes.md）。
+ * 不透明度仍取 `--dash-card-alpha`，不让"卡片不透明度"滑块只作用一半。
  */
-[data-dash-theme='endwalker'] .dash-card-surface:not(.dash-topbar) .ant-card-head-title,
-[data-dash-theme='endwalker'] .dash-link-card .ant-typography:not(.ant-typography-secondary) {
-  color: #4a5580;
+[data-dash-theme='endwalker'] .dash-topbar {
+  --dash-card-bg: linear-gradient(
+    135deg,
+    rgb(20 24 32 / var(--dash-card-alpha, 1)) 0%,
+    rgb(12 15 21 / var(--dash-card-alpha, 1)) 100%
+  );
+  border-bottom: 1px solid rgba(188, 188, 204, 0.14);
 }
