@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, Flex, Form, InputNumber, Select, Spin, Typography } from 'antd'
 import { useNow } from '../../../../core/clock/hooks.ts'
-import { MARKET_REFRESH_MS } from './config.ts'
 import { isFresh, readMarketCache, writeMarketCache } from './cache.ts'
 import { findItem, getItemDbStatus, loadItemDb, searchItems } from './items.ts'
 import { resolveTier, scopeLabel, scopeOptions } from './scopes.ts'
@@ -328,7 +327,11 @@ export function MarketRender({ config }: WidgetRenderProps<MarketConfig>): React
       })
   }, [itemIds, requestKey, scope])
 
-  // 打开 / 换物品 / 换区服：命中未过期缓存就直接用，**不发请求**
+  /*
+   * 打开 / 换物品 / 换区服时请求一次，**只此一次**：
+   * 命中未过期缓存（1 小时内）就直接用、不发请求；
+   * 停留期间不做任何轮询，页面一直开着看到的就是这次拿到的价格。
+   */
   useEffect(() => {
     if (itemIds.length === 0) {
       return
@@ -339,17 +342,6 @@ export function MarketRender({ config }: WidgetRenderProps<MarketConfig>): React
     }
     void reload()
   }, [itemIds, reload, scope])
-
-  // 停留期间每 30 分钟重取一次：到点时缓存已过 29 分钟，必然已过期
-  useEffect(() => {
-    if (itemIds.length === 0) {
-      return
-    }
-    const timer = window.setInterval(() => {
-      void reload()
-    }, MARKET_REFRESH_MS)
-    return () => window.clearInterval(timer)
-  }, [itemIds, reload])
 
   if (itemId === undefined) {
     return (

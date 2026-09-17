@@ -1,16 +1,14 @@
 /** 物品价格组件的配置类型、默认值与归一化（纯数据，无组件）。 */
 import { CHINA_REGION, isScopeName } from '../../../../core/world.ts'
 
-/** 缓存有效期 29 分钟。超过就视为过期，下次打开会重新请求。 */
-export const MARKET_CACHE_TTL_MS = 29 * 60 * 1000
-
 /**
- * 定时重取间隔 30 分钟。
+ * 缓存有效期 1 小时。
  *
- * 刻意比 TTL 长 1 分钟：到点时缓存必然已经过期，重取不会白跑；
- * 若两者相等，恰好卡在边界上容易"明明有缓存却仍去请求"。
+ * 组件只在页面打开（或换物品 / 换区服）时看一次缓存，
+ * 命中且未过期就直接用、不发请求；过期了才请求一次。
+ * 因此这个值同时也是"最长会看到多久以前的价格"。
  */
-export const MARKET_REFRESH_MS = 30 * 60 * 1000
+export const MARKET_CACHE_TTL_MS = 60 * 60 * 1000
 
 export type MarketConfig = {
   /**
@@ -58,7 +56,7 @@ export function normalizeMarketConfig(raw: unknown): MarketConfig {
   const source = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {}
 
   // 区服只认世界表里真实存在的名字：拼错的话接口会 404，
-  // 与其每 30 分钟报一次错，不如回落到默认值
+  // 与其每次都报一次错，不如回落到默认值
   const rawScope = typeof source.scope === 'string' ? source.scope.trim() : ''
   const scope = isScopeName(rawScope) ? rawScope : CHINA_REGION
 
