@@ -83,7 +83,7 @@ src/
       registry.ts           注册表（不导入任何具体组件，避免循环依赖）
       useFavicon.ts         图标接口 hook
       WidgetRenderer.tsx    统一卡片外壳 + 未注册组件降级
-      builtins/             内置组件，每个一个目录（stats / pvp-map / market）
+      builtins/             内置组件，每个一个目录（stats / pvp-map / market / countdown）
   views/
     DashboardPage.tsx       页面组装
   styles/global.css         仅页面背景、字体栈、少量基线
@@ -292,7 +292,8 @@ overlay 的 `height` / `top` 跟随 `visualViewport`（`--vv-top` / `--vv-height
 
 ## 如何新增一个组件类型
 
-组件框架的目标是：**新增组件不需要改动任何既有组件，也不需要新增依赖。**
+组件框架的目标是：**新增组件不需要改动任何既有组件，也不需要新增依赖**
+（唯一的例外是日期控件要用的 `dayjs`，见本节末尾）。
 
 1. 新建目录 `src/features/widgets/builtins/<name>-widget/`，放三个文件：
 
@@ -345,6 +346,13 @@ overlay 的 `height` / `top` 跟随 `visualViewport`（`--vv-top` / `--vv-height
 2. 在 `src/features/widgets/builtins/index.ts` 的 `installBuiltinWidgets()` 里追加一行 `registerWidget(weatherWidgetSpec)`。
 
 完成后它会自动出现在"组件类型"下拉与组件配置区。
+
+> **需要日期选择器时**：antd 的 `DatePicker` 只吃 `dayjs` 对象，而 `dayjs` 是 antd 的内部依赖，
+> 在 pnpm 的严格 `node_modules` 下源码里取不到，因此它被提升成了本项目的直接依赖（见 `package.json`）——
+> 这是"新增组件不需要新增依赖"的唯一例外，不要再引入第二个日期库。
+> 配置里仍然只存 `YYYY-MM-DD` 字符串，转换放在 `Form.Item` 的 `getValueProps` / `normalize` 两端，
+> 参考 `builtins/countdown-widget/fields.tsx`；日期解析、周期推进、闰年夹取这类纯计算
+> 单独放一个不导入 React 的模块（`builtins/countdown-widget/countdown.ts`），便于脱离浏览器验证。
 
 ### 组件要访问接口怎么做
 

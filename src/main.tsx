@@ -1,3 +1,10 @@
+/*
+ * dayjs 的语言包必须显式注册（副作用导入）。
+ * antd 的 ConfigProvider 只带界面文案（今天 / 本月…），而日历面板里的星期与月份名
+ * 来自 dayjs 自己的 locale 数据；少这一行，DatePicker 面板会是 "Su Mo Tu … / Oct"，
+ * 底部按钮却是中文，两种语言混在一张面板上。
+ */
+import 'dayjs/locale/zh-cn'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'

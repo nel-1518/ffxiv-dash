@@ -1357,6 +1357,160 @@ a:hover {
   color: var(--ant-color-success, #52c41a);
 }
 
+/*
+ * 倒数日卡
+ *
+ * 从上到下：事件 → 倒数天数 → 强调短线 → 描述块。
+ * 事件与天数是主视觉（事件半粗、天数跟卡宽缩放）；
+ * 短线是"状态色"的第二个落点 —— 有了它，今天转成功色时整张卡都在变色，
+ * 而不是只有一个数字换了颜色。描述行把「距【事件】还有 X 日」这句原话读出来
+ * 并补上目标日期与周期 —— 它是说明，所以最小最轻。
+ *
+ * `container-type: inline-size` 是为了让字号跟着**卡片宽度**走：一张卡有多宽
+ * 取决于所属分组的列数（1~6）与屏宽，媒体查询根本问不到；换成 cqi 之后窄卡自动收小、
+ * 宽卡顶到上限，字号始终与卡片成比例，不必为每种列数各写一条断点。
+ */
+.dash-countdown {
+  /*
+   * 状态色钩子：数字、强调短线都吃它。
+   * 三种状态（还在数 / 就是今天 / 已经过去）各自只改写这一个变量，
+   * 卡片其余部分不必知道状态 —— 以后再加要跟色的元素，认这一个变量就行。
+   */
+  --cd-accent: var(--ant-color-primary, #1677ff);
+  container-type: inline-size;
+  text-align: center;
+}
+
+/*
+ * 事件：卡片的主角。
+ * 下限 17px 保住窄卡的可读性，上限 22px 让宽卡上的名字不会被超大数字压成小字。
+ * 长名宁可换行也不省略 —— 被截断的事件名等于没写。
+ */
+.dash-countdown-event {
+  font-size: clamp(17px, 7cqi, 22px);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
+  overflow-wrap: anywhere;
+}
+
+/*
+ * 倒数天数：整张卡上最大的东西。
+ * 上下限兜住两端 —— 34px 保证窄卡里放得下五位数，58px 是宽卡的止境。
+ * `tabular-nums` 不只是好看：跨天变化时数字宽度不变，整块卡片不会左右抖一下。
+ * inline-flex + baseline 让数字与其他行内元素共用一条基线，不跟行高算计较劲。
+ */
+.dash-countdown-amount {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.dash-countdown-days {
+  position: relative;
+  z-index: 1;
+  font-size: clamp(34px, 20cqi, 58px);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--cd-accent);
+}
+
+/*
+ * 「日」跟着数字一起缩放，但只到数字的三分之一左右：
+ * 太小会被大数字吞掉、太大又会跟数字抢焦点。
+ * 颜色取状态色再压淡，自动跟着今天/已过去的换色走。
+ *
+ * 注意：当前渲染层**没有**这个元素 —— 单位由描述行「还有 X 日」读出来，
+ * 数字旁边刻意留白。规则留着，是为了哪天想把它加回来时不用重写。
+ */
+.dash-countdown-unit {
+  font-size: clamp(14px, 8cqi, 20px);
+  color: var(--cd-accent);
+  opacity: 0.6;
+}
+
+/*
+ * 事件/数字与说明之间的强调短线。
+ * 上下两块都在讲同一件事，中间需要一口气；它同时把状态色带进卡片下半部分。
+ * 只有 24px 长 —— 分隔要能看见，但不能长到变成一条真的分界线。
+ */
+.dash-countdown-rule {
+  width: 24px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--cd-accent);
+  opacity: 0.3;
+}
+
+/*
+ * 描述块：一句话把数字读出来（「距【事件】还有 X 日」）+ 目标日期与周期。
+ * 两行紧挨着自成一块，字号比事件与天数都小 —— 它是说明，不是主角。
+ * 第二行再轻一档（11px + 四级色）：日期与周期是"说明的说明"。
+ */
+.dash-countdown-caption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+}
+
+.dash-countdown-sentence {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.55));
+  /* 描述里同样带着事件名，长名也要能折行 */
+  overflow-wrap: anywhere;
+}
+
+.dash-countdown-meta {
+  font-size: 11px;
+  line-height: 1.4;
+  /* 日期里有数字：等宽数字让跨天变化时这一行不会左右挪一格 */
+  font-variant-numeric: tabular-nums;
+  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45));
+  /* 窄卡里「目标 2026年12月31日 · 每月」可能一行放不下，允许从任意处折行 */
+  overflow-wrap: anywhere;
+}
+
+/*
+ * 今天：天数归零，整张卡转成成功色（与进度卡满值同一套语言），柔光再亮一点，
+ * 让这一张在一排卡里一眼认出来。
+ */
+.dash-countdown.is-today {
+  --cd-accent: var(--ant-color-success, #52c41a);
+}
+
+.dash-countdown.is-today .dash-countdown-amount::before {
+  opacity: 0.2;
+}
+
+/*
+ * 已经过去：强调色降到三级文字色（事件名保持正文色，信息仍要能读），
+ * 把注意力让给还在倒数的那几张卡。
+ */
+.dash-countdown.is-past {
+  --cd-accent: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}
+
+/*
+ * 还没选日期。
+ * 卡片此刻没有任何主视觉，一行灰字悬在中间读起来像"出错了"；
+ * 换成一块虚线占位：它把这张卡读成"待填的格子"，也顺手把编辑入口说清楚。
+ */
+.dash-countdown-empty {
+  padding: 18px 14px;
+  border: 1px dashed var(--ant-color-border, #d9d9d9);
+  border-radius: 10px;
+  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}
+
 /* 尊重用户的动效偏好：拖拽与卡片过渡全部关掉 */
 @media (prefers-reduced-motion: reduce) {
   *,
