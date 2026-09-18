@@ -7,7 +7,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, Flex, Form, Select, Typography } from 'antd'
-import { useNow } from '../../../../core/clock/hooks.ts'
+import { useClockAt } from '../../../../core/clock/hooks.ts'
 import { formatRelativeTime } from '../../../../core/clock/format.ts'
 import { findWorldByName } from '../../../../core/world.ts'
 import {
@@ -79,8 +79,10 @@ function TotalCell({ size, value }: { size: 'm' | 'l' | 's'; value: number | und
 }
 
 export function HouseRender({ config }: WidgetRenderProps<HouseConfig>): React.ReactNode {
-  // 全局时钟：时期倒计时与「N 分钟前」都从同一份 now 派生
-  const now = useNow()
+  /*
+   * 时钟取**分钟粒度**：时期条与「N 分钟前」都只准到分钟（换期时刻落在整点上）。
+   */
+  const now = useClockAt('minute')
 
   const serverName = config.server
   const serverId = findWorldByName(serverName)?.id

@@ -1,8 +1,7 @@
 import { useEffect, useRef } from 'react'
-import { Button, Flex, Input, Typography } from 'antd'
+import { Button, Flex, Input } from 'antd'
 import { CheckOutlined, EditOutlined, PlusOutlined, SearchOutlined, SettingOutlined } from '@ant-design/icons'
-import { ConvertToEorzeaTimeString } from './EorzeaTimeConvert.ts'
-import { useNow } from '../../core/clock/hooks.ts'
+import { TopbarClock } from './TopbarClock.tsx'
 import type { InputRef } from 'antd'
 
 export type TopbarProps = {
@@ -20,35 +19,6 @@ export type TopbarProps = {
   onOpenSettings: () => void
 }
 
-function greetingForHour(hour: number): string {
-  if (hour < 6) {
-    return '夜深了'
-  }
-  if (hour < 12) {
-    return '早上好'
-  }
-  if (hour < 18) {
-    return '下午好'
-  }
-  return '晚上好'
-}
-
-function formatToday(now: Date): string {
-  try {
-    return new Intl.DateTimeFormat('zh-CN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hourCycle: 'h23',
-    }).format(now)
-  } catch {
-    return now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
-  }
-}
-
-function formatEorzeaTime(now: Date): string {
-  return ConvertToEorzeaTimeString(now, 'H:m')
-}
-
 /** 顶栏：品牌 + 全局操作。 */
 export function Topbar({
   keyword,
@@ -60,7 +30,6 @@ export function Topbar({
   onCreateGroup,
   onOpenSettings,
 }: TopbarProps): React.ReactNode {
-  const now = useNow()
   const searchRef = useRef<InputRef>(null)
 
   /*
@@ -129,25 +98,7 @@ export function Topbar({
     >
       <Flex className="dash-topbar-brand" align="center" gap={12}>
         <span className="dash-topbar-accent" aria-hidden="true" />
-
-        <Flex className="dash-topbar-heading" align="center" gap={10} wrap>
-          <Typography.Title className="dash-topbar-greeting" level={4}>
-            {greetingForHour(now.getHours())}
-          </Typography.Title>
-
-          <span className="dash-topbar-divider" aria-hidden="true" />
-
-          <Flex className="dash-topbar-clock" align="center" gap={14} wrap>
-            <span className="dash-time-chip" title="本地时间">
-              <i className="xiv local-time-chs" aria-hidden="true" />
-              {formatToday(now)}
-            </span>
-            <span className="dash-time-chip" title="艾欧泽亚时间">
-              <i className="xiv eorzea-time-chs" aria-hidden="true" />
-              {formatEorzeaTime(now)}
-            </span>
-          </Flex>
-        </Flex>
+        <TopbarClock />
       </Flex>
 
       <Flex className="dash-topbar-actions" gap={12} align="center">

@@ -9,7 +9,7 @@
 /** 倒数周期：`none` 只倒到锚点那一天，过了就转成「已过去」；其余三种按周期往后滚。 */
 export type CountdownCycle = 'none' | 'weekly' | 'monthly' | 'yearly'
 
-/** 今天的 `YYYY-MM-DD`，由全局秒级时钟给出。 */
+/** 今天的 `YYYY-MM-DD`，由调用方以「天」粒度的时钟快照算好（`formatDateKey(useClockAt('day'))`）。 */
 export type DateKey = string
 
 /** 日历日的三个部分，month 从 1 开始（和 Date 的 0 起月份错开，故意的：写出来就是人读的样子）。 */
@@ -171,8 +171,9 @@ export type CountdownResult = {
 /**
  * 算出卡片要显示的内容。日期不合法（没填、或被手改坏）时返回 null，由渲染层给提示。
  *
- * `todayKey` 而不是 `now`：调用方用它做 useMemo 的依赖，"今天是哪天"这个字符串
- * 一天才变一次 —— 传 Date 的话秒级时钟会让每一秒都重算一遍。
+ * 收 `todayKey`（`YYYY-MM-DD`）而不是 `now`：卡片的内容只跟"今天是哪天"有关。
+ * 调用方用「天」粒度的快照把它算好（见 `fields.tsx`），于是跨天才重渲染一次；
+ * 直接传 Date 的话秒级时钟会让卡片每一秒都跟着走。
  */
 export function resolveCountdown(config: { date: string; cycle: CountdownCycle }, todayKey: DateKey): CountdownResult | null {
   const anchor = parseDateKey(config.date)

@@ -12,7 +12,7 @@ pnpm lint       # oxlint
 pnpm preview    # 预览构建产物
 ```
 
-可选：复制 `.env.example` 为 `.env` 配置 API 层与应用开关。
+可选：复制 `.env.example` 为 `.env` 配置运行时开关（目前只有第三方图标接口一项）。
 
 ## 技术选型
 
@@ -49,13 +49,14 @@ src/
       hooks.ts              useAppearance() / useTheme()
     clock/
       store.ts              全局秒级时钟（引用计数订阅，无 Provider）
-      hooks.ts              useClock() / useNow()
+      hooks.ts              useClock() / useNow() / useClockValue() / useClockAt()
+      format.ts             时钟相关的纯格式化（formatRelativeTime）
     world.ts                中国区服务器表（大区 / 世界）
     favicon.ts              网站图标第三方接口封装
     favicon-cache.ts        图标失败负缓存（避免离线时反复重试）
     storage/
       types.ts              BoardDoc / Group / Item 数据模型
-      schema.ts             校验、归一化、版本迁移
+      schema.ts             校验、归一化、版本号把关（对不上直接回退默认数据）
       persistent.ts         localStorage 读写（含回退与归一化回写）
       default-board.ts      初始演示数据
   state/                    仪表盘状态
@@ -67,6 +68,7 @@ src/
     BoardProvider.tsx       reducer + debounce 落盘
   features/
     dashboard/              顶栏、编辑弹窗、表单
+      TopbarClock.tsx         顶栏问候语与两个时间读数（秒级时钟只落在这几个叶子上）
     search/                 搜索弹窗、链接检索、搜索引擎注册表
     settings/               系统设置弹窗（外观 / 数据管理）
       SettingsDialog.tsx      左侧分组 + 面板容器（分区是数据驱动的）
@@ -99,13 +101,8 @@ src/
                  └─ 组件从 useBoard() 读到新状态并重渲染
 ```
 
-API 路径是**横向独立**的，不经过 state 层：
-
-```
-组件 Render
-  └─ useAsyncData / request()（core/api）
-       └─ 错误统一为 ApiError → toErrorMessage() 给出中文文案
-```
+**没有统一的请求层**：早先「数据来源 = HTTP 接口」那套能力已整体删除（`core/api` 已不存在），
+需要联网的组件各自封装 URL / 缓存 / 失败态，做法见下面「组件要访问接口怎么做」。
 
 ### 数据模型
 
@@ -114,12 +111,12 @@ type BoardDoc = { version: number; groups: Group[] }
 
 /**
  * 分组只有两种，区别在"能放什么"和"怎么排布"：
- * - web     ：可放网页导航与组件，每个分组独占一行
- * - compact ：只能放网页导航，同类分组并排，每行最多 4 个
+ * - widget ：只能放小组件，每个分组独占一行（perRow 1）
+ * - link   ：只放网页导航，同类分组并排，每行最多 4 个（perRow 4）
  */
 type Group = {
-  id: string; title: string; type: 'web' | 'compact'
-  columns: number   // 分组内卡片的列数，1-6；缺省按类型取默认值（web 4 / compact 3）
+  id: string; title: string; type: 'widget' | 'link'
+  columns: number   // 分组内卡片的列数，1-6；缺省按类型取默认值（小组件 4 / 网页导航 3）
   items: Item[]
 }
 
@@ -127,17 +124,16 @@ type LinkItem = { id; kind: 'link'; name; url; desc?; icon? }
 
 type WidgetItem = {
   id; kind: 'widget'
-  widget: string                 // 注册表里的 WidgetSpec.key
-  title; label?
+  widget: string                  // 注册表里的 WidgetSpec.key
+  title: string
   config: Record<string, unknown> // 由各组件的 normalizeConfig 解释
-  apiSource?: ApiSource          // static | mock | http
 }
 ```
 
 分组"放在哪一行"的规则集中在 `src/features/groups/group-types.ts` 的 `GROUP_TYPE_META`：
-每种类型声明 `allowsWidgets`（能否放组件）与 `perRow`（同类一行放几个）。
-`GroupBoard` 依据 `perRow` 把连续的同类型分组切行——`web` 的 `perRow` 是 1，所以每个网页与组件分组独占一行；
-`compact` 是 4，不足 4 个时按 24 栅格均分。
+每种类型声明 `allowedKinds`（能放哪种卡片）、`columnsVisible` / `defaultColumns` 与 `perRow`（同类一行放几个）。
+`GroupBoard` 依据 `perRow` 把连续的同类型分组切行——`widget` 的 `perRow` 是 1，所以每个小组件分组独占一行；
+`link` 是 4，不足 4 个时按 24 栅格均分。
 
 分组"内部怎么排"由 `Group.columns` 决定（1-6 列）。排布用 CSS Grid
 （`src/features/navigation/ItemGrid.tsx` + `.dash-item-grid`）而不是 antd 的 24 栅格，因为 24 除不尽 5；
@@ -152,7 +148,7 @@ type WidgetItem = {
 | 新建分组 | 分组名称 + 分组类型 + 每行列数 |
 | 编辑分组 | 分组名称 + 每行列数，左下角多一个「删除分组」 |
 
-- **分组表头只做展示与两个动作**：添加项目（＋）、编辑分组（✎）。列数控件与删除按钮都不再放表头，紧凑分组的表头不会被挤到换行。
+- **分组表头只做展示与两个动作**：添加项目（＋）、编辑分组（✎）。列数控件与删除按钮都不再放表头，网页导航分组（一行最多 4 个）的表头不会被挤到换行。
 - **删除入口统一在弹窗左下角**（`danger` 按钮，仅编辑已有分组时出现），点击后仍走 `modal.confirm` 二次确认，确认删除的同时会关掉弹窗，不会停在已删除的分组上。
 - **每行列数**用 `Select` 选择；新建时若列数还停在旧类型的默认值上，切换类型会跟着换成新类型的默认值（手动改过则保留）。
 - **分组类型创建后就锁定**：编辑时弹窗里根本不出现类型配置（不是禁用），提交时用隐藏字段带着原类型走。
@@ -253,7 +249,7 @@ overlay 的 `height` / `top` 跟随 `visualViewport`（`--vv-top` / `--vv-height
 原来的「通用设置」里只有主题一项，主题搬到「外观」后该分区空了，整个分区已删除。
 
 **导入导出复用落盘格式**：`core/storage/persistent.ts` 的 `serializeBoardDoc` / `parseBoardDoc`
-产出与读取的都是 `{ version, board }` 这个信封，校验也走与启动时同一套 `sanitizeBoardDoc`。
+产出与读取的都是 `{ version, groups }` 这个信封，校验也走与启动时同一套 `sanitizeBoardDoc`。
 因此导出的文件既能被别人导入，也能直接当作 `localStorage` 的值用；反过来，
 把本地原始值导出来也照样能读。导入经 state 层的 `replaceDoc` action 整体替换，
 替换前弹二次确认（列出行数，且是不可撤销的危险操作）。
@@ -266,13 +262,14 @@ overlay 的 `height` / `top` 跟随 `visualViewport`（`--vv-top` / `--vv-height
 
 | 拖动对象 | 可落点 | 结果 |
 | --- | --- | --- |
-| 分组 | 同类型分组 | 插入到该位置。把紧凑分组拖到已有紧凑分组旁边，它会**并入同一行**；该行满了（4 个）则挤出最后一个 |
+| 网页导航分组（`link`） | 同类分组 | 插入到该位置。拖到已有网页导航分组旁边会**并入同一行**；该行满了（4 个）则挤出最后一个 |
+| 小组件分组（`widget`） | 同类分组 | 同上，但每个小组件分组独占一行（`perRow` 1），实际上只会上下换位 |
 | 网页导航卡片 | 同 kind 的卡片 | 同分组内排序；拖到另一分组的同类卡片上则移入那个分组 |
 | 组件卡片 | 同 kind 的卡片 | 同上 |
 
-"只能同类型互相吸附"由 `GroupBoard` 里的 `sameTypeCollision` 碰撞检测实现：
-它在比较前按 `parseDragData` 的 `type` / `kind` 过滤候选容器，因此网页卡片不会被组件挤位、
-紧凑分组也不会被网页分组落下（这样做也避免了"行内分组数超上限"的状态）。
+"只能同类型互相吸附"由 `GroupBoard` 里的 `sameKindCollision` 碰撞检测实现：
+它在比较前按 `parseDragData` 的 `type` / `kind` 过滤候选容器，因此网页卡片不会被小组件挤位、
+小组件分组也不会被网页分组落下（这样做也避免了"行内分组数超上限"的状态）。
 
 **动画**分三层，各管一段，互不覆盖：
 
@@ -285,10 +282,43 @@ overlay 的 `height` / `top` 跟随 `visualViewport`（`--vv-top` / `--vv-height
 `withFadeTransition()` 负责把 dnd-kit 给的 transform 过渡和透明度过渡拼成一条 `transition`——
 直接覆盖 `style.transition` 会把让位动画一起弄丢。
 
-落盘结构为 `{ version, board }`，键名 `ffxiv-dash:board:v1`。
-`loadDoc()` 会依次做 JSON 解析 → 结构校验 → 版本迁移，任何一步失败都回退到默认数据并在控制台告警；
+落盘结构是 `BoardDoc`（`{ version, groups }`），键名 `ffxiv-dash:board:v1`。
+`loadDoc()` 会依次做 JSON 解析 → 结构校验，任何一步失败都回退到默认数据并在控制台告警；
 校验过程中若补齐或丢弃了字段，会自动回写一次。
-旧数据里的 `type: 'widget'`（原"组件"分组）在迁移时自动并入 `'web'`，不会丢分组。
+⚠️ 版本号（`SCHEMA_VERSION`，当前 3）对不上时**直接判为无法识别**：没有逐版迁移，
+未上线期间发生破坏性改动就重置旧数据。
+分组类型与卡片种类都是 `link` / `widget` 两种，非法值在归一化时回落到 `widget` / `link`。
+
+## 时钟与渲染粒度
+
+全应用只有**一个**秒级时钟（`core/clock/store.ts`：引用计数订阅、无 Provider、对齐整秒）。
+消费侧不要直接要「此刻」，而是声明**自己多久变一次** —— 粒度选错的表现是「看起来没坏，但整块在每秒重渲染」。
+
+| 入口 | 快照 | 用在哪 |
+| --- | --- | --- |
+| `useClockValue(select)` | `select(now)` 的返回值（按 `Object.is` 比） | **一行文本**的读数：顶栏问候语（取小时数）、`HH:mm`（每分钟）、艾欧泽亚 `H:m`（约 2.9 秒）、PvP 卡剩余时长 |
+| `useClockAt('second' \| 'minute' \| 'hour' \| 'day')` | 截断到该粒度起点的 `Date` | **整块共用 `now`** 的地方：市场卡 / 房屋卡 / PvP 卡（`minute`）、倒数日（`day`） |
+| `useClock()` / `useNow()` | 毫秒时间戳 / 此刻的 `Date` | 秒级兜底（目前没有调用点） |
+
+- **快照相等的那些 tick，React 会直接跳过这次渲染**，所以「每秒一跳」不再等于「每秒一渲染」。
+  市场卡、房屋卡、倒数日原来各自 `useNow()`，整块（含请求状态 / 读数区）每天要重渲染 86400 次；
+  换成粒度时钟后分别是 1440 次与 1 次。
+- ⚠️ `useClockValue` 的 selector 必须返回**可按值比较**的结果（数字 / 字符串 / 布尔）：
+  返回每次新建的对象会让快照永远「变了」，直接无限重渲染。要 Date 就用 `useClockAt`
+  （它把 `new Date` 放在 `useMemo` 里，按那个毫秒数缓存）。
+- ⚠️ selector **每秒都会被调用**（时钟通知时做一次快照比对），别在里面做重活：
+  例如 `Intl.DateTimeFormat` 贵在**构造**而不是格式化，实例应当提到模块级复用。
+- ⚠️ `useClockAt` 走**本地字段**截断（`setSeconds` / `setMinutes` / `setHours`），
+  不能写成 `Math.floor(ms / 3600000)` 之类的整除：那是 UTC 整点，东八区看不出来，
+  `+5:30` / `+9:30` 这类时区会错开半小时。
+- ⚠️ **向下取整的「剩余时长」不能用粒度 now 算**：`formatHoursMinutes` / `formatMinutes` 取的是
+  `floor(剩余)`，而同一分钟里真实剩余会跨过一个整分（8:59 → 8:00），拿本分钟起点去算就成了
+  **向上取整**（还剩 8 分多会显示成 9 分）—— 正是 `pvp-map-widget/rotation.ts` 里明说不要的报法。
+  这类读数要留在**叶子组件**里用文本快照，参考 `pvp-map-widget/fields.tsx` 的 `RemainingTime`。
+- 顶栏是这套约定的样板：`features/dashboard/TopbarClock.tsx` 自己**不订阅**时钟，
+  三个读数各是一个叶子；`Topbar` 因此不会因为秒针而重渲染（那里挂着一堆 antd 控件）。
+- 时间类纯函数（轮换、抽签时期、倒数天数）照旧只接收 `Date`，组件用 `useClockAt('minute')`
+  之类拿到 `now` 再传进去 —— 组件里不要出现 `new Date()` / `Date.now()`。
 
 ## 如何新增一个组件类型
 
@@ -368,7 +398,8 @@ overlay 的 `height` / `top` 跟随 `visualViewport`（`--vv-top` / `--vv-height
 - `sale.ts` 把响应**折叠成计数**（卡片只要数字，就不把几百条明细写进缓存）；
 - `phase.ts` 把「当前处于什么时期」交给**时钟 + 固定周期**算（同类已知起点取模见 `pvp-map-widget/rotation.ts`）。
 
-与时间无关的相对时间文案（`N 分前`）在 `core/clock/format.ts`，两个卡片共用。
+与时间无关的相对时间文案（`N 分前`）在 `core/clock/format.ts`，两个卡片共用；
+卡片该按什么粒度订阅时钟（别让整块跟着秒针渲染）见下面「时钟与渲染粒度」一节。
 
 `WidgetRenderProps` 只给 `{ config, item }`，**没有任何异步态**。
 
@@ -454,14 +485,14 @@ src/app/themes/<key>/theme.css    该主题的 --dash-* 变量（只改 antd 令
 
 | 变量 | 默认值 | 说明 |
 | --- | --- | --- |
-| `VITE_API_BASE_URL` | 空 | 相对路径请求的前缀；留空则 `request()` 的 path 必须是完整地址 |
-| `VITE_API_TIMEOUT_MS` | `10000` | 单次请求超时（毫秒） |
-| `VITE_API_RETRIES` | `1` | 重试次数（仅网络错误、超时、5xx；4xx 与主动取消不重试） |
 | `VITE_FAVICON_ENABLED` | `true` | 是否请求第三方图标接口 |
+
+早先的 `VITE_API_BASE_URL` / `VITE_API_TIMEOUT_MS` / `VITE_API_RETRIES` 已随请求层一起删除
+（源码里不再有 `import.meta.env.VITE_API_*`），`.env.example` 里还留着，见「已知事项」。
 
 ## 已知事项
 
-- **构建产物体积**：antd + dnd-kit 后主包约 916 kB（gzip 约 299 kB）。
+- **构建产物体积**：antd + dnd-kit 后主包约 1.17 MB（gzip 约 378 kB）。
   这是 antd 全量引入的正常水平；若要优化，可按需做
   `build.rolldownOptions.output.codeSplitting`，或改用 antd 的按需引入方案。
 - **`scripts/dsh-sandbox-shim.cjs`**：仅用于受限沙箱环境。
@@ -472,10 +503,6 @@ src/app/themes/<key>/theme.css    该主题的 --dash-* 变量（只改 antd 令
   $env:NODE_OPTIONS = "--require C:/path/to/scripts/dsh-sandbox-shim.cjs"
   pnpm build
   ```
-  正常开发机与 CI **不需要**它，可以直接删除该文件。
-- **未实现（本期范围外）**：路由、导入/导出 JSON、云同步、后端持久化、
-  鉴权与密钥管理、跨分组拖拽之外的批量操作。`core/storage/persistent.ts`
-  是唯一落盘点，`core/api/config.ts` 的 `configureApi()` 是多后端接入点。
 
 ## 参考
 

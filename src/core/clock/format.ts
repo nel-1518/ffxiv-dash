@@ -9,7 +9,8 @@
 /**
  * 相对时间：`刚刚` / `12 分前` / `3 小时前` / `2 天前`。
  *
- * 由全局时钟驱动（`useNow()`），因此会自己往前跳，组件不必各持计时器。
+ * 由全局时钟驱动，因此会自己往前跳，组件不必各持计时器
+ * （调用方现在按分钟粒度订阅，见 `hooks.ts` 的 `useClockAt`）。
  */
 export function formatRelativeTime(at: number, now: number): string {
   const seconds = Math.max(0, Math.floor((now - at) / 1000))

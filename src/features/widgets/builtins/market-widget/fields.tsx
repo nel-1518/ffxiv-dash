@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, Flex, Form, InputNumber, Select, Spin, Typography } from 'antd'
-import { useNow } from '../../../../core/clock/hooks.ts'
+import { useClockAt } from '../../../../core/clock/hooks.ts'
 import { formatRelativeTime } from '../../../../core/clock/format.ts'
 import { isFresh, readMarketCache, writeMarketCache } from './cache.ts'
 import { findItem, getItemDbStatus, loadItemDb, searchItems } from './items.ts'
@@ -253,8 +253,10 @@ function QualityBlock({
 }
 
 export function MarketRender({ config }: WidgetRenderProps<MarketConfig>): React.ReactNode {
-  // 全局时钟：艾欧泽亚时间、PvP 轮换与这里的「N 分钟前」都从同一份 now 派生
-  const now = useNow()
+  /*
+   * 时钟取**分钟粒度**：这张卡只有「N 分钟前」那一行吃时钟，而它一分钟才变一次。
+   */
+  const now = useClockAt('minute')
   const db = useItemDb()
 
   const scope = config.scope

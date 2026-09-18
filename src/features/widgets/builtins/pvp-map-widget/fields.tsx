@@ -10,7 +10,7 @@ import {
   getNextFrontlineMap,
 } from './rotation.ts'
 import { PVP_CALENDAR_URL } from './config.ts'
-import { useNow } from '../../../../core/clock/hooks.ts'
+import { useClockAt, useClockValue } from '../../../../core/clock/hooks.ts'
 import type { PvpMapConfig } from './config.ts'
 import type { WidgetRenderProps } from '../../types.ts'
 
@@ -43,7 +43,8 @@ function BattleBlock({
   label: string
   current: string
   next?: string
-  time: string
+  /** 底部那行剩余时长：传组件而不是字符串，理由见 RemainingTime */
+  time: React.ReactNode
 }): React.ReactNode {
   return (
     <Flex
@@ -90,20 +91,49 @@ function BattleBlock({
         <Typography.Text type="secondary" style={{ fontSize: 11 }}>
           距下次轮换
         </Typography.Text>
-        <Typography.Text
-          // 等宽数字：分钟数逐分变化时宽度不跳，整行不会左右抖
-          style={{ fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}
-        >
-          {time}
-        </Typography.Text>
+        {time}
       </Flex>
     </Flex>
   )
 }
 
+/**
+ * 剩余时长读数。
+ *
+ * ⚠️ 这里的快照必须是**格式化后的文本**，不能改拿父级那个分钟粒度的 `now` 去算：
+ * `formatHoursMinutes` / `formatMinutes` 是向下取整的，而同一分钟里"真实剩余"会跨过一个整分，
+ * 拿本分钟起点去算就变成了向上取整（还剩 8 分多会显示成 9 分）—— 正是 `rotation.ts`
+ * 里明说不要的那种报法。用文本快照则两全：读数与原实现逐秒一致，
+ * 重渲染只发生在文本真的变的时候（每分钟两次：整分那一下 + 过后那一下）。
+ */
+function RemainingTime({
+  until,
+  format,
+}: {
+  /** 轮换时刻的毫秒时间戳（父级按分钟粒度算出，本身就精确到整分） */
+  until: number
+  format: (ms: number) => string
+}): React.ReactNode {
+  const text = useClockValue((now) => format(Math.max(0, until - now.getTime())))
+
+  return (
+    <Typography.Text
+      // 等宽数字：分钟数逐分变化时宽度不跳，整行不会左右抖
+      style={{ fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}
+    >
+      {text}
+    </Typography.Text>
+  )
+}
+
 /** 点击整块内容打开 PvP 日历站。标题栏不套链接：那里有编辑/删除按钮，交互元素不能套在 <a> 里。 */
 export function PvpMapRender({ config }: WidgetRenderProps<PvpMapConfig>): React.ReactNode {
-  const now = useNow()
+  /*
+   * 时钟取**分钟粒度**：轮换周期是 24h / 60min，两个 REFERENCE 又都落在整分整秒上，
+   * 所以「当前 / 下一个地图」与轮换时刻用分钟快照就够了，还会在边界那一跳准点翻；
+   * 整秒订阅只会白渲染 59 次。剩余时长是唯一的例外，见 RemainingTime。
+   */
+  const now = useClockAt('minute')
 
   const frontline = getFrontlineRotation(now)
   const cc = getCcRotation(now)
@@ -123,14 +153,14 @@ export function PvpMapRender({ config }: WidgetRenderProps<PvpMapConfig>): React
           label="纷争前线"
           current={FRONTLINE_MAP_NAMES[frontline.map]}
           next={showNext ? FRONTLINE_MAP_NAMES[getNextFrontlineMap(now)] : undefined}
-          time={formatHoursMinutes(frontline.nextRotation.getTime() - now.getTime())}
+          time={<RemainingTime until={frontline.nextRotation.getTime()} format={formatHoursMinutes} />}
         />
         <BattleBlock
           accent="#3C82FF"
           label="水晶冲突"
           current={CC_MAP_NAMES[cc.map]}
           next={showNext ? CC_MAP_NAMES[getNextCcMap(now)] : undefined}
-          time={formatMinutes(cc.timeRemaining)}
+          time={<RemainingTime until={cc.nextRotation.getTime()} format={formatMinutes} />}
         />
       </Flex>
     </a>

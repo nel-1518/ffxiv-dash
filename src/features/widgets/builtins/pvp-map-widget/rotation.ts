@@ -117,10 +117,13 @@ export function getNextFrontlineMap(now: Date = new Date()): FrontlineMapId {
 export type CcRotation = {
   /** 当前生效的地图。 */
   map: CcMapId
-  /** 下一次轮换的时刻。 */
+  /**
+   * 下一次轮换的时刻。
+   *
+   * 剩余时长由调用方拿这个时刻现算（卡片是在叶子里按"文本变了才渲染"取的快照）：
+   * 在这里算好一个毫秒数反而用不上 —— 它一渲染就过期。
+   */
   nextRotation: Date
-  /** 距下一次轮换还剩多少毫秒。 */
-  timeRemaining: number
 }
 
 export function getCcRotation(now: Date = new Date()): CcRotation {
@@ -128,7 +131,6 @@ export function getCcRotation(now: Date = new Date()): CcRotation {
   return {
     map: pickMap(CC_MAPS, rotation.index),
     nextRotation: new Date(rotation.next),
-    timeRemaining: rotation.next - now.getTime(),
   }
 }
 

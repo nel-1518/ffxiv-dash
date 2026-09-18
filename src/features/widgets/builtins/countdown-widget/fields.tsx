@@ -1,7 +1,6 @@
-import { useMemo } from 'react'
 import { DatePicker, Flex, Form, Input, Select } from 'antd'
 import dayjs from 'dayjs'
-import { useNow } from '../../../../core/clock/hooks.ts'
+import { useClockAt } from '../../../../core/clock/hooks.ts'
 import { CYCLE_LABELS, CYCLE_OPTIONS, formatDateKey, formatDateText, resolveCountdown } from './countdown.ts'
 import { EVENT_FALLBACK, MAX_EVENT_LENGTH } from './config.ts'
 import type { CountdownConfig } from './config.ts'
@@ -54,14 +53,14 @@ export function CountdownFormFields(): React.ReactNode {
  * 短线不承载信息，它只负责把"状态色"从数字搬到卡片下半部分（今天成功色、已过去灰色）。
  * 描述行把「距【事件】还有 X 日」这句原话读出来，并补上目标日期与周期 —— 它是说明，所以最小最轻。
  *
- * 时钟是全局秒级的，所以这个组件每秒都会重渲染一次；但 `useMemo` 只依赖
- * "今天是哪天"这个字符串，真正重算一天只发生一次（跨过零点那一刻）。
+ * 时钟取的是「天」粒度（`useClockAt('day')`）：卡片的内容一天才变一次，
+ * 于是它只在跨过零点那一刻重渲染
  */
 export function CountdownRender({ config }: WidgetRenderProps<CountdownConfig>): React.ReactNode {
   const { date, cycle } = config
   const event = config.event || EVENT_FALLBACK
-  const todayKey = formatDateKey(useNow())
-  const result = useMemo(() => resolveCountdown({ date, cycle }, todayKey), [date, cycle, todayKey])
+  const todayKey = formatDateKey(useClockAt('day'))
+  const result = resolveCountdown({ date, cycle }, todayKey)
 
   if (!result) {
     /*
