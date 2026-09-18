@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, Flex, Form, InputNumber, Select, Spin, Typography } from 'antd'
 import { useNow } from '../../../../core/clock/hooks.ts'
+import { formatRelativeTime } from '../../../../core/clock/format.ts'
 import { isFresh, readMarketCache, writeMarketCache } from './cache.ts'
 import { findItem, getItemDbStatus, loadItemDb, searchItems } from './items.ts'
 import { resolveTier, scopeLabel, scopeOptions } from './scopes.ts'
@@ -175,24 +176,6 @@ function priceTone(price: number, basePrice: number | undefined): 'above' | 'bel
     return 'below'
   }
   return null
-}
-
-/** 相对时间。由全局时钟驱动，因此会自己往前跳，不需要组件各持计时器。 */
-function formatAgo(fetchedAt: number, now: number): string {
-  const seconds = Math.max(0, Math.floor((now - fetchedAt) / 1000))
-  // 不带「更新」二字：它要挤在标题行右侧，短一点才放得下
-  if (seconds < 60) {
-    return '刚刚'
-  }
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) {
-    return `${minutes} 分前`
-  }
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) {
-    return `${hours} 时前`
-  }
-  return `${Math.floor(hours / 24)} 天前`
 }
 
 function ReadingValue({
@@ -381,7 +364,7 @@ export function MarketRender({ config }: WidgetRenderProps<MarketConfig>): React
       : pending
         ? '正在获取…'
         : data
-          ? formatAgo(data.fetchedAt, now.getTime())
+          ? formatRelativeTime(data.fetchedAt, now.getTime())
           : '暂无数据'
 
   return (

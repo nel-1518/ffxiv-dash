@@ -83,7 +83,7 @@ src/
       registry.ts           注册表（不导入任何具体组件，避免循环依赖）
       useFavicon.ts         图标接口 hook
       WidgetRenderer.tsx    统一卡片外壳 + 未注册组件降级
-      builtins/             内置组件，每个一个目录（stats / pvp-map / market / countdown）
+      builtins/             内置组件，每个一个目录（stats / pvp-map / market / house / countdown）
   views/
     DashboardPage.tsx       页面组装
   styles/global.css         仅页面背景、字体栈、少量基线
@@ -362,6 +362,13 @@ overlay 的 `height` / `top` 跟随 `visualViewport`（`--vv-top` / `--vv-height
 - `universalis.ts` 只管 URL / 请求 / 解析（模块级**按 URL 在飞去重**，避免重复请求）；
 - `cache.ts` 管 localStorage 缓存（带 TTL、写入时顺手清过期）；
 - 组件在 `Render` 里自己渲染加载与失败态（市场卡把状态挤在标题行右侧，不占版面）。
+
+`builtins/house-widget/`（售楼中心）是同一套分工的第二个例子，另有两处可参考：
+
+- `sale.ts` 把响应**折叠成计数**（卡片只要数字，就不把几百条明细写进缓存）；
+- `phase.ts` 把「当前处于什么时期」交给**时钟 + 固定周期**算（同类已知起点取模见 `pvp-map-widget/rotation.ts`）。
+
+与时间无关的相对时间文案（`N 分前`）在 `core/clock/format.ts`，两个卡片共用。
 
 `WidgetRenderProps` 只给 `{ config, item }`，**没有任何异步态**。
 

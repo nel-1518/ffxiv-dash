@@ -1358,6 +1358,102 @@ a:hover {
 }
 
 /*
+ * 房屋售卖卡
+ */
+.dash-house-link {
+  display: block;
+  color: inherit;
+}
+
+.dash-house-phase {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--ant-color-split);
+}
+
+.dash-house-phase-name-is-entry {
+  color: var(--ant-color-primary);
+}
+
+.dash-house-phase-note {
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--ant-color-text-tertiary);
+}
+
+/*
+ * 合计块（M / L / S）。
+ *
+ * 三格等宽、数字居中、相邻格之间一条发丝线分隔（两端不留线，否则像表格）。
+ * 外面那层只负责容器：`container-type: inline-size` 必须声明在容器自己身上，
+ * 而下面用 `cqi` 缩放的是里面的数字，所以两层分工不能合并。
+ */
+.dash-house-totals-wrap {
+  container-type: inline-size;
+}
+
+/* 筛选条件写在合计块上方：不写就不知道这三个数字是按什么算的 */
+.dash-house-totals-caption {
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--ant-color-text-quaternary);
+}
+
+.dash-house-totals {
+  display: flex;
+  align-items: stretch;
+  padding: 8px 0;
+  border-radius: 8px;
+  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+}
+
+.dash-house-total {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* 分隔线只夹在中间两处：两端加线会把浅底块切成一排格子 */
+.dash-house-total + .dash-house-total {
+  border-left: 1px solid var(--ant-color-split);
+}
+
+.dash-house-total-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}
+
+/*
+ * 字号跟着**卡片宽度**缩放（倒数日卡同一套路）：卡宽由分组列数与屏宽共同决定，
+ * 媒体查询问不到。cqi 量的是 `.dash-house-totals-wrap` 的宽度，窄卡自动收小。
+ */
+.dash-house-total-value {
+  font-size: clamp(20px, 9cqi, 30px);
+  font-weight: 600;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  color: var(--ant-color-text);
+}
+
+/*
+ * 「没查到」用破折号并把颜色压淡。
+ * 和 0 必须分得开：0 是"查过了，就是 0 处"，破折号是"这份数据还没到手"。
+ */
+.dash-house-total-value.is-blank {
+  font-weight: 400;
+  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45));
+}
+
+/*
  * 倒数日卡
  *
  * 从上到下：事件 → 倒数天数 → 强调短线 → 描述块。
