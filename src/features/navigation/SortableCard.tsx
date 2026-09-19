@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useCallback, useMemo } from 'react'
 import { boardActions } from '../../state/board-store.ts'
 import { DragHandle } from '../groups/DragHandle.tsx'
 import { CardFace } from './CardFace.tsx'
@@ -10,8 +10,6 @@ export type SortableCardProps = {
   groupId: string
   /** 是否处于编辑模式；关闭时不注入手柄，卡片也就无法拖拽。 */
   editMode: boolean
-  /** 刚落下、DragOverlay 还在飞回卡槽：先半透明占位，落定后淡入。 */
-  isLanding: boolean
   /**
    * 打开这张卡片的编辑弹窗。
    *
@@ -35,25 +33,37 @@ export type SortableCardProps = {
  *
  * 删除由卡片自己派发（它握着 `groupId` 与 `item.id`），省掉两条 prop 链，
  * 也让 `memo` 的比较面更小。
+ *
+ * ⚠️ 下面三件东西都必须**引用稳定**，否则 `memo(CardFace)` 会被打穿：
+ * - `handle`：`useSortable` 给的 `listeners` / `attributes` 本身是 memo 过的
+ *   （只有"正被拖的那张卡"的 `attributes` 会随 `isDragging` 变），所以用 `useMemo` 固定住**元素**即可；
+ * - `onEdit` / `onRemove`：每次渲染新建闭包会让 `CardFace` 判定"变了"，
+ *   卡片子树（含每张卡三个 Tooltip）就会跟着 dnd-kit 的 context 一起重渲染 —— 拖拽开始时那种卡顿就是这么来的。
  */
 export const SortableCard = memo(function SortableCard({
   item,
   groupId,
   editMode,
-  isLanding,
   onEdit,
 }: SortableCardProps): React.ReactNode {
   const { setNodeRef, setActivatorNodeRef, listeners, attributes, style } = useSortableCard(
     item.id,
     item.kind,
     groupId,
-    isLanding,
   )
 
-  // 手柄是唯一的拖拽激活点：不渲染它，整张卡片就回到"只能点、不能拖"
-  const handle = editMode ? (
-    <DragHandle setActivatorNodeRef={setActivatorNodeRef} listeners={listeners} attributes={attributes} />
-  ) : undefined
+  // 手柄是唯一的拖拽激活点：不渲染它，整张卡片就回到"只能点、不能拖"。
+  // ⚠️ 必须 useMemo：`<DragHandle/>` 每次渲染都是新元素，不固定住等于让 memo(CardFace) 失效
+  const handle = useMemo(
+    () =>
+      editMode ? (
+        <DragHandle setActivatorNodeRef={setActivatorNodeRef} listeners={listeners} attributes={attributes} />
+      ) : undefined,
+    [editMode, setActivatorNodeRef, listeners, attributes],
+  )
+
+  const handleEdit = useCallback(() => onEdit(item.id), [onEdit, item.id])
+  const handleRemove = useCallback(() => boardActions.removeItem(groupId, item.id), [groupId, item.id])
 
   /*
    * 悬停浮起（见 global.css 的 .dash-link-cell）只在浏览模式的链接卡片上启用。
@@ -72,8 +82,8 @@ export const SortableCard = memo(function SortableCard({
         item={item}
         editMode={editMode}
         handle={handle}
-        onEdit={() => onEdit(item.id)}
-        onRemove={() => boardActions.removeItem(groupId, item.id)}
+        onEdit={handleEdit}
+        onRemove={handleRemove}
       />
     </div>
   )

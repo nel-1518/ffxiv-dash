@@ -16,8 +16,6 @@ export type BoardGroupSlotProps = {
   onAddItem: (groupId: string) => void
   onEditGroup: (groupId: string) => void
   onEditItem: (groupId: string, itemId: string) => void
-  /** 刚落下、还在等 DragOverlay 落定的卡片 id；只有落到本组时才变。 */
-  landingItemId: string | null
 }
 
 /**
@@ -43,7 +41,6 @@ export const BoardGroupSlot = memo(function BoardGroupSlot({
   onAddItem,
   onEditGroup,
   onEditItem,
-  landingItemId,
 }: BoardGroupSlotProps): React.ReactNode {
   const group = useBoardGroup(groupId)
 
@@ -68,14 +65,9 @@ export const BoardGroupSlot = memo(function BoardGroupSlot({
    */
   const grid = useMemo(
     () => (
-      <GroupItems
-        groupId={groupId}
-        editMode={editMode}
-        landingItemId={landingItemId}
-        onEditItem={onEditItem}
-      />
+      <GroupItems groupId={groupId} editMode={editMode} onEditItem={onEditItem} />
     ),
-    [groupId, editMode, landingItemId, onEditItem],
+    [groupId, editMode, onEditItem],
   )
 
   // 分组已被删除（结构快照与当前数据短暂不同步）：这一格先空着，父层马上会重排
@@ -106,7 +98,6 @@ export const BoardGroupSlot = memo(function BoardGroupSlot({
 type GroupItemsProps = {
   groupId: string
   editMode: boolean
-  landingItemId: string | null
   onEditItem: (groupId: string, itemId: string) => void
 }
 
@@ -117,7 +108,7 @@ type GroupItemsProps = {
  * `handleEditItem` 把「分组 id」提前绑好，是为了让组内所有卡片共用同一个函数引用，
  * `memo(SortableCard)` 才能拦住未变化的卡片（见 `ItemGrid` 的 props 注释）。
  */
-function GroupItems({ groupId, editMode, landingItemId, onEditItem }: GroupItemsProps): React.ReactNode {
+function GroupItems({ groupId, editMode, onEditItem }: GroupItemsProps): React.ReactNode {
   const group = useBoardGroup(groupId)
 
   const handleEditItem = useCallback(
@@ -136,7 +127,6 @@ function GroupItems({ groupId, editMode, landingItemId, onEditItem }: GroupItems
       columns={group.columns}
       groupType={group.type}
       editMode={editMode}
-      landingItemId={landingItemId}
       onEditItem={handleEditItem}
     />
   )

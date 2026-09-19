@@ -15,18 +15,15 @@ export function parseDragData(value: Record<string, unknown> | undefined): DragD
   return { type: 'item', kind: value.kind === 'widget' ? 'widget' : 'link', groupId: value.groupId }
 }
 
-/** 落位后"幽灵期"的长度：比 DragOverlay 的 dropAnimation（220ms）略长一点。 */
-export const DROP_LANDING_MS = 240
-
-/** 拖拽中的占位透明度：实体由 DragOverlay 跟随指针，原卡片只留个影子。 */
-export const DRAG_PLACEHOLDER_OPACITY = 0.45
-
 /**
- * 把 dnd-kit 给的 transform 过渡与透明度过渡拼成一条。
+ * 拖拽中的占位透明度。
  *
- * dnd-kit 只负责 transform 的过渡，而"落位后从半透明淡入"是另一条属性，
- * 直接覆盖 style.transition 会把让位动画也一起弄丢。
+ * ⚠️ 只用于"正在被拖的那张卡"。**不要**给落位后的卡片再压一层半透明，也不要给
+ * 卡片挂上常驻的 `opacity` 过渡：
+ * - dnd-kit 的落位动画（`defaultDropAnimationSideEffects`）会在动画开始时给原卡片写 inline
+ *   `opacity: 0`、动画结束后再撤销。卡片如果带着 240ms 的透明度过渡，这个"先隐藏、后恢复"
+ *   会被拉成两段慢淡入淡出：虚影已经落定，底下的卡片还是几乎透明的，随后猛地亮回来 ——
+ *   就是"拖拽完成后闪一下"。
+ * - 而"落位占位"其实也没用：动画期间原卡片已被 dnd-kit 隐藏，占位只在动画结束后才可见。
  */
-export function withFadeTransition(transition: string | undefined): string {
-  return [transition, `opacity ${DROP_LANDING_MS}ms ease`].filter(Boolean).join(', ')
-}
+export const DRAG_PLACEHOLDER_OPACITY = 0.45

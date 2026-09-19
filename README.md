@@ -79,6 +79,7 @@ src/
         Tunings.tsx             滑块行 + 背景显示 / 卡片底色两组调节
       DataSettingsPanel.tsx   导入导出
     groups/                 分组面板、拖拽编排、分组表单
+      BoardDragOverlay.tsx    拖拽虚影宿主：正在拖的是谁从 dnd-kit 的 context 读，不放进 GroupBoard 的状态
     navigation/             导航卡片、卡片栅格、可拖拽卡片
     widgets/                组件框架（注册表 + 渲染器）
       types.ts              WidgetSpec / WidgetRenderProps / defineWidget
@@ -300,12 +301,42 @@ overlay 的 `height` / `top` 跟随 `visualViewport`（`--vv-top` / `--vv-height
 
 | 阶段 | 由谁负责 | 表现 |
 | --- | --- | --- |
-| 拖拽中 | `DragOverlay` | 跟随指针的实体卡片由 overlay 渲染，原位置只留一个半透明占位（`SortableGroup` / `SortableCard` 的 `isLanding` 与占位透明度） |
+| 拖拽中 | `DragOverlay` | 跟随指针的实体卡片由 overlay 渲染，原位置只留一个半透明占位（`DRAG_PLACEHOLDER_OPACITY`，只作用在"正在被拖的那张卡"上） |
 | 拖拽中 | dnd-kit 的 `transition` + `rectSortingStrategy` | 卡片在自己的分组里换位时，同组其它卡片平滑让位。`ItemGrid` 给每组卡片套了一层 `SortableContext`，dnd-kit 才拿得到 `activeIndex` / `overIndex`（缺了它卡片既不会跟随指针，也不会有让位过渡） |
-| 落下后 | dnd-kit 的 `dropAnimation` + 索引变化过渡 | overlay 飞回新的卡槽，顺序真正变化时其余卡片平滑滑到新位置；`DROP_LANDING_MS`（240ms）内原卡片保持半透明，等实体落定再淡入，不会一份卡片同时出现两次 |
+| 落下后 | dnd-kit 的 `dropAnimation`（含 `defaultDropAnimationSideEffects`） | overlay 飞回新的卡槽；顺序真正变化时其余卡片平滑滑到新位置。落位期间 dnd-kit 会把原卡片**直接隐藏**（写/撤销 inline `opacity: 0`，跨分组时打到重新挂载后的新节点上），落定那一刻再一次性恢复 |
 
-`withFadeTransition()` 负责把 dnd-kit 给的 transform 过渡和透明度过渡拼成一条 `transition`——
-直接覆盖 `style.transition` 会把让位动画一起弄丢。
+⚠️ **不要给卡片加"落位占位 + 淡入"，也不要给卡片挂常驻的 `opacity` 过渡**（两者都是踩过的坑）：
+
+- 卡片上挂着 `opacity 240ms` 时，dnd-kit 那句"先隐藏、后恢复"会被拉成两段慢淡入淡出 ——
+  虚影已经落定，底下的卡片还是几乎透明的，随后猛地亮回来，看上去就是**拖拽完成后闪一下**；
+- "落位占位"本身也没用：落位动画期间原卡片已被 dnd-kit 隐藏，占位只在动画结束后才可见（只贡献了那次闪烁）；
+- 代价还不止视觉：落位状态要穿过 `GroupBoard` → 槽位 → 网格 → 卡片，`setState` 与 240ms 后的
+  "收回占位"各引发一轮整块重渲染（实测掉落瞬间 272ms、+500ms 处 223ms 的长任务），
+  顺带把落位动画的起点推迟了 240ms。
+
+### 拖拽性能：四处「必须保持」的眼
+
+dnd-kit 的 context 在**拖拽开始**与**指针每移动一帧**时都会换引用，而 context 的传播不受 `memo` 拦截：
+所有 `useSortable` 消费者（每张卡片）每帧都会被叫醒。**这个唤醒躲不掉，要做的是别让它带着重活一起跑。**
+
+| 眼 | 位置 | 为什么 |
+| --- | --- | --- |
+| 卡片外观必须是 `memo`，且 props 全部稳定 | `CardFace`（`memo`）+ `SortableCard` 用 `useMemo` 固定 `handle`、`useCallback` 固定 `onEdit` / `onRemove` | 这棵子树里有 antd Card/Flex/Typography/Button 与**每张卡三个 Tooltip 的 rc-trigger 机器**（实测单次 commit 出现 72 个 Tooltip、96 个 Trigger、62 个 ResizeObserver）。props 不稳时 `memo` 被打穿，拖起来就卡 |
+| 拖拽状态不能存在 `GroupBoard` | `BoardDragOverlay` 自己 `useDndContext().active`（`GroupBoard` 现在**一个 state 都没有**） | 在看板这一层 `setState` 会重建整棵看板元素树（所有 Row/Col/槽位 + `DndContext` 的 children），连锁到每一张卡片。拖拽开始时是卡顿，落位时还会推迟落位动画的起点 |
+| 虚影内容保持 `memo` + 模块级常量 | `BoardDragOverlay` 的 `LIFT_STYLE` / `INERT_HANDLE` / `NOOP` | DragOverlay 跟着指针每帧重渲染自己的孩子，不固定住就是"一帧一动" |
+| 卡片上不挂 `opacity` 过渡、也不做"落位占位" | `useSortableCard` 的 `transition` 直接透传 dnd-kit 给的值 | 详见上面「动画」一节：常驻透明度过渡会把 dnd-kit 的隐藏/恢复拉成慢淡入淡出 → 落位后闪一下 |
+
+实测（24 张卡、dev 构建、PointerSensor）：
+
+| 指标 | 修复前 | 修复后 |
+| --- | --- | --- |
+| 拖拽起始主线程阻塞 | 783ms | ~70ms |
+| 拖拽中帧间隔 | — | 113 帧全部 17ms，零掉帧 |
+| 掉落瞬间长任务 | 272ms + 223ms（+500ms 处） | 58–70ms |
+| 落位后原卡片透明度 | 0.45 → 0（慢） → 0 → 1（慢） | 0（飞行中隐藏） → 1（落定瞬间） |
+
+⚠️ 想复现/验证这组数字：用 CDP 的 `Profiler.start` + `performance` 的长任务观察 + rAF 帧间隔，
+注意 React fiber 的 `PerformedWork` 标志**对未重渲染的组件也会残留**，别拿它当"本次 commit 渲染了谁"的依据。
 
 落盘结构是 `BoardDoc`（`{ version, groups }`），键名 `ffxiv-dash:board:v1`。
 `loadDoc()` 会依次做 JSON 解析 → 结构校验，任何一步失败都回退到默认数据并在控制台告警；

@@ -1,24 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import { Col, Empty, Flex, Row } from 'antd'
 import {
   closestCenter,
   DndContext,
-  DragOverlay,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
-import type { CollisionDetection, DragEndEvent, DragStartEvent } from '@dnd-kit/core'
+import type { CollisionDetection, DragEndEvent } from '@dnd-kit/core'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
-import { boardActions, readGroup, readGroupIdOfItem, readGroupIds, readItem } from '../../state/board-store.ts'
+import { boardActions, readGroup, readGroupIdOfItem, readGroupIds } from '../../state/board-store.ts'
+import { BoardDragOverlay } from './BoardDragOverlay.tsx'
 import { BoardGroupSlot } from './BoardGroupSlot.tsx'
-import { CardFace } from '../navigation/CardFace.tsx'
-import { DragHandle } from './DragHandle.tsx'
-import { DROP_LANDING_MS, parseDragData } from './drag-types.ts'
+import { parseDragData } from './drag-types.ts'
 import { groupsPerRow } from './group-types.ts'
 import type { GroupMove, GroupRow } from './group-types.ts'
-import type { Item } from '../../core/storage/types.ts'
 
 export type GroupBoardProps = {
   /**
@@ -103,6 +100,11 @@ function moveGroup(groupId: string, move: GroupMove): void {
  *
  * 所有涉及分组归属的判断都在**事件回调里**即时读 store（`read*` 系列），
  * 既不需要订阅，也不存在闭包捕获到过期数据的问题。
+ *
+ * ⚠️ 这一层**不持有任何拖拽状态**：正在拖的是谁、虚影怎么飞回去都由
+ * `BoardDragOverlay` 交给 dnd-kit 自己的机制处理。
+ * 拖拽开始/结束那一刻在这里 `setState`，会让整棵看板元素树重建 —— 拖拽的卡顿与
+ * "落位后闪一下"都出在这两条上（详见 README 的「拖拽性能」一节）。
  */
 export function GroupBoard({
   rows,
@@ -111,10 +113,6 @@ export function GroupBoard({
   onEditGroup,
   onEditItem,
 }: GroupBoardProps): React.ReactNode {
-  const [activeId, setActiveId] = useState<string | null>(null)
-  /** 刚落下的那一项：DragOverlay 还在飞回卡槽，原卡片先半透明占位。 */
-  const [landingId, setLandingId] = useState<string | null>(null)
-
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -133,28 +131,9 @@ export function GroupBoard({
     return map
   }, [rows])
 
-  // 拖拽虚影要画实体卡片：按 id 即时取当前数据，不必订阅（重画由 activeId 触发）
-  const draggedItem = activeId === null ? null : (readItem(activeId) ?? null)
-
-  // 落位动画播完就把占位态收回，卡片淡入到实体状态
-  useEffect(() => {
-    if (!landingId) {
-      return
-    }
-    const timer = window.setTimeout(() => setLandingId(null), DROP_LANDING_MS)
-    return () => window.clearTimeout(timer)
-  }, [landingId])
-
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    setActiveId(String(event.active.id))
-  }, [])
-
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event
     const draggedId = String(active.id)
-    setActiveId(null)
-    // 不管顺序有没有变，实体都会飞回卡槽，所以占位态统一挂上
-    setLandingId(draggedId)
     if (!over || active.id === over.id) {
       return
     }
@@ -189,8 +168,6 @@ export function GroupBoard({
     boardActions.moveItemToGroup(draggedId, sourceGroupId, targetGroupId, overId)
   }, [])
 
-  const handleDragCancel = useCallback(() => setActiveId(null), [])
-
   if (rows.length === 0) {
     return (
       <Empty
@@ -206,9 +183,7 @@ export function GroupBoard({
     <DndContext
       sensors={sensors}
       collisionDetection={sameKindCollision}
-      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      onDragCancel={handleDragCancel}
     >
       <Flex vertical>
         {rows.map((row) => (
@@ -233,7 +208,6 @@ export function GroupBoard({
                     onAddItem={onAddItem}
                     onEditGroup={onEditGroup}
                     onEditItem={onEditItem}
-                    landingItemId={landingId}
                   />
                 </Col>
               )
@@ -242,46 +216,8 @@ export function GroupBoard({
         ))}
       </Flex>
 
-      <DragOverlay dropAnimation={{ duration: 220, easing: 'cubic-bezier(0.2, 0, 0, 1)' }}>
-        {draggedItem ? <DragPreview item={draggedItem} /> : null}
-      </DragOverlay>
+      <BoardDragOverlay />
     </DndContext>
-  )
-}
-
-/**
- * 拖拽时跟随指针的预览。
- *
- * dnd-kit 的 sortable 只在 activeIndex / overIndex 都落在同一个 SortableContext 里时
- * 才让原卡片跟随指针；卡片被拖到别的分组时这两个下标对不上，原卡片会"僵在原地"。
- * 所以统一用 DragOverlay 渲染实体，原卡片只留一个半透明的占位（见 SortableCard）。
- *
- * 预览复用 `CardFace`（与列表里实体卡片同一份外观），因此拖起来就是"整张卡片被拿起"：
- * 尺寸由 DragOverlay 的外层盒子（= 被拖卡片拖起瞬间的实测尺寸）决定，
- * 这里只管铺满它并加一点抬起感（zIndex/阴影），dropAnimation 也能像素级落回原卡槽。
- *
- * 注意：预览里的编辑/删除按钮不接动作，拖动中点击它们不会触发任何副作用。
- */
-function DragPreview({ item }: { item: Item }): React.ReactNode {
-  /** 抬起感：阴影由外层承担，预览盒子本身铺满 DragOverlay 的尺寸。 */
-  const liftStyle: React.CSSProperties = {
-    maxWidth: '100%',
-    boxShadow: 'var(--ant-box-shadow-secondary)',
-    cursor: 'grabbing',
-  }
-  const noop = () => {}
-
-  return (
-    <div style={liftStyle}>
-      <CardFace
-        item={item}
-        // 拖拽只在编辑模式发生，预览照着编辑模式的卡片画，虚影与实体才一致
-        editMode
-        handle={<DragHandle inert />}
-        onEdit={noop}
-        onRemove={noop}
-      />
-    </div>
   )
 }
 

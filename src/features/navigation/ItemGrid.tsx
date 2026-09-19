@@ -19,8 +19,6 @@ export type ItemGridProps = {
   groupType: GroupType
   /** 是否处于编辑模式：关闭时不渲染拖拽手柄，卡片也就无法拖拽。 */
   editMode: boolean
-  /** 刚刚落下、还在等 DragOverlay 落定的卡片 id。 */
-  landingItemId: string | null
   /**
    * 打开某张卡片的编辑弹窗。
    *
@@ -53,7 +51,6 @@ export const ItemGrid = memo(function ItemGrid({
   columns,
   groupType,
   editMode,
-  landingItemId,
   onEditItem,
 }: ItemGridProps): React.ReactNode {
   // ⚠️ 必须在提前 return 之前调用（Hooks 规则）；它同时是 dnd-kit 不误伤同组卡片的前提
@@ -84,7 +81,6 @@ export const ItemGrid = memo(function ItemGrid({
             item={item}
             groupId={groupId}
             editMode={editMode}
-            isLanding={item.id === landingItemId}
             onEdit={onEditItem}
           />
         ))}

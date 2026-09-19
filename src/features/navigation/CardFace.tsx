@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { App, Button, Flex, Space, Tooltip, Typography } from 'antd'
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
 import { WidgetRenderer } from '../widgets/WidgetRenderer.tsx'
@@ -24,13 +24,32 @@ export type CardFaceProps = {
  *
  * `SortableCard` 用它渲染列表里的实体卡片，`DragPreview` 用它渲染跟随指针的预览。
  * 两边共用同一份标记，拖起来的虚影就是卡片本身，不会出现"预览和实体长得不一样"。
+ *
+ * ⚠️ **这层 `memo` 是拖拽流畅度的命门，别去掉。**
+ *
+ * dnd-kit 的 `DndContext` context 在拖拽开始与**指针每移动一帧**时都会换引用，
+ * 而 context 传播不受 `memo` 拦截 —— 于是 `SortableCard` 一直重渲染（这是必须的，
+ * 它的 transform 要跟着走）。但卡片外观这棵子树（antd Card/Flex/Typography/Button
+ * 与**每张卡三个 Tooltip 的 rc-trigger 机器**，实测单次 commit 里 72 个 Tooltip、
+ * 96 个 Trigger、62 个 ResizeObserver）**没有任何理由跟着重渲染**：
+ * 实测在拖动开始时它会把主线程堵住约 780ms，表现就是"一开始拖就卡一下"。
+ *
+ * memo 生效的前提是调用方传进来的每个 prop 引用都稳定 ——
+ * `SortableCard` 因此用 `useMemo` 固定 `handle`、用 `useCallback` 固定 `onEdit` / `onRemove`。
+ * ⚠️ 谁要再给这里加 prop，先确认它是原始值或稳定引用。
  */
-export function CardFace({ item, editMode, handle, onEdit, onRemove }: CardFaceProps): React.ReactNode {
+export const CardFace = memo(function CardFace({
+  item,
+  editMode,
+  handle,
+  onEdit,
+  onRemove,
+}: CardFaceProps): React.ReactNode {
   if (item.kind === 'link') {
     return <LinkFace item={item} editMode={editMode} handle={handle} onEdit={onEdit} onRemove={onRemove} />
   }
   return <WidgetFace item={item} editMode={editMode} handle={handle} onEdit={onEdit} onRemove={onRemove} />
-}
+})
 
 /**
  * 图标字段的取值判定。
