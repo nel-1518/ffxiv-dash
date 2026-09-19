@@ -144,7 +144,7 @@ export function TaxRender({ config }: WidgetRenderProps<TaxConfig>): React.React
      * 它撑满卡面正文区，好把富余高度传给下面的读数区（上限见 global.css 的 `.dash-tax-link`）。
      */
     <a
-      className="dash-tax-link"
+      className="dash-card-link dash-tax-link dash-card-fill"
       href={TAX_SITE_URL}
       target="_blank"
       rel="noopener noreferrer"

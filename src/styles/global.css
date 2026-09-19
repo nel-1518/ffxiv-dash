@@ -427,6 +427,36 @@ a:hover {
 }
 
 /*
+ * 「铺满但不越界」的两条公用规则（房屋 / 物品价格 / 市场税率三张读数卡共用）。
+ *
+ * 矮卡被本行最高那张撑高时，内容若只长到一半就停，上下会各空一大块（像内容没写完）。
+ * 做法：内容列（`.dash-card-fill`）跟着长，但**封顶在 PvP 地图轮换卡的高度**：
+ * 235px（它单独一张时的卡高）− 72px（卡片头 + 卡面上下内边距）= **164px**。
+ * 再高的富余交回卡面 —— 上面那条 `justify-content: center` 会把它均分到上下两侧。
+ * ⚠️ 卡片尺寸 / 内边距变了，或 PvP 卡的排版变了，这个数要重新量。
+ *
+ * 内部还要再安排一层：哪一块具体吃掉这些高度（房屋是合计块、价格卡是两个品质块、
+ * 税率卡是 2×4 的格子），那是各卡自己的事，见各自的 `.dash-*` 规则。
+ */
+.dash-card-fill {
+  flex: 1 1 auto;
+  max-height: 164px;
+}
+
+/*
+ * 「整块可点」的正文链接（三张卡共用）。
+ *
+ * ⚠️ 它同时是卡内的纵向 flex 容器，所以必须 `display: flex`：
+ * 写成 `display: block` 会让内层的 `flex: 1 1 auto` 失效，上面那套「跟着长」就没了。
+ */
+.dash-card-link {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  color: inherit;
+}
+
+/*
  * 统计卡：环形进度 + 环外读数。
  *
  * 卡片里不放常驻的按钮与输入框 —— 在安静的卡片墙里那两块控件像贴了两块砖。
@@ -1342,6 +1372,8 @@ a:hover {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  /* 卡被撑高时面板跟着长，里面三行读数留在面板中间（靠高度填满，不靠拉开行距） */
+  justify-content: center;
   gap: 6px;
   padding: 8px 10px;
   border-radius: 8px;
@@ -1414,11 +1446,6 @@ a:hover {
 /*
  * 房屋售卖卡
  */
-.dash-house-link {
-  display: block;
-  color: inherit;
-}
-
 .dash-house-phase {
   display: flex;
   flex-direction: row;
@@ -1445,9 +1472,15 @@ a:hover {
  * 三格等宽、数字居中、相邻格之间一条发丝线分隔（两端不留线，否则像表格）。
  * 外面那层只负责容器：`container-type: inline-size` 必须声明在容器自己身上，
  * 而下面用 `cqi` 缩放的是里面的数字，所以两层分工不能合并。
+ *
+ * ⚠️ 这一整条链都是 `flex: 1 1 auto`：卡被撑高时，富余高度就由这块（一个浅底面板）吃掉，
+ * 而不是让三段内容上下各空一截。格子里的标签 + 数字靠 `justify-content: center` 居中。
  */
 .dash-house-totals-wrap {
   container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
 }
 
 /* 筛选条件写在合计块上方：不写就不知道这三个数字是按什么算的 */
@@ -1460,6 +1493,8 @@ a:hover {
 .dash-house-totals {
   display: flex;
   align-items: stretch;
+  /* 面板吃掉卡里的富余高度（上限由 `.dash-card-fill` 封住） */
+  flex: 1 1 auto;
   padding: 8px 0;
   border-radius: 8px;
   background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
@@ -1470,6 +1505,8 @@ a:hover {
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* 面板长高后标签 + 数字仍在格的中间，而不是贴顶 */
+  justify-content: center;
   gap: 2px;
   min-width: 0;
 }
@@ -1508,19 +1545,11 @@ a:hover {
 }
 
 /*
- * 正文整块可点，跳到 Universalis 首页（与房屋卡的 `.dash-house-link` 同一做法）。
- *
- * 这一层同时充当卡内的纵向 flex 容器（原本是里面那层 antd Flex），所以必须 `display: flex`：
- * 写成 `display: block` 会让 `.dash-tax-rows` 的 `flex: 1 1 auto` 失效，
- * 「被同组更高的卡撑高时格子跟着长」那套就没了。
+ * 正文整块可点，跳到 Universalis 首页（公用规则见 `.dash-card-link`）。
+ * 税率卡的链接就是它的内容列（里面直接是标题行与读数区），所以只要补一个 gap。
  */
 .dash-tax-link {
-  display: flex;
-  flex-direction: column;
   gap: 10px;
-  min-width: 0;
-  flex: 1 1 auto;
-  color: inherit;
 }
 
 /*

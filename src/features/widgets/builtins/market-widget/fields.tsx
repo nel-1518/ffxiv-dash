@@ -425,19 +425,19 @@ export function MarketRender({
           : '暂无数据'
 
   return (
-    <Flex vertical gap={10} style={{ minWidth: 0 }}>
+    <Flex className="dash-card-fill" vertical gap={10} style={{ minWidth: 0 }}>
       {/*
         正文整块可点，跳到 Universalis 的物品页。
         链接只包住读数区：**标题栏**里有编辑/删除按钮，交互元素不能嵌在 <a> 里。
       */}
       <a
+        className="dash-card-link"
         href={buildMarketPageUrl(itemId)}
         target="_blank"
         rel="noopener noreferrer"
         title="在 Universalis 查看该物品"
-        style={{ display: 'block', color: 'inherit' }}
       >
-        <Flex vertical gap={10} style={{ minWidth: 0 }}>
+        <Flex vertical gap={10} style={{ minWidth: 0, flex: '1 1 auto' }}>
           <Flex align="baseline" justify="space-between" gap={8} style={{ minWidth: 0 }}>
             <Typography.Text strong ellipsis style={{ fontSize: 13 }}>
               {item?.name ?? `物品 #${itemId}`}
@@ -455,7 +455,7 @@ export function MarketRender({
             </Typography.Text>
           </Flex>
 
-          <Flex gap={8} align="stretch" style={{ minWidth: 0 }}>
+          <Flex gap={8} align="stretch" style={{ minWidth: 0, flex: '1 1 auto' }}>
             {/* 有 HQ 时 HQ 在左、NQ 在右；这个物品没有 HQ 版本就整块不出现 */}
             {hasHq ? (
               <QualityBlock label="HQ" readings={result?.hq} basePrice={config.basePrice} scope={scope} />

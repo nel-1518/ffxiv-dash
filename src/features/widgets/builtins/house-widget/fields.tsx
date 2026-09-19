@@ -208,13 +208,13 @@ export function HouseRender({ config }: WidgetRenderProps<HouseConfig>): React.R
      * 交互元素不能嵌在 <a> 里。
      */
     <a
-      className="dash-house-link"
+      className="dash-card-link dash-card-fill"
       href={HOUSE_SITE_URL}
       target="_blank"
       rel="noopener noreferrer"
       title="打开艾欧泽亚售楼中心"
     >
-      <Flex vertical gap={10} style={{ minWidth: 0 }}>
+      <Flex vertical gap={10} style={{ minWidth: 0, flex: '1 1 auto' }}>
         <Flex align="baseline" justify="space-between" gap={8} style={{ minWidth: 0 }}>
           <Typography.Text strong ellipsis className={`dash-house-phase-name${phase.kind === 'entry' ? '-is-entry' : ''}`} style={{ fontSize: 13 }}>
             {HOUSE_PHASE_LABELS[phase.kind]}
@@ -241,7 +241,7 @@ export function HouseRender({ config }: WidgetRenderProps<HouseConfig>): React.R
           合计块外面套一层：`container-type: inline-size` 只能声明在**容器自己**身上，
           而字号缩放要作用到里面的数字（`cqi` 量的是这一层的宽度），所以两者必须分开。
         */}
-        <Flex vertical gap={4} style={{ minWidth: 0 }}>
+        <Flex vertical gap={4} style={{ minWidth: 0, flex: '1 1 auto' }}>
           <span className="dash-house-totals-caption">
             {areas.length == 1 ? HOUSE_AREAS[areas[0]]?.name ?? '未知房区' : `${areas.length} 个房区`} · {HOUSE_USE_LABELS[config.use]}
           </span>
