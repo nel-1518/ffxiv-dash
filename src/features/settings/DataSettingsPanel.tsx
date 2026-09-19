@@ -1,6 +1,7 @@
 import { App, Button, Flex, Typography, Upload } from 'antd'
 import { DownloadOutlined, UploadOutlined } from '@ant-design/icons'
-import { useBoard, useBoardActions } from '../../state/hooks.ts'
+import { boardActions } from '../../state/board-store.ts'
+import { useBoardDoc } from '../../state/hooks.ts'
 import { parseBoardDoc, serializeBoardDoc } from '../../core/storage/persistent.ts'
 
 /** 导出文件名里的时间戳：本地时间、到分钟，够用来区分多次导出。 */
@@ -37,8 +38,8 @@ function downloadText(text: string, fileName: string): void {
  * 因此导出文件、更老版本的导出文件都能吃下；解析不出来的文件直接拒绝，不动现有数据。
  */
 export function DataSettingsPanel(): React.ReactNode {
-  const doc = useBoard()
-  const actions = useBoardActions()
+  // 面板只在设置弹窗打开时挂载，且要展示"当前有几个分组/几项内容"，所以直接订整份文档
+  const doc = useBoardDoc()
   const { message, modal } = App.useApp()
 
   const itemCount = doc.groups.reduce((total, group) => total + group.items.length, 0)
@@ -68,7 +69,7 @@ export function DataSettingsPanel(): React.ReactNode {
           okButtonProps: { danger: true },
           cancelText: '取消',
           onOk: () => {
-            actions.replaceDoc(next)
+            boardActions.replaceDoc(next)
             message.success('导入完成')
           },
         })

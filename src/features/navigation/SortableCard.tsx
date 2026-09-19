@@ -1,3 +1,5 @@
+import { memo } from 'react'
+import { boardActions } from '../../state/board-store.ts'
 import { DragHandle } from '../groups/DragHandle.tsx'
 import { CardFace } from './CardFace.tsx'
 import { useSortableCard } from './useSortableCard.ts'
@@ -10,8 +12,13 @@ export type SortableCardProps = {
   editMode: boolean
   /** 刚落下、DragOverlay 还在飞回卡槽：先半透明占位，落定后淡入。 */
   isLanding: boolean
-  onEdit: () => void
-  onRemove: () => void
+  /**
+   * 打开这张卡片的编辑弹窗。
+   *
+   * 收的是「卡片 id」而不是无参闭包：同一个分组里所有卡片共用**同一个函数引用**，
+   * 下面 `memo` 的比较才有意义（每次新建闭包会让所有卡片都判定为"变了"）。
+   */
+  onEdit: (itemId: string) => void
 }
 
 /**
@@ -21,14 +28,20 @@ export type SortableCardProps = {
  * 手柄通过 `handle` 注入给纯展示的 `CardFace`。
  * 卡片外观本身由 `CardFace` 提供，拖拽预览（DragPreview）复用同一个组件，
  * 因此拖起来的虚影与列表里的实体完全一致。
+ *
+ * **这是"改一张卡片只重渲染那一张"的边界。** `memo` 能生效的前提是每个 prop 都稳定：
+ * `item` 由 reducer 保证"没改到的 item 不换引用"，其余都是字符串/布尔，
+ * `onEdit` 见上面的说明。⚠️ 因此**不要**给它加内联对象/闭包类 prop。
+ *
+ * 删除由卡片自己派发（它握着 `groupId` 与 `item.id`），省掉两条 prop 链，
+ * 也让 `memo` 的比较面更小。
  */
-export function SortableCard({
+export const SortableCard = memo(function SortableCard({
   item,
   groupId,
   editMode,
   isLanding,
   onEdit,
-  onRemove,
 }: SortableCardProps): React.ReactNode {
   const { setNodeRef, setActivatorNodeRef, listeners, attributes, style } = useSortableCard(
     item.id,
@@ -55,7 +68,13 @@ export function SortableCard({
       className={liftable ? 'dash-sortable-item dash-link-cell' : 'dash-sortable-item'}
       style={style}
     >
-      <CardFace item={item} editMode={editMode} handle={handle} onEdit={onEdit} onRemove={onRemove} />
+      <CardFace
+        item={item}
+        editMode={editMode}
+        handle={handle}
+        onEdit={() => onEdit(item.id)}
+        onRemove={() => boardActions.removeItem(groupId, item.id)}
+      />
     </div>
   )
-}
+})

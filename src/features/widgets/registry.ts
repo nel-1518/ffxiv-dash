@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { setWidgetConfigNormalizer } from '../../core/storage/persistent.ts'
 import type { WidgetSpec } from './types.ts'
 
@@ -13,8 +14,20 @@ export function registerWidget<C>(spec: WidgetSpec<C>): void {
   if (registry.has(spec.key)) {
     console.warn(`[ffxiv-dash] 组件 key "${spec.key}" 已存在，将被覆盖`)
   }
+  /*
+   * 统一给 `Render` 套一层 `memo`，**在注册时做一次**。
+   *
+   * 放在这里而不是各个组件里，有两个好处：
+   * ① 每个 builtin 都自动生效，不需要每个 widget 文件自己记得加；
+   * ② 不在渲染期新建组件类型（那会让子树反复挂载）。
+   *
+   * 能拦下的典型场景：切换编辑模式时整块看板重渲染，但每张卡片拿到的是同一个
+   * `item` 对象，`Render` 会直接跳过 —— 组件里那些请求、时钟订阅、antd 控件都不必白跑。
+   * ⚠️ 前提是传进去的 `config` 引用要稳（见 `WidgetRenderer` 里的 `useMemo`）。
+   */
+  const stored = { ...spec, Render: memo(spec.Render) } as unknown as WidgetSpec
   // 注册表以 unknown 键存放：取值方通过 getWidget 拿到泛型已擦除的规格
-  registry.set(spec.key, spec as unknown as WidgetSpec)
+  registry.set(spec.key, stored)
 }
 
 export function getWidget(key: string): WidgetSpec | undefined {

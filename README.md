@@ -29,7 +29,7 @@ pnpm preview    # 预览构建产物
 ```
 src/
   app/                    应用外壳与全局装配
-    AppProviders.tsx        ConfigProvider(中文/主题) → App → BoardProvider
+    AppProviders.tsx        ConfigProvider(中文/主题) → App → BoardPersistence（无看板 Provider）
     theme-config.ts         基线主题 + 把主题规格合成 antd ThemeConfig
     AppShell.tsx            布局外壳；将来接路由的挂载点（只负责把视图放进 Layout）
     background-layer.ts     外观快照 + 主题预设 → 背景层样式（纯函数，无 React）
@@ -62,10 +62,10 @@ src/
   state/                    仪表盘状态
     board-types.ts          action 与 actions 类型
     board-reducer.ts        纯 reducer，全部不可变更新
-    board-context.ts        context 常量
+    board-store.ts          模块级 store：订阅 + 快照读取 + boardActions（唯一数据源）
     board-storage.ts        读写落盘
-    hooks.ts                useBoard / useBoardActions
-    BoardProvider.tsx       reducer + debounce 落盘
+    board-persistence.tsx   订阅 store，300ms 防抖写盘（不向子树传任何数据）
+    hooks.ts                useBoardGroupRows / useBoardGroup / useBoardDoc
   features/
     dashboard/              顶栏、编辑弹窗、表单
       TopbarClock.tsx         顶栏问候语与两个时间读数（秒级时钟只落在这几个叶子上）
@@ -93,13 +93,26 @@ src/
 
 ### 数据流
 
+看板状态住在 `state/board-store.ts` 这个**模块级 store** 里，全站没有看板 Provider：
+
 ```
 展示层 (features/*)
-  └─ useBoardActions() 派发 action
+  └─ boardActions.xxx() 派发 action（模块级常量，事件里直接用，不订阅）
        └─ boardReducer（纯函数）产出新 BoardDoc
-            └─ BoardProvider 以 300ms 防抖写入 localStorage
-                 └─ 组件从 useBoard() 读到新状态并重渲染
+            ├─ store 通知订阅者；各组件按 useSyncExternalStore 的粒度快照决定是否重渲染
+            │    · useBoardGroupRows()  → 只在分组增删/重排时重渲染（BoardSurface）
+            │    · useBoardGroup(id)    → 只在该分组变化时重渲染（分组槽位）
+            │    · useBoardDoc()        → 真要整份文档时才用（导出、计数）
+            └─ BoardPersistence 以 300ms 防抖写入 localStorage
 ```
+
+**为什么要 store 而不是 context**：context 的订阅粒度是整个 value，`doc` 一换引用，所有消费者都要重渲染，
+"点一下进度卡的 +1"会牵动整页（顶栏、搜索框、其他分组）。store + 粒度化快照之后，
+一次卡片改动只会重渲染**那张卡片**（连它所在分组的表头都不会重渲染）。
+
+⚠️ 改这块之前先看 `state/board-store.ts` 与 `state/hooks.ts` 顶部的注释，以及
+`navigation/useStableIdList.ts`：几处「内容不变就复用旧引用」的缓存是细粒度订阅成立的前提，
+写错的表现是**功能正常但性能回退、零报错**。
 
 **没有统一的请求层**：早先「数据来源 = HTTP 接口」那套能力已整体删除（`core/api` 已不存在），
 需要联网的组件各自封装 URL / 缓存 / 失败态，做法见下面「组件要访问接口怎么做」。

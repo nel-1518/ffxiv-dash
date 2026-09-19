@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { App, ConfigProvider } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
-import { BoardProvider } from '../state/BoardProvider.tsx'
+import { BoardPersistence } from '../state/board-persistence.tsx'
 import { createAppTheme } from './theme-config.ts'
 import { useTheme } from '../core/appearance/hooks.ts'
 import type { ReactNode } from 'react'
@@ -10,7 +10,11 @@ import type { ReactNode } from 'react'
  * 全局 Provider 装配。
  *
  * 顺序很重要：ConfigProvider 必须在 App 之上，App 才能消费 Design Token；
- * BoardProvider 在 App 之内，它要用 App.useApp() 的 message 提示保存失败。
+ * BoardPersistence 在 App 之内，它要用 App.useApp() 的 message 提示保存失败。
+ *
+ * 看板状态住在 `state/board-store.ts` 这个模块级 store 里，消费侧各自按需订阅
+ * （见 `state/hooks.ts`），不需要 Provider 包着。
+ * 留在树里的 `BoardPersistence` 只负责落盘，它不向下传任何数据。
  */
 export function AppProviders({ children }: { children: ReactNode }): ReactNode {
   const themeKey = useTheme()
@@ -37,7 +41,7 @@ export function AppProviders({ children }: { children: ReactNode }): ReactNode {
       }}
     >
       <App message={{ maxCount: 3, duration: 2 }}>
-        <BoardProvider>{children}</BoardProvider>
+        <BoardPersistence>{children}</BoardPersistence>
       </App>
     </ConfigProvider>
   )

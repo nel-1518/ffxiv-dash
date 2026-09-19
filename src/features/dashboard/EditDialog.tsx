@@ -1,11 +1,12 @@
 import { useMemo } from 'react'
 import { Button, Flex, Form, Modal, Space } from 'antd'
 import { DeleteOutlined } from '@ant-design/icons'
+import { useBoardGroup } from '../../state/hooks.ts'
 import { GroupForm } from '../groups/GroupForm.tsx'
 import { ItemForm } from './ItemForm.tsx'
 import { DEFAULT_GROUP_COLUMNS } from '../../core/storage/types.ts'
 import type { GroupFormValues } from '../groups/GroupForm.tsx'
-import type { BoardDoc, GroupType, Item } from '../../core/storage/types.ts'
+import type { GroupType, Item } from '../../core/storage/types.ts'
 
 /** 弹窗状态机：一次只开一个弹窗，分组与卡片各自一套模式。 */
 export type ModalState =
@@ -14,7 +15,6 @@ export type ModalState =
 
 export type EditDialogProps = {
   state: ModalState | null
-  doc: BoardDoc
   onClose: () => void
   onSaveGroup: (groupId: string | null, values: GroupFormValues) => void
   onSaveItem: (groupId: string, itemId: string | null, item: Item) => void
@@ -39,7 +39,6 @@ const ITEM_FORM_ID = 'ffxiv-dash-item-form'
  */
 export function EditDialog({
   state,
-  doc,
   onClose,
   onSaveGroup,
   onSaveItem,
@@ -47,7 +46,12 @@ export function EditDialog({
 }: EditDialogProps): React.ReactNode {
   const [form] = Form.useForm()
 
-  const group = state ? doc.groups.find((entry) => entry.id === state.groupId) : undefined
+  /*
+   * 自己订阅要编辑的那个分组：调用方（`DashboardPage`）因此不必为了弹窗去读整份看板
+   * （否则它会被任何一次卡片改动带着重渲染）。弹窗关闭时这里返回 undefined，代价可忽略。
+   */
+  const group = useBoardGroup(state?.groupId ?? '')
+
   const item = useMemo<Item | undefined>(() => {
     if (state?.mode !== 'item' || !state.itemId) {
       return undefined

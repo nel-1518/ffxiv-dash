@@ -1,7 +1,9 @@
+import { useMemo } from 'react'
 import { Alert, App, Button, Card, Flex, Space, Tooltip, Typography } from 'antd'
 import { DeleteOutlined, EditOutlined, WarningOutlined } from '@ant-design/icons'
 import { getWidget } from './registry.ts'
 import type { WidgetItem } from '../../core/storage/types.ts'
+import type { WidgetSpec } from './types.ts'
 
 export type WidgetRendererProps = {
   item: WidgetItem
@@ -115,7 +117,7 @@ function UnknownWidget({
 
 /**
  * 已注册组件的统一外壳：负责标题与右上角操作，
- * 再把归一化后的 config 交给 spec.Render。
+ * 再把归一化后的 config 交给 spec.Render（由注册表统一套过 `memo`）。
  */
 export function WidgetRenderer({
   item,
@@ -130,11 +132,30 @@ export function WidgetRenderer({
     return <UnknownWidget item={item} editMode={editMode} handle={handle} onEdit={onEdit} onRemove={onRemove} />
   }
 
-  const { Render } = spec
-
   return (
     <WidgetShell item={item} editMode={editMode} handle={handle} onEdit={onEdit} onRemove={onRemove}>
-      <Render config={spec.normalizeConfig(item.config)} item={item} />
+      {/*
+       * 内容单独拆一层再渲染：归一化要 memo（见下），而 `useMemo` 不能出现在
+       * 上面那个提前 return 之后（Hooks 规则）。
+       */}
+      <WidgetContent spec={spec} item={item} />
     </WidgetShell>
   )
+}
+
+/**
+ * 组件正文。
+ *
+ * ⚠️ `spec.normalizeConfig` **每次调用都返回新对象**（它就是"校验并补默认值"），
+ * 直接把它塞给 `Render` 会让注册表里那层 `memo` 永远失效 ——
+ * 表现为"什么都没改，组件却跟着整块看板重渲染"。
+ *
+ * `item.config` 只在它自己被 patch 时才换引用（reducer 按 id 精确替换），
+ * 所以按它 memo 是准确且稳定的。
+ */
+function WidgetContent({ spec, item }: { spec: WidgetSpec; item: WidgetItem }): React.ReactNode {
+  const { Render } = spec
+  const config = useMemo(() => spec.normalizeConfig(item.config), [spec, item.config])
+
+  return <Render config={config} item={item} />
 }

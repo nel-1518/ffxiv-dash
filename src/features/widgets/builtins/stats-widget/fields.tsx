@@ -1,7 +1,7 @@
 import { Button, Flex, Form, InputNumber, Progress } from 'antd'
 import { MinusOutlined, PlusOutlined } from '@ant-design/icons'
 import { useState } from 'react'
-import { useBoardActions } from '../../../../state/hooks.ts'
+import { boardActions } from '../../../../state/board-store.ts'
 import type { StatsConfig } from './config.ts'
 import type { WidgetRenderProps } from '../../types.ts'
 
@@ -29,7 +29,6 @@ export function StatsFormFields(): React.ReactNode {
  * 幽灵按钮，滑出到环的两侧。静止时整张卡只剩一个环。
  */
 export function StatsRender({ config, item }: WidgetRenderProps<StatsConfig>): React.ReactNode {
-  const actions = useBoardActions()
   const [draft, setDraft] = useState<string | null>(null)
   const editing = draft !== null
 
@@ -39,7 +38,8 @@ export function StatsRender({ config, item }: WidgetRenderProps<StatsConfig>): R
 
   const setValue = (next: number) => {
     const clamped = Math.min(config.max, Math.max(0, Math.round(next)))
-    if (clamped !== config.value) actions.updateItemConfig(item.id, { value: clamped })
+    // `boardActions` 是模块级常量：这里只是写入，不订阅看板，因此不参与任何重渲染
+    if (clamped !== config.value) boardActions.updateItemConfig(item.id, { value: clamped })
   }
 
   const commit = () => {

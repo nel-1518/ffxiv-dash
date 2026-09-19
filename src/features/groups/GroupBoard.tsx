@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Col, Empty, Flex, Row } from 'antd'
 import {
   closestCenter,
@@ -11,75 +11,31 @@ import {
 } from '@dnd-kit/core'
 import type { CollisionDetection, DragEndEvent, DragStartEvent } from '@dnd-kit/core'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
-import { useBoard, useBoardActions } from '../../state/hooks.ts'
-import { ItemGrid } from '../navigation/ItemGrid.tsx'
+import { boardActions, readGroup, readGroupIdOfItem, readGroupIds, readItem } from '../../state/board-store.ts'
+import { BoardGroupSlot } from './BoardGroupSlot.tsx'
 import { CardFace } from '../navigation/CardFace.tsx'
 import { DragHandle } from './DragHandle.tsx'
-import { SortableGroup } from './SortableGroup.tsx'
 import { DROP_LANDING_MS, parseDragData } from './drag-types.ts'
 import { groupsPerRow } from './group-types.ts'
-import type { Group, GroupType, Item } from '../../core/storage/types.ts'
+import type { GroupRow } from './group-types.ts'
+import type { Item } from '../../core/storage/types.ts'
 
 export type GroupBoardProps = {
-  groups: Group[]
+  /**
+   * 分行后的分组结构，由 `BoardSurface` 订阅后传入。
+   *
+   * 收结构而不是 `Group[]`：本组件因此**完全不订阅看板数据**，只在分组增删、
+   * 分组重排时重渲染（那时行结构真的变了）。卡片内容的变化不会惊动这里。
+   */
+  rows: GroupRow[]
   /** 是否处于编辑模式：关闭时隐藏手柄、分组操作与卡片上的编辑/删除。 */
   editMode: boolean
   onAddItem: (groupId: string) => void
   onEditGroup: (groupId: string) => void
   onEditItem: (groupId: string, itemId: string) => void
-  onRemoveItem: (groupId: string, itemId: string) => void
 }
-
-/** 一行内的分组切片：连续的同类型分组按 perRow 分组，每组渲染成一个 Row。 */
-type GroupRow = { type: GroupType; entries: Group[] }
 
 const GRID_COLUMNS = 24
-
-/**
- * 把分组切成"行"。
- *
- * 规则：连续的同类分组按该类型的 perRow 切片；类型切换时立即断行。
- * 小组件的 perRow 是 1，因此每个小组件分组独占一行。
- */
-function splitIntoRows(groups: Group[]): GroupRow[] {
-  const rows: GroupRow[] = []
-  let current: GroupRow | undefined
-
-  for (const entry of groups) {
-    const type = entry.type
-    const capacity = groupsPerRow(type)
-    const canAppend = current && current.type === type && current.entries.length < capacity
-    if (canAppend && current) {
-      current.entries.push(entry)
-      continue
-    }
-    current = { type, entries: [entry] }
-    rows.push(current)
-  }
-
-  return rows
-}
-
-function findGroupIdByItemId(
-  groups: { id: string; items: { id: string }[] }[],
-  itemId: string,
-): string | undefined {
-  return groups.find((group) => group.items.some((item) => item.id === itemId))?.id
-}
-
-/** 从看板里找出正在被拖拽的那张卡片。 */
-function findDraggedItem(doc: { groups: Group[] }, activeId: string | null): Item | null {
-  if (!activeId) {
-    return null
-  }
-  for (const group of doc.groups) {
-    const item = group.items.find((candidate) => candidate.id === activeId)
-    if (item) {
-      return item
-    }
-  }
-  return null
-}
 
 /**
  * 只允许同 kind 的卡片互相吸附。
@@ -103,6 +59,27 @@ const sameKindCollision: CollisionDetection = (args) => {
 }
 
 /**
+ * 分组上移/下移。
+ *
+ * 做成**模块级函数**（而不是组件内的闭包）：它的引用因此永远不变，可以直接喂给
+ * `memo(BoardGroupSlot)` 的比较，不需要再套一层 `useCallback`。
+ * 顺序在**调用那一刻**从 store 读，所以也不存在闭包捕获到过期顺序的问题。
+ *
+ * ⚠️ `readGroupIds()` 返回的是 store 里的缓存数组，**只能读不能改**，所以要复制一份再换位。
+ */
+function moveGroup(groupId: string, direction: -1 | 1): void {
+  const currentIds = readGroupIds()
+  const currentIndex = currentIds.indexOf(groupId)
+  const targetIndex = currentIndex + direction
+  if (currentIndex < 0 || targetIndex < 0 || targetIndex >= currentIds.length) {
+    return
+  }
+  const nextIds = [...currentIds]
+  ;[nextIds[currentIndex], nextIds[targetIndex]] = [nextIds[targetIndex], nextIds[currentIndex]]
+  boardActions.reorderGroups(nextIds)
+}
+
+/**
  * 拖拽编排层。
  *
  * 传感器说明：
@@ -111,17 +88,17 @@ const sameKindCollision: CollisionDetection = (args) => {
  * - KeyboardSensor + sortableKeyboardCoordinates 让键盘也能完成排序。
  *
  * 拖拽手柄只绑在 DragHandle 上，因此整张卡片可以自由放交互元素。
+ *
+ * 所有涉及分组归属的判断都在**事件回调里**即时读 store（`read*` 系列），
+ * 既不需要订阅，也不存在闭包捕获到过期数据的问题。
  */
 export function GroupBoard({
-  groups,
+  rows,
   editMode,
   onAddItem,
   onEditGroup,
   onEditItem,
-  onRemoveItem,
 }: GroupBoardProps): React.ReactNode {
-  const doc = useBoard()
-  const actions = useBoardActions()
   const [activeId, setActiveId] = useState<string | null>(null)
   /** 刚落下的那一项：DragOverlay 还在飞回卡槽，原卡片先半透明占位。 */
   const [landingId, setLandingId] = useState<string | null>(null)
@@ -131,8 +108,21 @@ export function GroupBoard({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
-  const rows = splitIntoRows(groups)
-  const draggedItem = findDraggedItem(doc, activeId)
+  /** 分组 id → 全局下标。表头的上移/下移按钮靠它判断边界。 */
+  const positions = useMemo(() => {
+    const map = new Map<string, number>()
+    let index = 0
+    for (const row of rows) {
+      for (const id of row.ids) {
+        map.set(id, index)
+        index += 1
+      }
+    }
+    return map
+  }, [rows])
+
+  // 拖拽虚影要画实体卡片：按 id 即时取当前数据，不必订阅（重画由 activeId 触发）
+  const draggedItem = activeId === null ? null : (readItem(activeId) ?? null)
 
   // 落位动画播完就把占位态收回，卡片淡入到实体状态
   useEffect(() => {
@@ -143,11 +133,11 @@ export function GroupBoard({
     return () => window.clearTimeout(timer)
   }, [landingId])
 
-  const handleDragStart = (event: DragStartEvent) => {
+  const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveId(String(event.active.id))
-  }
+  }, [])
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event
     const draggedId = String(active.id)
     setActiveId(null)
@@ -157,20 +147,19 @@ export function GroupBoard({
       return
     }
 
-    const activeId = draggedId
     const overId = String(over.id)
     const activeData = parseDragData(active.data.current ?? undefined)
     const overData = parseDragData(over.data.current ?? undefined)
 
     // dnd-kit 偶尔拿不到 data.current，那时用 id 归属反推所在的卡片
-    const sourceGroupId = activeData?.groupId ?? findGroupIdByItemId(doc.groups, activeId)
-    const targetGroupId = overData?.groupId ?? findGroupIdByItemId(doc.groups, overId)
+    const sourceGroupId = activeData?.groupId ?? readGroupIdOfItem(draggedId)
+    const targetGroupId = overData?.groupId ?? readGroupIdOfItem(overId)
     if (!sourceGroupId || !targetGroupId) {
       return
     }
 
     if (sourceGroupId === targetGroupId) {
-      const group = doc.groups.find((entry) => entry.id === sourceGroupId)
+      const group = readGroup(sourceGroupId)
       if (!group) {
         return
       }
@@ -178,29 +167,19 @@ export function GroupBoard({
       if (currentIds.every((id) => id !== overId)) {
         return
       }
-      const nextIds = reorder(currentIds, activeId, overId)
+      const nextIds = reorder(currentIds, draggedId, overId)
       if (!isSameOrder(currentIds, nextIds)) {
-        actions.reorderItems(sourceGroupId, nextIds)
+        boardActions.reorderItems(sourceGroupId, nextIds)
       }
       return
     }
 
-    actions.moveItemToGroup(activeId, sourceGroupId, targetGroupId, overId)
-  }
+    boardActions.moveItemToGroup(draggedId, sourceGroupId, targetGroupId, overId)
+  }, [])
 
-  const moveGroup = (groupId: string, direction: -1 | 1) => {
-    const currentIds = doc.groups.map((group) => group.id)
-    const currentIndex = currentIds.indexOf(groupId)
-    const targetIndex = currentIndex + direction
-    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= currentIds.length) {
-      return
-    }
-    const nextIds = [...currentIds]
-    ;[nextIds[currentIndex], nextIds[targetIndex]] = [nextIds[targetIndex], nextIds[currentIndex]]
-    actions.reorderGroups(nextIds)
-  }
+  const handleDragCancel = useCallback(() => setActiveId(null), [])
 
-  if (groups.length === 0) {
+  if (rows.length === 0) {
     return (
       <Empty
         image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -217,41 +196,37 @@ export function GroupBoard({
       collisionDetection={sameKindCollision}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      onDragCancel={() => setActiveId(null)}
+      onDragCancel={handleDragCancel}
     >
       <Flex vertical>
         {rows.map((row) => (
-            <Row key={row.entries[0].id} gutter={[16, 16]} align="stretch">
-              {row.entries.map((entry) => (
+          <Row key={row.ids[0]} gutter={[16, 16]} align="stretch">
+            {row.ids.map((groupId) => {
+              const position = positions.get(groupId) ?? 0
+              return (
                 <Col
-                  key={entry.id}
+                  key={groupId}
                   // 每个分组的宽度由"同类一行放几个"决定；不足一行时自动拉伸铺满。
                   span={GRID_COLUMNS / groupsPerRow(row.type)}
                   xs={24}
                 >
-                  <SortableGroup
-                    group={entry}
+                  <BoardGroupSlot
+                    groupId={groupId}
                     editMode={editMode}
-                    canMoveUp={doc.groups[0]?.id !== entry.id}
-                    canMoveDown={doc.groups[doc.groups.length - 1]?.id !== entry.id}
-                    onMoveUp={() => moveGroup(entry.id, -1)}
-                    onMoveDown={() => moveGroup(entry.id, 1)}
-                    onAddItem={() => onAddItem(entry.id)}
-                    onEdit={() => onEditGroup(entry.id)}
-                  >
-                    <ItemGrid
-                      group={entry}
-                      items={entry.items}
-                      editMode={editMode}
-                      landingItemId={landingId}
-                      onEditItem={(itemId) => onEditItem(entry.id, itemId)}
-                      onRemoveItem={(itemId) => onRemoveItem(entry.id, itemId)}
-                    />
-                  </SortableGroup>
+                    // 边界只跟 id 顺序有关，所以是布尔值 —— 槽位的 memo 因此能挡住无关的重渲染
+                    canMoveUp={position > 0}
+                    canMoveDown={position < positions.size - 1}
+                    onMove={moveGroup}
+                    onAddItem={onAddItem}
+                    onEditGroup={onEditGroup}
+                    onEditItem={onEditItem}
+                    landingItemId={landingId}
+                  />
                 </Col>
-              ))}
-            </Row>
-          ))}
+              )
+            })}
+          </Row>
+        ))}
       </Flex>
 
       <DragOverlay dropAnimation={{ duration: 220, easing: 'cubic-bezier(0.2, 0, 0, 1)' }}>

@@ -116,7 +116,12 @@ export function ItemForm({ form, formId, groupType, item, onFinish }: ItemFormPr
       onFinish={handleFinish}
       clearOnDestroy
     >
-      <Form.Item name="kind" initialValue={allowedKind} hidden>
+      {/*
+        `kind` 的初始值由上面 Form 的 `initialValues` 给（`buildInitialValues` 一定会写 `kind`）。
+        ⚠️ 这里**不要**写 `initialValue`：与 Form 的 `initialValues` 同路径冲突时，antd 会报
+        "Form already set 'initialValues' ... Field can not overwrite it."，且字段级的那个值会被丢弃。
+      */}
+      <Form.Item name="kind" hidden>
         <Input />
       </Form.Item>
 

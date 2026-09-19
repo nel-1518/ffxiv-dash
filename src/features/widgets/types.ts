@@ -9,9 +9,11 @@ export type WidgetRenderProps<C> = {
 }
 
 /**
- * 组件需要写回自己的配置时（如统计卡的 +1），直接用 state 层的
- * `useBoardActions().updateItemConfig(item.id, patch)` 就地落库，
- * 不必再从卡片外层透传回调下来。
+ * 组件需要写回自己的配置时（如进度卡的 +1），直接从 `state/board-store.ts`
+ * import 模块级常量 `boardActions`，调 `boardActions.updateItemConfig(item.id, patch)` 就地落库。
+ *
+ * ⚠️ 不要用任何订阅 hook 去拿它：`boardActions` 的引用永远不变，也不订阅看板数据，
+ * 因此组件改自己的值时不会因为"读了看板"而被其他改动带着重渲染。
  */
 
 /**

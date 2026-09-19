@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { flushSync } from 'react-dom'
+import { subscribeBoard } from '../../state/board-store.ts'
 import { buildEngineUrl, SEARCH_ENGINES } from './engines.tsx'
+import { getLinkIndex } from './link-index.ts'
 import { searchLinks } from './searchLinks.ts'
-import type { BoardDoc } from '../../core/storage/types.ts'
 
 /** 结果列表里的一行：一条已保存的链接，或一个搜索引擎跳转。 */
 export type SearchRow = {
@@ -18,7 +19,6 @@ export type SearchRow = {
 }
 
 export type UseLinkSearchOptions = {
-  doc: BoardDoc
   /**
    * 为 true 时完全不接管快捷键。
    * 编辑弹窗打开时必须传 true：那时 Tab 要留给表单字段之间的移动。
@@ -60,11 +60,18 @@ function isImeStart(event: KeyboardEvent): boolean {
  * - 页面任意空白处敲字母/数字、或用输入法起手，都会开窗并接管后续输入；
  * - `↑`/`↓` 移动高亮（首尾循环回绕），`Enter` 打开当前行。
  */
-export function useLinkSearch({ doc, suspended }: UseLinkSearchOptions): LinkSearch {
+export function useLinkSearch({ suspended }: UseLinkSearchOptions): LinkSearch {
   const [keyword, setKeyword] = useState('')
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const [selectAllOnOpen, setSelectAllOnOpen] = useState(false)
+
+  /*
+   * 搜索只关心链接，所以订阅拍平后的索引而不是整份 doc：
+   * 索引在链接集合未变时引用不变（见 link-index.ts），
+   * 因此组件卡片的任何改动都不会惊动这里的调用方（`DashboardPage`）。
+   */
+  const links = useSyncExternalStore(subscribeBoard, getLinkIndex)
 
   /**
    * 开窗并同步交出焦点。
@@ -109,7 +116,7 @@ export function useLinkSearch({ doc, suspended }: UseLinkSearchOptions): LinkSea
   const handleActivate = useCallback((index: number) => setActiveIndex(index), [])
 
   const rows = useMemo<SearchRow[]>(() => {
-    const linkRows = searchLinks(doc.groups, keyword).map<SearchRow>((hit) => ({
+    const linkRows = searchLinks(links, keyword).map<SearchRow>((hit) => ({
       key: `link:${hit.item.id}`,
       kind: 'link',
       title: hit.item.name,
@@ -131,7 +138,7 @@ export function useLinkSearch({ doc, suspended }: UseLinkSearchOptions): LinkSea
           }))
 
     return [...linkRows, ...engineRows]
-  }, [doc.groups, keyword])
+  }, [links, keyword])
 
   // 结果条数变化时把高亮收回范围内。
   // 用"渲染期间调整 state"而不是 effect：effect 里同步 setState 会被

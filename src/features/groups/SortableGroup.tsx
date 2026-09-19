@@ -1,8 +1,11 @@
+import { memo } from 'react'
 import { GroupPanel } from './GroupPanel.tsx'
-import type { Group } from '../../core/storage/types.ts'
 
 export type SortableGroupProps = {
-  group: Group
+  /** 表头需要的三样原始值，理由见 `GroupPanel`。 */
+  title: string
+  typeLabel: string
+  itemCount: number
   /** 是否处于编辑模式，透传给 GroupPanel 决定表头操作是否显示。 */
   editMode: boolean
   canMoveUp: boolean
@@ -16,9 +19,14 @@ export type SortableGroupProps = {
 
 /**
  * 分组容器。分组排序由标题行的上下按钮完成，组内项目仍在 ItemGrid 中拖拽。
+ *
+ * 外面这层 `memo` 只是顺手挡一下：父层（`BoardGroupSlot`）会因为本组数据变化而重渲染，
+ * 但表头的三个值与 children 元素都没变时，这里连同下面的 `GroupPanel` 一起跳过。
  */
-export function SortableGroup({
-  group,
+export const SortableGroup = memo(function SortableGroup({
+  title,
+  typeLabel,
+  itemCount,
   editMode,
   canMoveUp,
   canMoveDown,
@@ -31,7 +39,9 @@ export function SortableGroup({
   return (
     <div style={{ height: '100%' }}>
       <GroupPanel
-        group={group}
+        title={title}
+        typeLabel={typeLabel}
+        itemCount={itemCount}
         editMode={editMode}
         canMoveUp={canMoveUp}
         canMoveDown={canMoveDown}
@@ -44,4 +54,4 @@ export function SortableGroup({
       </GroupPanel>
     </div>
   )
-}
+})

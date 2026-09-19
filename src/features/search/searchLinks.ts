@@ -1,4 +1,4 @@
-import type { Group, LinkItem } from '../../core/storage/types.ts'
+import type { LinkItem } from '../../core/storage/types.ts'
 
 /** 结果条数上限：这是"顺手一开"的场景，再长就要滚动了。 */
 export const MAX_LINK_RESULTS = 5
@@ -36,15 +36,14 @@ function rankOf(item: LinkItem, keyword: string): number {
 /**
  * 在**已保存的链接**里检索关键词。
  *
- * 范围：只检索 `kind === 'link'` 的条目，匹配名称/描述/网址三处。
- * 组件卡片（`kind === 'widget'`）刻意不在范围内——它们的标题与配置项不是"链接"，
- * 混进来只会稀释结果。
+ * 入参是已经拍平的链接索引（见 `link-index.ts`），因此这里只包含
+ * `kind === 'link'` 的条目：组件卡片的标题与配置项不是"链接"，混进来只会稀释结果。
  *
  * 排序：先名称命中、再描述/网址命中，同档内保持看板里的文档顺序，
  * 因此每次输入的结果顺序都是稳定可预期的；最后按 limit 截断。
  */
 export function searchLinks(
-  groups: readonly Group[],
+  links: readonly LinkHit[],
   keyword: string,
   limit: number = MAX_LINK_RESULTS,
 ): LinkHit[] {
@@ -56,21 +55,15 @@ export function searchLinks(
   const byName: LinkHit[] = []
   const byOther: LinkHit[] = []
 
-  for (const group of groups) {
-    for (const item of group.items) {
-      if (item.kind !== 'link') {
-        continue
-      }
-      const rank = rankOf(item, normalized)
-      if (rank === RANK_MISS) {
-        continue
-      }
-      const hit: LinkHit = { item, groupId: group.id, groupTitle: group.title }
-      if (rank === RANK_NAME) {
-        byName.push(hit)
-      } else {
-        byOther.push(hit)
-      }
+  for (const hit of links) {
+    const rank = rankOf(hit.item, normalized)
+    if (rank === RANK_MISS) {
+      continue
+    }
+    if (rank === RANK_NAME) {
+      byName.push(hit)
+    } else {
+      byOther.push(hit)
     }
   }
 

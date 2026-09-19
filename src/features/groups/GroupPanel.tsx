@@ -1,10 +1,18 @@
+import { memo } from 'react'
 import { Button, Card, Flex, Space, Tooltip, Typography } from 'antd'
 import { ArrowDownOutlined, ArrowUpOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
-import { groupTypeLabel } from './group-types.ts'
-import type { Group } from '../../core/storage/types.ts'
 
 export type GroupPanelProps = {
-  group: Group
+  /**
+   * 表头要的三样东西收的是**原始值**，不是整个 `Group` 对象。
+   *
+   * 配合下面的 `memo`，效果是：分组里某张卡片改了配置（标题、类型、项数都没变）时，
+   * 表头这一整块 antd Card 根本不重渲染 —— 只有那张卡片自己重渲染。
+   * 传 `group` 对象的话引用必然变化，memo 会完全失效。
+   */
+  title: string
+  typeLabel: string
+  itemCount: number
   /** 是否处于编辑模式：关闭时表头右侧的上移/下移/添加/编辑全部隐藏。 */
   editMode: boolean
   canMoveUp: boolean
@@ -13,6 +21,10 @@ export type GroupPanelProps = {
   onMoveDown: () => void
   onAddItem: () => void
   onEdit: () => void
+  /**
+   * ⚠️ 传进来的 children **必须是引用稳定的元素**（调用方用 `useMemo` 固定）。
+   * 每次新建子元素会让 `memo` 判定"变了"，表头就又跟着重渲染了。
+   */
   children: React.ReactNode
 }
 
@@ -23,8 +35,10 @@ export type GroupPanelProps = {
  * 都收在编辑弹窗里，一行里控件少一点，网页导航项目也不会被挤到换行。
  * 右侧整组操作只在编辑模式下出现，浏览时表头只剩标题与计数。
  */
-export function GroupPanel({
-  group,
+export const GroupPanel = memo(function GroupPanel({
+  title,
+  typeLabel,
+  itemCount,
   editMode,
   canMoveUp,
   canMoveDown,
@@ -46,14 +60,14 @@ export function GroupPanel({
       styles={{ body: { padding: '8px 16px 16px' } }}
       title={
         <Flex align="center" gap={8} style={{ minWidth: 0 }}>
-          <Typography.Text strong>{group.title}</Typography.Text>
+          <Typography.Text strong>{title}</Typography.Text>
           {/*
             类型标签与项数是"元信息"，只在编辑模式露出：
             浏览时表头只留用户自定义的项目名，卡片网格自己说明内容。
           */}
           {editMode ? (
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              {groupTypeLabel(group.type)} · {group.items.length} 项
+              {typeLabel} · {itemCount} 项
             </Typography.Text>
           ) : null}
         </Flex>
@@ -82,4 +96,4 @@ export function GroupPanel({
       {children}
     </Card>
   )
-}
+})
