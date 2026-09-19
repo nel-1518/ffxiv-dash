@@ -5,6 +5,7 @@ import { marketWidgetSpec } from './market-widget/widget.ts'
 import { pvpMapWidgetSpec } from './pvp-map-widget/widget.ts'
 import { statsWidgetSpec } from './stats-widget/widget.ts'
 import { taxWidgetSpec } from './tax-widget/widget.ts'
+import { todoWidgetSpec } from './todo-widget/widget.ts'
 
 /**
  * 内置组件装配入口，在应用启动时调用一次。
@@ -26,6 +27,7 @@ export function installBuiltinWidgets(): void {
   registerWidget(houseWidgetSpec)
   registerWidget(countdownWidgetSpec)
   registerWidget(taxWidgetSpec)
+  registerWidget(todoWidgetSpec)
 
   // 把组件配置的归一化能力注入 core/storage，供读取本地数据时使用
   installWidgetConfigNormalizer()

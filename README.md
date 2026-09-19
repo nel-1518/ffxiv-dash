@@ -92,7 +92,7 @@ src/
       registry.ts           注册表（不导入任何具体组件，避免循环依赖）
       useFavicon.ts         图标接口 hook
       WidgetRenderer.tsx    统一卡片外壳 + 未注册组件降级
-      builtins/             内置组件，每个一个目录（stats / pvp-map / market / house / countdown / tax）
+      builtins/             内置组件，每个一个目录（stats / pvp-map / market / house / countdown / tax / todo）
   views/
     DashboardPage.tsx       页面组装
   styles/global.css         仅页面背景、字体栈、少量基线
@@ -399,7 +399,7 @@ dnd-kit 的 context 在**拖拽开始**与**指针每移动一帧**时都会换�
 
 | 入口 | 快照 | 用在哪 |
 | --- | --- | --- |
-| `useClockValue(select)` | `select(now)` 的返回值（按 `Object.is` 比） | **一行文本**的读数：顶栏问候语（取小时数）、`HH:mm`（每分钟）、艾欧泽亚 `H:m`（约 2.9 秒）、PvP 卡剩余时长 |
+| `useClockValue(select)` | `select(now)` 的返回值（按 `Object.is` 比） | **一行文本**的读数：顶栏问候语（取小时数）、`HH:mm`（每分钟）、艾欧泽亚 `H:m`（约 2.9 秒）、PvP 卡剩余时长、待办卡的刷新窗口 id（只在跨过刷新时刻那一跳变化，选「不刷新」时永不变化） |
 | `useClockAt('second' \| 'minute' \| 'hour' \| 'day')` | 截断到该粒度起点的 `Date` | **整块共用 `now`** 的地方：市场卡 / 房屋卡 / PvP 卡（`minute`）、倒数日（`day`） |
 | `useClock()` / `useNow()` | 毫秒时间戳 / 此刻的 `Date` | 秒级兜底（目前没有调用点） |
 
@@ -503,6 +503,20 @@ dnd-kit 的 context 在**拖拽开始**与**指针每移动一帧**时都会换�
 
 `builtins/tax-widget/`（市场税率）是第三个例子：接口只回一层「城市 → 百分比」对象，
 `rates.ts` 的 `parseTaxRates` / `isDiscounted` 都是纯函数，卡面「哪个城市在减税」就是它们算出来的。
+
+### 组件自己的临时状态放哪
+
+`builtins/todo-widget/`（待办）是这一条的例子：**配置与状态分家**。
+
+- config 只存用户填的东西（刷新周期 / 刷新时刻 / 待办原文），跟着看板导出走；
+- 勾选记录是**每天会被清掉的临时状态**，单独落一个键 `ffxiv-dash:todo:v1`
+  （`state.ts`，按「卡片 id + 当前刷新窗口」归档，不进 config、也不进导出）——
+  与设置里「跳转」的 `core/auto-open/store.ts` 同一条理由：临时状态不该让每次勾选都重写整份看板数据。
+
+于是「过了刷新时刻就全部复原」**不是一段逻辑**：存的每条记录都记着自己属于哪个窗口，
+读的时候拿当前窗口一比，对不上就当空的返回。组件里既没有定时器也没有这种 effect ——
+与市场卡「数据连着请求标识一起存」（`{ key, data }`）是同一个套路。
+刷新窗口的算法（周期 + 时刻 → 窗口 id）是纯函数，放在不导入 React 的 `schedule.ts` 里。
 
 与时间无关的相对时间文案（`N 分前`）在 `core/clock/format.ts`，两个卡片共用；
 卡片该按什么粒度订阅时钟（别让整块跟着秒针渲染）见下面「时钟与渲染粒度」一节。
