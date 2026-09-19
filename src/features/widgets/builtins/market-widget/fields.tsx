@@ -2,26 +2,31 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, Flex, Form, InputNumber, Select, Spin, Typography } from 'antd'
 import { useClockAt } from '../../../../core/clock/hooks.ts'
 import { formatRelativeTime } from '../../../../core/clock/format.ts'
+import { boardActions } from '../../../../state/board-store.ts'
 import { isFresh, readMarketCache, writeMarketCache } from './cache.ts'
 import { findItem, getItemDbStatus, loadItemDb, searchItems } from './items.ts'
 import { resolveTier, scopeLabel, scopeOptions } from './scopes.ts'
 import { buildMarketPageUrl, fetchMarket } from './universalis.ts'
 import type { ItemDbStatus, ItemEntry } from './items.ts'
 import type { MarketData, PriceReading, QualityReadings } from './universalis.ts'
-import type { MarketConfig } from './config.ts'
+import type { MarketConfig, MarketItemMeta } from './config.ts'
 import type { WidgetRenderProps } from '../../types.ts'
 
 /**
  * 物品库的加载状态。
  *
+ * `enabled` 为 false 时**完全不碰物品库**（不请求、也不读模块级状态）。
+ * 卡片平时就属于这一档 —— 物品名称与 HQ 标志已经随配置存了下来（`config.itemMeta`）；
+ * 若无条件加载，几 MB 的 item-db.json 会在每次进网页时被重新拉一遗。
+ *
  * 库本身只有一份（`items.ts` 里的模块级 Promise），多个调用方共享同一个请求，
  * 这里只负责把它映射成"能搜了 / 还在读 / 读失败"三态。
  */
-function useItemDb(): ItemDbStatus {
+function useItemDb(enabled: boolean): ItemDbStatus {
   const [status, setStatus] = useState<ItemDbStatus>(getItemDbStatus)
 
   useEffect(() => {
-    if (getItemDbStatus().status === 'ready') {
+    if (!enabled || getItemDbStatus().status === 'ready') {
       return
     }
     // 卸载后不再 setState；组件重挂载时会重试（loadItemDb 失败后不保留 Promise）
@@ -41,7 +46,7 @@ function useItemDb(): ItemDbStatus {
     return () => {
       alive = false
     }
-  }, [])
+  }, [enabled])
 
   return status
 }
@@ -54,6 +59,7 @@ function useItemDb(): ItemDbStatus {
  *
  * 选项完全来自物品库的实时检索 —— 库里没有的物品根本选不出来，
  * 这就是「不存在于 json 的物品不可使用」的落地方式。
+ * 同时，选中那一刻会把物品快照（名称 + HQ）写进配置，卡片以后就不必再读物品库了。
  */
 function ItemPicker({
   value,
@@ -62,7 +68,9 @@ function ItemPicker({
   value?: number[]
   onChange?: (next: number[]) => void
 }): React.ReactNode {
-  const db = useItemDb()
+  const form = Form.useFormInstance()
+  // 检索必须要全量物品库：这是本组件唯一无条件依赖它的地方
+  const db = useItemDb(true)
   const [query, setQuery] = useState('')
   const selected = value?.[0]
 
@@ -107,6 +115,22 @@ function ItemPicker({
         // 选完清掉关键词：列表回到"只有已选项"，下次点开是干净的
         setQuery('')
         onChange?.(next === undefined ? [] : [next])
+        /*
+         * 顺手把物品快照写进配置（`itemMeta`）：卡片以后只看它，
+         * 带来看价的人不必为了"这个 id 叫什么"再拉一次几 MB 的物品库。
+         * 选项本来就来自物品库，理论上必然查得到；真查不到就什么都不写，
+         * 宁可留着旧快照，也别写个空名把卡片的标题弄丢。
+         * UI 目前单选，所以整份替换；将来开放多选时这里要改成「按 id 合并」。
+         */
+        if (next === undefined) {
+          form.setFieldValue(['config', 'itemMeta'], [])
+          return
+        }
+        const picked = findItem(next)
+        if (picked) {
+          const snapshot: MarketItemMeta = { id: picked.id, name: picked.name, hq: picked.hq }
+          form.setFieldValue(['config', 'itemMeta'], [snapshot])
+        }
       }}
       options={options}
       placeholder={db.status === 'loading' ? '正在加载物品库…' : '输入物品名称或 ID'}
@@ -252,12 +276,14 @@ function QualityBlock({
   )
 }
 
-export function MarketRender({ config }: WidgetRenderProps<MarketConfig>): React.ReactNode {
+export function MarketRender({
+  config,
+  item: widgetItem,
+}: WidgetRenderProps<MarketConfig>): React.ReactNode {
   /*
    * 时钟取**分钟粒度**：这张卡只有「N 分钟前」那一行吃时钟，而它一分钟才变一次。
    */
   const now = useClockAt('minute')
-  const db = useItemDb()
 
   const scope = config.scope
   /*
@@ -269,6 +295,15 @@ export function MarketRender({ config }: WidgetRenderProps<MarketConfig>): React
   const itemId = itemIds[0]
   /** 当前请求的唯一标识：数据与错误都按它归档，切参数时旧数据自然失效。 */
   const requestKey = `${scope}|${itemsKey}`
+
+  /*
+   * 物品快照：选物品时就跟着配置一起存了下来，卡片**优先用它**，此时连物品库都不需要加载。
+   * 只有老数据（`itemMeta` 出现之前存的配置）才会落回"现查物品库"那条路。
+   */
+  const snapshot = config.itemMeta.find((meta) => meta.id === itemId)
+  const db = useItemDb(snapshot === undefined)
+  const item: MarketItemMeta | undefined =
+    snapshot ?? (itemId !== undefined && db.status === 'ready' ? findItem(itemId) : undefined)
 
   /*
    * 数据与错误都**连着自己那份请求标识一起存**，而不是在 effect 里手动清空。
@@ -328,6 +363,25 @@ export function MarketRender({ config }: WidgetRenderProps<MarketConfig>): React
     void reload()
   }, [itemIds, reload, scope])
 
+  /*
+   * 老数据还没有物品快照：物品库一读出结果就把名称 / HQ 写回配置。
+   *
+   * 这是本组件唯一一处"改自己的配置"（走模块级 `boardActions`，见 widgets/types.ts 的约定）。
+   * 只写一次 —— 写回后配置里就有快照了，下次进网页这张卡不再碰物品库。
+   * 切勿搬进渲染期：渲染期不允许有副作用。
+   */
+  useEffect(() => {
+    if (itemId === undefined || snapshot !== undefined || db.status !== 'ready') {
+      return
+    }
+    const found = findItem(itemId)
+    if (found) {
+      boardActions.updateItemConfig(widgetItem.id, {
+        itemMeta: [{ id: found.id, name: found.name, hq: found.hq }],
+      })
+    }
+  }, [db.status, itemId, snapshot, widgetItem.id])
+
   if (itemId === undefined) {
     return (
       <Alert
@@ -339,11 +393,11 @@ export function MarketRender({ config }: WidgetRenderProps<MarketConfig>): React
     )
   }
 
-  if (db.status === 'error') {
+  // 有快照时根本没请求物品库（`useItemDb` 的 enabled 为 false），它的失败与我们无关
+  if (snapshot === undefined && db.status === 'error') {
     return <Alert type="error" showIcon title="物品库读取失败" description={db.message} />
   }
 
-  const item = findItem(itemId)
   if (db.status === 'ready' && !item) {
     return (
       <Alert
@@ -357,7 +411,8 @@ export function MarketRender({ config }: WidgetRenderProps<MarketConfig>): React
 
   const result = data?.items.find((entry) => entry.itemId === itemId)
   const failed = data?.failedItems.includes(itemId) ?? false
-  // 物品库还没读出 hq 标志时先按「没有 HQ」处理：宁可不显示，也别先闪一个空块再收回去
+  // 快照（老数据则是物品库）还没给出 hq 标志时先按「没有 HQ」处理：
+  // 宁可不显示，也别先闪一个空块再收回去
   const hasHq = item !== undefined && item.hq !== 0
   // 失败优先于其他状态：标题行只显示「获取失败」，原因悬停可看，细节在控制台
   const status =
