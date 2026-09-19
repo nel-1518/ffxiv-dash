@@ -1508,6 +1508,111 @@ a:hover {
 }
 
 /*
+ * 正文整块可点，跳到 Universalis 首页（与房屋卡的 `.dash-house-link` 同一做法）。
+ *
+ * 这一层同时充当卡内的纵向 flex 容器（原本是里面那层 antd Flex），所以必须 `display: flex`：
+ * 写成 `display: block` 会让 `.dash-tax-rows` 的 `flex: 1 1 auto` 失效，
+ * 「被同组更高的卡撑高时格子跟着长」那套就没了。
+ */
+.dash-tax-link {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 auto;
+  color: inherit;
+}
+
+/*
+ * 市场税率卡
+ *
+ * **两列 × 四行**：一格一个城市（左名右税率），顺序就是游戏内八个城市的固定顺序 ——
+ * 位置不承载信息，**减税**的城市（税率低于正常值）在税率左边挂一个「减」字。
+ * 不用强调色：颜色留给"真需要抢注意力"的事，减税用一个字说清楚就够了。
+ */
+.dash-tax-rows {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* 列间距明显大于行间距：两列是两组读数，别让人把它们看成一串 */
+  gap: 3px 10px;
+  /*
+   * 卡片被同组更高的卡撑高时，让 2×4 的格子跟着长高（文字在格内垂直居中）——
+   * 否则矮卡会被拉长，读数却挤在中间一条，上下空三大块。
+   *
+   * 但**每格最高 30px**：四行长到顶也就 4×30+3×3 = 129px，卡高约 230px，
+   * 刚好不超过 PvP 地图轮换卡（实测单独一张时 235px，本仓最高的小组件卡）。
+   * 再高的同行兄弟（或视口拉高）不会再把这四行拉散：
+   * `grid-auto-rows` 的上限顶住行高，`align-content: center` 把富余空白均分到上下两侧，
+   * 与卡里其他组件「矮卡拉长后内容居中」的做法一致。
+   */
+  flex: 1 1 auto;
+  grid-auto-rows: minmax(16px, 30px);
+  align-content: center;
+}
+
+.dash-tax-row {
+  display: flex;
+  /* center 而不是 baseline：格子被拉高时整行文字落在格的中间 */
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  /* 网格单元默认 min-width: auto：不置 0 的话长城市名会撑破列宽，而不是走省略号 */
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.dash-tax-city {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* 11px 而不是 12px：两列布局下最长的城市名（旧萨雷安 / 利姆萨·罗敏萨）才放得下 */
+  font-size: 11px;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
+}
+
+/*
+ * 右半边：可选的「减」标记 + 税率。
+ * 两者贴成一组（gap 4px）一起靠右 —— 标记是给这个数字做注解的，
+ * 别让它飘到行中间去。
+ */
+.dash-tax-tail {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/*
+ * 减税标记（正常税率 5%，低于它就标一个「减」）。
+ * 边框中性、**文字用主色**：整张卡只有这一处带颜色，正好把注意力给到"哪几个在打折"，
+ * 而税率数字本身保持常规文字色（那一版"整行染主色"已被否掉）。
+ * 行高 1.4 + 上下 1px 描边 = 16px，刚好不把窄卡里的一行顶高。
+ */
+.dash-tax-cut {
+  padding: 0 3px;
+  border: 1px solid var(--ant-color-border, #d9d9d9);
+  border-radius: 3px;
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--ant-color-primary);
+}
+
+.dash-tax-rate {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
+}
+
+/* 接口没给这个城市的数：破折号 + 压淡。0% 是合法税率（免税），两者必须分得开 */
+.dash-tax-rate.is-blank {
+  font-weight: 400;
+  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45));
+}
+
+/*
  * 倒数日卡
  *
  * 从上到下：事件 → 倒数天数 → 强调短线 → 描述块。

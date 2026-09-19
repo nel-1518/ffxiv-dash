@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, Flex, Form, Select, Typography } from 'antd'
 import { useClockAt } from '../../../../core/clock/hooks.ts'
 import { formatRelativeTime } from '../../../../core/clock/format.ts'
-import { findWorldByName } from '../../../../core/world.ts'
+import { findWorldByName, worldOptions } from '../../../../core/world.ts'
 import {
   HOUSE_AREAS,
   HOUSE_SIZE_KEYS,
@@ -17,7 +17,6 @@ import {
   HOUSE_SITE_URL,
   HOUSE_USES,
   HOUSE_USE_LABELS,
-  serverOptions,
 } from './constants.ts'
 import { HOUSE_PHASE_LABELS, formatBoundary, formatRemaining, resolveHousePhase } from './phase.ts'
 import { isFresh, readHouseCache, writeHouseCache } from './cache.ts'
@@ -38,7 +37,7 @@ export function HouseFormFields(): React.ReactNode {
           showSearch
           optionFilterProp="label"
           placeholder="选择服务器"
-          options={serverOptions()}
+          options={worldOptions()}
           listHeight={320}
         />
       </Form.Item>

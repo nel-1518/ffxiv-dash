@@ -92,7 +92,7 @@ src/
       registry.ts           注册表（不导入任何具体组件，避免循环依赖）
       useFavicon.ts         图标接口 hook
       WidgetRenderer.tsx    统一卡片外壳 + 未注册组件降级
-      builtins/             内置组件，每个一个目录（stats / pvp-map / market / house / countdown）
+      builtins/             内置组件，每个一个目录（stats / pvp-map / market / house / countdown / tax）
   views/
     DashboardPage.tsx       页面组装
   styles/global.css         仅页面背景、字体栈、少量基线
@@ -500,6 +500,9 @@ dnd-kit 的 context 在**拖拽开始**与**指针每移动一帧**时都会换�
 
 - `sale.ts` 把响应**折叠成计数**（卡片只要数字，就不把几百条明细写进缓存）；
 - `phase.ts` 把「当前处于什么时期」交给**时钟 + 固定周期**算（同类已知起点取模见 `pvp-map-widget/rotation.ts`）。
+
+`builtins/tax-widget/`（市场税率）是第三个例子：接口只回一层「城市 → 百分比」对象，
+`rates.ts` 的 `parseTaxRates` / `isDiscounted` 都是纯函数，卡面「哪个城市在减税」就是它们算出来的。
 
 与时间无关的相对时间文案（`N 分前`）在 `core/clock/format.ts`，两个卡片共用；
 卡片该按什么粒度订阅时钟（别让整块跟着秒针渲染）见下面「时钟与渲染粒度」一节。

@@ -131,3 +131,23 @@ export function isDataCenterName(name: string): boolean {
 export function isScopeName(scope: string): boolean {
   return scope === CHINA_REGION || isDataCenterName(scope) || isWorldName(scope)
 }
+
+/** 下拉选项的形状：要么一项可选，要么一个带子项的分组（antd Select 直接吃）。 */
+export type WorldOptionGroup = {
+  label: string
+  options: { label: string; value: string }[]
+}
+
+/**
+ * 服务器下拉：大区只当分组标题、组内只有服务器 —— **大区本身不可选**。
+ *
+ * 给"按单个服务器取数"的接口用（房屋售卖、市场税率）：那些接口只接受一个 world id，
+ * 给了大区 / 全区也查不到东西。需要「中国（全区）/ 大区 / 服务器」三档的组件自己拼选项
+ * （见 `market-widget/scopes.ts`：那里的档位还要映射到接口的返回结构）。
+ */
+export function worldOptions(): WorldOptionGroup[] {
+  return DATA_CENTERS.map((dc) => ({
+    label: dc.name,
+    options: dc.worlds.map((world) => ({ label: world.name, value: world.name })),
+  }))
+}

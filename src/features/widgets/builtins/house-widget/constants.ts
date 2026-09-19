@@ -1,9 +1,9 @@
 /**
- * 房屋组件的静态对照表与下拉选项（纯数据，无 React）。
+ * 房屋组件的静态对照表（纯数据，无 React）。
  *
  * 房区与尺寸的取值都来自售楼中心的字段定义，数组顺序即接口的枚举顺序。
+ * 服务器下拉不在这里 —— 那是几个组件共用的东西，已提到 `core/world.ts` 的 `worldOptions()`。
  */
-import { DATA_CENTERS } from '../../../../core/world.ts'
 
 export type HouseArea = {
   /** 接口的 `Area` 值。 */
@@ -89,22 +89,3 @@ export function isHouseUse(value: unknown): value is HouseUse {
 
 /** 售楼中心首页；卡片正文整块点它就跳这里。 */
 export const HOUSE_SITE_URL = 'https://house.ffxiv.cyou/'
-
-/** 服务器下拉的选项形状：大区只当分组标题，本身不可选。 */
-type ServerOptionGroup = {
-  label: string
-  options: { label: string; value: string }[]
-}
-
-/**
- * 服务器下拉选项：大区当分组标题，组内只有服务器。
- *
- * 房屋数据**按服务器上报**，接口只接受单个 server id，所以这里不像物品价格卡那样
- * 提供「中国（全区）」与「XX（大区）」—— 给了也查不到数据。
- */
-export function serverOptions(): ServerOptionGroup[] {
-  return DATA_CENTERS.map((dc) => ({
-    label: dc.name,
-    options: dc.worlds.map((world) => ({ label: world.name, value: world.name })),
-  }))
-}
