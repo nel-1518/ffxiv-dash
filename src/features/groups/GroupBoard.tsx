@@ -17,7 +17,7 @@ import { CardFace } from '../navigation/CardFace.tsx'
 import { DragHandle } from './DragHandle.tsx'
 import { DROP_LANDING_MS, parseDragData } from './drag-types.ts'
 import { groupsPerRow } from './group-types.ts'
-import type { GroupRow } from './group-types.ts'
+import type { GroupMove, GroupRow } from './group-types.ts'
 import type { Item } from '../../core/storage/types.ts'
 
 export type GroupBoardProps = {
@@ -59,23 +59,35 @@ const sameKindCollision: CollisionDetection = (args) => {
 }
 
 /**
- * 分组上移/下移。
+ * 项目（分组）的位置调整：置顶 / 上移 / 下移 / 置底。
  *
  * 做成**模块级函数**（而不是组件内的闭包）：它的引用因此永远不变，可以直接喂给
  * `memo(BoardGroupSlot)` 的比较，不需要再套一层 `useCallback`。
  * 顺序在**调用那一刻**从 store 读，所以也不存在闭包捕获到过期顺序的问题。
  *
- * ⚠️ `readGroupIds()` 返回的是 store 里的缓存数组，**只能读不能改**，所以要复制一份再换位。
+ * ⚠️ `readGroupIds()` 返回的是 store 里的缓存数组，**只能读不能改**，所以要复制一份再挪。
+ * 置顶 / 置底是把元素**摘出来再插回首尾**（不是逐步换位）：中间隔着多少个分组都一步到位。
  */
-function moveGroup(groupId: string, direction: -1 | 1): void {
+function moveGroup(groupId: string, move: GroupMove): void {
   const currentIds = readGroupIds()
   const currentIndex = currentIds.indexOf(groupId)
-  const targetIndex = currentIndex + direction
-  if (currentIndex < 0 || targetIndex < 0 || targetIndex >= currentIds.length) {
+  if (currentIndex < 0) {
     return
   }
+
+  const targetIndex =
+    move === 'top'
+      ? 0
+      : move === 'bottom'
+        ? currentIds.length - 1
+        : currentIndex + (move === 'up' ? -1 : 1)
+  if (targetIndex < 0 || targetIndex >= currentIds.length || targetIndex === currentIndex) {
+    return
+  }
+
   const nextIds = [...currentIds]
-  ;[nextIds[currentIndex], nextIds[targetIndex]] = [nextIds[targetIndex], nextIds[currentIndex]]
+  const [movedId] = nextIds.splice(currentIndex, 1)
+  nextIds.splice(targetIndex, 0, movedId)
   boardActions.reorderGroups(nextIds)
 }
 
@@ -108,7 +120,7 @@ export function GroupBoard({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
-  /** 分组 id → 全局下标。表头的上移/下移按钮靠它判断边界。 */
+  /** 分组 id → 全局下标。表头的四个位置按钮靠它判断置顶/上移/下移/置底是否可用。 */
   const positions = useMemo(() => {
     const map = new Map<string, number>()
     let index = 0
@@ -213,7 +225,8 @@ export function GroupBoard({
                   <BoardGroupSlot
                     groupId={groupId}
                     editMode={editMode}
-                    // 边界只跟 id 顺序有关，所以是布尔值 —— 槽位的 memo 因此能挡住无关的重渲染
+                    // 边界只跟 id 顺序有关，所以是布尔值 —— 槽位的 memo 因此能挡住无关的重渲染；
+                    // 「置顶」与「上移」的可用条件同为"不是第一个"，「置底」与「下移」同为"不是最后一个"
                     canMoveUp={position > 0}
                     canMoveDown={position < positions.size - 1}
                     onMove={moveGroup}

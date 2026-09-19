@@ -67,6 +67,14 @@ export function groupsPerRow(type: GroupType): number {
 }
 
 /**
+ * 项目（分组）的位置调整方式。
+ *
+ * 四种方式共用一条链路（`GroupBoard` 的 `moveGroup`）：相邻换位是 `up` / `down`，
+ * 直接跳到首尾是 `top` / `bottom`。表头的四个按钮因此只需要一个回调。
+ */
+export type GroupMove = 'up' | 'down' | 'top' | 'bottom'
+
+/**
  * 一行内的分组切片：连续的同类型分组按该类型的 perRow 切片，类型切换时立即断行。
  *
  * ⚠️ 这里**只存 id，不存 `Group` 对象**。行结构由 store 按「id 序列未变就复用旧数组」

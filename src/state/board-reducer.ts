@@ -48,7 +48,10 @@ export function boardReducer(doc: BoardDoc, action: BoardAction): BoardDoc {
         columns: clampGroupColumns(action.columns, action.groupType),
         items: [],
       }
-      return replaceGroups(doc, [...doc.groups, group])
+      // 新建的分组放在**最顶层**：刚建好的项目立刻出现在眼前，
+      // 不必再点一串「上移项目」把它挪上来。
+      // 需要换位置时表头有 置顶 / 上移 / 下移 / 置底 四个按钮。
+      return replaceGroups(doc, [group, ...doc.groups])
     }
 
     case 'updateGroup':

@@ -291,6 +291,60 @@ a:hover {
 }
 
 /*
+ * 表头（编辑模式）放不下时**整组按钮换到第二行**。
+ *
+ * 表头在编辑模式下有六颗图标按钮（位置组 4 + 内容组 2，共 ~161px），
+ * 而 4 个并排的网页导航分组在 1600px 视口下面板只有 ~340px（表头可用 ~290px）。
+ * 三个办法里选了这个：
+ * - 把项目名压成省略号 —— 最不该牺牲的东西；
+ * - 用 `container-type: inline-size` + 容器查询收掉「类型 · 项数」——
+ *   ⚠️ 实测会**把整个看板算塌**：`.dash-container` 是 `margin-inline: auto` 的伸缩项，
+ *   宽度按 fit-content 算，inline-size 的尺寸 containment 一截断内在尺寸，面板就掉到 48px；
+ * - 换成"装不下就换行"：信息一个不少，代价只是编辑模式下面板表头高一点（浏览模式无变化）。
+ *
+ * ⚠️ 换行判定用的是表头的**最大内容宽度**，所以标题必须能被挤小
+ * （`flex: 1 1 auto` + 下面 `.dash-group-meta` 的省略号），否则长项目名会永远换行。
+ */
+.dash-group-panel > .ant-card-head > .ant-card-head-wrapper {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+/*
+ * ⚠️ 覆盖 antd 的 `flex: 1`（= `1 1 0%`）：基准为 0 时标题的"期望宽度"是 0，
+ * 换行判定永远只看按钮组，标题就只能被硬裁 —— 正是上面要避免的。
+ * 改成 auto 之后：标题先按内容要宽度，实在放不下才把按钮组挤到第二行。
+ */
+.dash-group-panel > .ant-card-head .ant-card-head-title {
+  flex: 1 1 auto;
+}
+
+/*
+ * 表头的两组操作（编辑模式）：位置组 — 竖线 — 内容组。
+ * 整组不参与收缩（宁可换行，也不要把 24px 的图标按钮压成一条线）。
+ */
+.dash-group-actions {
+  flex: none;
+  flex-wrap: nowrap;
+}
+
+.dash-group-actions-split {
+  height: 16px;
+  border-inline-start-color: var(--ant-color-border);
+}
+
+/*
+ * 「类型 · 项数」是表头里最先可以被牺牲的信息：位置不够时它先被省略号吃掉，
+ * 项目名（`flex` 默认不收缩到 min-content 以下）与六颗按钮都是硬需求。
+ */
+.dash-group-meta {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/*
  * 分组内的卡片网格
  *
  * 列数由用户按分组配置（1-6），通过自定义属性下发；用 CSS Grid 而不是 24 栅格，

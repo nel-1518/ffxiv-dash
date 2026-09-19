@@ -3,6 +3,7 @@ import { useBoardGroup } from '../../state/hooks.ts'
 import { ItemGrid } from '../navigation/ItemGrid.tsx'
 import { SortableGroup } from './SortableGroup.tsx'
 import { groupTypeLabel } from './group-types.ts'
+import type { GroupMove } from './group-types.ts'
 
 export type BoardGroupSlotProps = {
   groupId: string
@@ -10,8 +11,8 @@ export type BoardGroupSlotProps = {
   editMode: boolean
   canMoveUp: boolean
   canMoveDown: boolean
-  /** 分组上下移。调用方传的是模块级函数，引用恒定。 */
-  onMove: (groupId: string, direction: -1 | 1) => void
+  /** 项目位置调整（置顶 / 上移 / 下移 / 置底）。调用方传的是模块级函数，引用恒定。 */
+  onMove: (groupId: string, move: GroupMove) => void
   onAddItem: (groupId: string) => void
   onEditGroup: (groupId: string) => void
   onEditItem: (groupId: string, itemId: string) => void
@@ -47,11 +48,14 @@ export const BoardGroupSlot = memo(function BoardGroupSlot({
   const group = useBoardGroup(groupId)
 
   /*
-   * 下面四个回调都必须固定引用：它们会被透传到 `memo(GroupPanel)` 的比较里，
+   * 下面六个回调都必须固定引用：它们会被透传到 `memo(GroupPanel)` 的比较里，
    * 每次渲染新建闭包会让表头重新渲染。依赖里只有稳定值，因此引用在槽位生命周期内不变。
+   * 四个位置按钮共用同一个 `onMove`，只是预先绑好各自的移动方式。
    */
-  const handleMoveUp = useCallback(() => onMove(groupId, -1), [onMove, groupId])
-  const handleMoveDown = useCallback(() => onMove(groupId, 1), [onMove, groupId])
+  const handleMoveToTop = useCallback(() => onMove(groupId, 'top'), [onMove, groupId])
+  const handleMoveUp = useCallback(() => onMove(groupId, 'up'), [onMove, groupId])
+  const handleMoveDown = useCallback(() => onMove(groupId, 'down'), [onMove, groupId])
+  const handleMoveToBottom = useCallback(() => onMove(groupId, 'bottom'), [onMove, groupId])
   const handleAddItem = useCallback(() => onAddItem(groupId), [onAddItem, groupId])
   const handleEdit = useCallback(() => onEditGroup(groupId), [onEditGroup, groupId])
 
@@ -87,8 +91,10 @@ export const BoardGroupSlot = memo(function BoardGroupSlot({
       editMode={editMode}
       canMoveUp={canMoveUp}
       canMoveDown={canMoveDown}
+      onMoveToTop={handleMoveToTop}
       onMoveUp={handleMoveUp}
       onMoveDown={handleMoveDown}
+      onMoveToBottom={handleMoveToBottom}
       onAddItem={handleAddItem}
       onEdit={handleEdit}
     >

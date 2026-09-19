@@ -10,8 +10,11 @@ export type SortableGroupProps = {
   editMode: boolean
   canMoveUp: boolean
   canMoveDown: boolean
+  /** 四个位置按钮，顺序即表头里的顺序：置顶 → 上移 → 下移 → 置底。 */
+  onMoveToTop: () => void
   onMoveUp: () => void
   onMoveDown: () => void
+  onMoveToBottom: () => void
   onAddItem: () => void
   onEdit: () => void
   children: React.ReactNode
@@ -30,8 +33,10 @@ export const SortableGroup = memo(function SortableGroup({
   editMode,
   canMoveUp,
   canMoveDown,
+  onMoveToTop,
   onMoveUp,
   onMoveDown,
+  onMoveToBottom,
   onAddItem,
   onEdit,
   children,
@@ -45,8 +50,10 @@ export const SortableGroup = memo(function SortableGroup({
         editMode={editMode}
         canMoveUp={canMoveUp}
         canMoveDown={canMoveDown}
+        onMoveToTop={onMoveToTop}
         onMoveUp={onMoveUp}
         onMoveDown={onMoveDown}
+        onMoveToBottom={onMoveToBottom}
         onAddItem={onAddItem}
         onEdit={onEdit}
       >
