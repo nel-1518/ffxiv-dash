@@ -1,6 +1,6 @@
 import { Flex, Slider, Typography } from 'antd'
-import { useAppearance } from '../../../core/appearance/hooks.ts'
-import { CARD_BLUR_MAX, setAppearance } from '../../../core/appearance/store.ts'
+import { CARD_BLUR_MAX } from '../../../core/appearance/store.ts'
+import { useThemeProfile } from './theme-profile.ts'
 
 /** 一根「标签 + 滑块 + 读数」。背景与卡片两组调节共用，避免重复排版。 */
 function SliderRow({
@@ -44,18 +44,25 @@ function SliderRow({
 
 /** 图片专用的两个调节：模糊 / 亮度。颜色模式不出现这些。 */
 export function ImageTuning(): React.ReactNode {
-  const { blur, brightness } = useAppearance()
+  const { profile, set } = useThemeProfile()
 
   return (
     <Flex vertical gap={14}>
-      <SliderRow label="模糊" value={blur} min={0} max={20} suffix="px" onChange={(next) => setAppearance({ blur: next })} />
+      <SliderRow
+        label="模糊"
+        value={profile.blur}
+        min={0}
+        max={20}
+        suffix="px"
+        onChange={(next) => set({ blur: next })}
+      />
       <SliderRow
         label="亮度"
-        value={brightness}
+        value={profile.brightness}
         min={20}
         max={150}
         suffix="%"
-        onChange={(next) => setAppearance({ brightness: next })}
+        onChange={(next) => set({ brightness: next })}
       />
     </Flex>
   )
@@ -63,25 +70,25 @@ export function ImageTuning(): React.ReactNode {
 
 /** 卡片底色的两个参数；与背景来源无关，任何页面状态下都能调。 */
 export function CardTuning(): React.ReactNode {
-  const { cardAlpha, cardBlur } = useAppearance()
+  const { profile, set } = useThemeProfile()
 
   return (
     <Flex vertical gap={14}>
       <SliderRow
         label="不透明度"
-        value={cardAlpha}
+        value={profile.cardAlpha}
         min={0}
         max={100}
         suffix="%"
-        onChange={(next) => setAppearance({ cardAlpha: next })}
+        onChange={(next) => set({ cardAlpha: next })}
       />
       <SliderRow
         label="模糊"
-        value={cardBlur}
+        value={profile.cardBlur}
         min={0}
         max={CARD_BLUR_MAX}
         suffix="px"
-        onChange={(next) => setAppearance({ cardBlur: next })}
+        onChange={(next) => set({ cardBlur: next })}
       />
     </Flex>
   )

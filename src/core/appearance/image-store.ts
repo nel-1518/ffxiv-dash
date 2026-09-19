@@ -112,8 +112,8 @@ export function clearBackgroundImage(): Promise<void> {
  * 因此这个函数**不要 await**，让它自己跑完通知订阅者即可。
  */
 export function initAppearanceImage(): void {
-  // 只有上传模式才需要去读库，其余模式省下这次 I/O
-  if (getAppearance().source !== 'upload') {
+  // 从没上传过图就省下这次 I/O（图是全局一份，任何一套主题都可能要用它）
+  if (getAppearance().imageName === '') {
     return
   }
   void runTransaction<Blob>('readonly', (store) => store.get(BACKGROUND_KEY)).then((blob) => {

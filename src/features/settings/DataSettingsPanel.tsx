@@ -91,7 +91,7 @@ export function DataSettingsPanel(): React.ReactNode {
         </Typography.Title>
         <Typography.Text type="secondary" className="dash-settings-hint is-inline">
           当前看板有 {doc.groups.length} 个分组、{itemCount} 项内容，全部保存在本机浏览器里。
-          主题与「外观 → 背景」偏好不在导出范围内，导入别人的看板也不会覆盖它们。
+          「外观」与「主题编辑」的偏好不在导出范围内，导入别人的看板也不会覆盖它们。
         </Typography.Text>
 
         <Flex className="dash-settings-actions" gap={12} wrap>

@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Modal } from 'antd'
-import { BgColorsOutlined, DatabaseOutlined, ExportOutlined } from '@ant-design/icons'
+import { BgColorsOutlined, DatabaseOutlined, ExportOutlined, HighlightOutlined } from '@ant-design/icons'
 import { AppearanceSettingsPanel } from './AppearanceSettingsPanel.tsx'
 import { AutoOpenSettingsPanel } from './AutoOpenSettingsPanel.tsx'
 import { DataSettingsPanel } from './DataSettingsPanel.tsx'
+import { ThemeEditorPanel } from './theme/ThemeEditorPanel.tsx'
 
 type SettingsSection = {
   key: string
@@ -17,10 +18,11 @@ type SettingsSection = {
  *
  * **扩展点**：新增一组设置只需要往这里追加一项（label / icon / 面板各一个）——
  * 面板与 tab 是同一份数据驱动的，不必再去下面补分支。
- * 原来的「通用设置」只装了主题一项，主题搬到「外观」后它空了，因此整个分区一并去掉。
+ * 「外观」只管色调与两个槽位选哪套主题，改动落在**哪套主题的档案**上由「主题编辑」决定。
  */
 const SECTIONS = [
   { key: 'appearance', label: '外观', icon: <BgColorsOutlined />, Panel: AppearanceSettingsPanel },
+  { key: 'theme', label: '主题编辑', icon: <HighlightOutlined />, Panel: ThemeEditorPanel },
   { key: 'auto-open', label: '跳转', icon: <ExportOutlined />, Panel: AutoOpenSettingsPanel },
   { key: 'data', label: '数据管理', icon: <DatabaseOutlined />, Panel: DataSettingsPanel },
 ] as const satisfies readonly SettingsSection[]

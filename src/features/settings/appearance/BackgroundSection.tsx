@@ -13,10 +13,11 @@ import {
   MAX_UPLOAD_BYTES,
   isColorValue,
   isImageUrl,
-  setAppearance,
+  setBackgroundImageMeta,
 } from '../../../core/appearance/store.ts'
-import type { AppearanceSource } from '../../../core/appearance/store.ts'
+import { useThemeProfile } from './theme-profile.ts'
 import { ImageTuning } from './Tunings.tsx'
+import type { AppearanceSource } from '../../../core/appearance/store.ts'
 
 const MB = 1024 * 1024
 
@@ -42,7 +43,7 @@ function formatBytes(bytes: number): string {
  * （不合法时正是我们要的"退回"，合法时也只是把首尾空白去掉）。
  *
  * `draft` 只在用户正在改的时候非空（`null` = 跟随已生效的值），所以外部写入
- * （选主题会自动把背景图地址填进来）会自动跟上 —— **不需要 effect 去同步**。
+ * （换编辑对象、恢复默认）会自动跟上 —— **不需要 effect 去同步**。
  */
 function useDraft(
   committed: string,
@@ -68,13 +69,13 @@ function useDraft(
 
 /** 纯色背景：取色器给的值一定合法，直接应用；文本框走草稿态。 */
 function ColorEditor(): React.ReactNode {
-  const { color } = useAppearance()
-  const draft = useDraft(color, isColorValue, (next) => setAppearance({ color: next }))
+  const { profile, set } = useThemeProfile()
+  const draft = useDraft(profile.color, isColorValue, (next) => set({ color: next }))
 
   return (
     <Flex align="center" gap={10}>
       <ColorPicker
-        value={color}
+        value={profile.color}
         onChange={(next) => draft.change(next.toHexString())}
         disabledAlpha
         showText={false}
@@ -95,11 +96,11 @@ function ColorEditor(): React.ReactNode {
 
 /**
  * 图片链接。校验规则沿用链接卡片那套（只认协议头，不猜扩展名）+ **根相对路径**
- * （主题自带的背景图是 `/bg/x.webp`，选主题时会自动填到这里）。
+ * （主题自带的背景图是 `/bg/x.webp`，出厂档案会把它填到这里）。
  */
 function UrlEditor(): React.ReactNode {
-  const { url } = useAppearance()
-  const draft = useDraft(url, isImageUrl, (next) => setAppearance({ url: next }))
+  const { profile, set } = useThemeProfile()
+  const draft = useDraft(profile.url, isImageUrl, (next) => set({ url: next }))
 
   return (
     <Input
@@ -119,9 +120,14 @@ function UrlEditor(): React.ReactNode {
  *
  * 文件不经过 antd 的上传流程（`beforeUpload` 返回 false），我们自己写进 IndexedDB。
  * 超限的文件在选中那一刻就被拒，不会落盘。
+ *
+ * ⚠️ 图片本体与文件名 / 大小都是**全局一份**（IndexedDB 里只存一张），
+ * 所有主题共用同一张图；逐主题的只有"用不用它"（`source`）。
+ * 所以上传成功时写两处：全局的元信息 + 当前编辑对象的 `source`。
  */
 function UploadEditor(): React.ReactNode {
   const { imageName, imageSize } = useAppearance()
+  const { set } = useThemeProfile()
   const { message } = App.useApp()
 
   const handleBeforeUpload = (file: File) => {
@@ -139,7 +145,8 @@ function UploadEditor(): React.ReactNode {
         message.error('图片没能保存到本机（可能是浏览器禁用了本地存储）')
         return
       }
-      setAppearance({ source: 'upload', imageName: file.name, imageSize: file.size })
+      setBackgroundImageMeta(file.name, file.size)
+      set({ source: 'upload' })
       message.success('背景图片已更新')
     })
 
@@ -149,7 +156,8 @@ function UploadEditor(): React.ReactNode {
 
   const handleRemove = () => {
     void clearBackgroundImage().then(() => {
-      setAppearance({ source: 'none', imageName: '', imageSize: 0 })
+      setBackgroundImageMeta('', 0)
+      set({ source: 'none' })
       message.success('已移除背景图片')
     })
   }
@@ -177,7 +185,7 @@ function UploadEditor(): React.ReactNode {
       </Flex>
       <Typography.Text type="secondary" className="dash-settings-hint is-inline">
         图片不超过 {MAX_UPLOAD_BYTES / MB} MB，保存在本机浏览器里（IndexedDB），
-        不会写进导出的看板数据。
+        不会写进导出的看板数据。所有主题共用这一张图。
       </Typography.Text>
     </Flex>
   )
@@ -193,11 +201,14 @@ const EDITORS: Record<AppearanceSource, React.ComponentType | null> = {
 /**
  * 背景来源四选一 + 对应的编辑器 + 图片专属的显示调节。
  *
- * 两节都放在这里：它们讲的是同一件事（背景），面板只负责把它们排在「主题」与「卡片」之间。
+ * 改的是**当前编辑对象**的档案（无 Provider 时 = 当前生效主题）：
+ * 「主题编辑」把它换成下拉里选中的那套，于是每套主题各有一份背景。
+ *
+ * 两节都放在这里：它们讲的是同一件事（背景），面板只负责把它们排在合适的位置。
  */
 export function BackgroundSection(): React.ReactNode {
-  const { source } = useAppearance()
-  const Editor = EDITORS[source]
+  const { profile, set } = useThemeProfile()
+  const Editor = EDITORS[profile.source]
 
   return (
     <>
@@ -212,9 +223,9 @@ export function BackgroundSection(): React.ReactNode {
               key={option.value}
               type="button"
               role="radio"
-              aria-checked={source === option.value}
-              className={`dash-settings-option${source === option.value ? ' is-active' : ''}`}
-              onClick={() => setAppearance({ source: option.value })}
+              aria-checked={profile.source === option.value}
+              className={`dash-settings-option${profile.source === option.value ? ' is-active' : ''}`}
+              onClick={() => set({ source: option.value })}
             >
               <span className="dash-settings-option-icon" aria-hidden="true">
                 {option.icon}
@@ -229,7 +240,7 @@ export function BackgroundSection(): React.ReactNode {
         </div>
       </section>
 
-      {source === 'url' || source === 'upload' ? (
+      {profile.source === 'url' || profile.source === 'upload' ? (
         <section>
           <Typography.Title className="dash-settings-label" level={5}>
             图片显示

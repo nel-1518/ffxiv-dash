@@ -8,7 +8,8 @@
 src/app/themes/
   index.ts             注册表 Record<ThemeKey, ThemeSpec>（少一套会编译报错）
   types.ts             ThemeSpec / ThemeBackground / ThemeCards
-  appearance-sync.ts    applyTheme：一次写入主题 + 该主题配套的背景与卡片参数
+  appearance-sync.ts   主题出厂档案 factoryProfile / readThemeProfile + initSystemFollow
+  hooks.ts             useThemeProfile(key)：出厂档案 + 用户改动
   <key>/index.ts       该主题的 antd 令牌 + 元信息
   <key>/theme.css      该主题的 `--dash-*` 变量（按需）
 ```
@@ -24,6 +25,25 @@ src/app/themes/
 5. 卡片是浅色的，从另一套浅色主题的 `theme.css` 照抄
 
 删除时反向操作即可 —— **不需要清理任何残留**（变量没定义就回落到 `global.css` 的 `:root` 默认值）。
+
+## 色调、槽位与逐主题档案
+
+主题「有哪些」写在本模块的清单里，而「用哪几套」存在 `core/appearance/store.ts` 的
+`ffxiv-dash:appearance:v3`：
+
+- `colorMode`：浅色 / 深色 / 跟随系统；
+- `lightTheme` / `darkTheme`：两个槽位各存一个主题键，选哪个色调就用哪个槽位那套；
+- `profiles`：**每套主题一份外观档案**（背景 + 卡片），只存用户改过的那几项，
+  读的时候由 `app/themes/appearance-sync.ts` 的 `factoryProfile(key)` 用 `ThemeSpec` 补齐出厂值。
+
+两条容易踩的规则：
+
+- **生效主题的档案也在 `profiles` 里**，没有第二份“live”字段。因此“改生效主题立刻可见 /
+  改别的主题页面不动”是数据模型的自然结果，不需要预览开关，也没有“切主题时归档旧档案”那套编排。
+- 主题列表**不按浅 / 深过滤**：界面上八套一视同仁地列出来（实测只有 `default-light` 是浅色算法，
+  过滤的话浅色槽位就只剩一个选项）。两个槽位的默认值就是 `DEFAULT_LIGHT_THEME` / `DEFAULT_DARK_THEME` 两个常量。
+- 存储**不做版本兼容**（用户 2026-09 明确）：`normalizeAppearance` 只校验当前形状，
+  旧键（`appearance:v2`）与旧字段直接丢弃、走默认值。
 
 ## 变量
 

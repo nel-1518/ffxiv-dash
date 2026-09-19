@@ -117,7 +117,7 @@ body {
 .dash-bg-image {
   position: absolute;
   inset: 0;
-  /* 固定“铺满裁切”（已去掉铺法选项）；模糊时由 inline style 改成负 inset 把图层撑到视口外，见 AppShell.imageLayer */
+  /* 固定“铺满裁切”（已去掉铺法选项）；模糊参数只走 inline style 的 filter */
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

@@ -33,22 +33,23 @@ src/
     AutoOpenLinks.tsx       「跳转」：每天首次进入页面时自动打开设置里的链接（渲染 null 的启动副作用）
     theme-config.ts         基线主题 + 把主题规格合成 antd ThemeConfig
     AppShell.tsx            布局外壳；将来接路由的挂载点（只负责把视图放进 Layout）
-    background-layer.ts     外观快照 + 主题预设 → 背景层样式（纯函数，无 React）
+    background-layer.ts     生效档案 + 主题预设 → 背景层样式（纯函数，无 React）
     themes/                 八套主题，一套一个文件夹
       types.ts              ThemeSpec（antd 令牌 / 默认背景 / 默认卡片外观）
       index.ts              注册表（Record<ThemeKey, ThemeSpec>，缺一套会编译报错）
-      appearance-sync.ts    applyTheme：一次写入主题 + 该主题配套的背景与卡片参数
+      appearance-sync.ts    主题出厂档案（factoryProfile / readThemeProfile）+ 跟随系统的监听
+      hooks.ts              useThemeProfile(key)：出厂档案 + 用户改动
       <key>/index.ts        该主题的 antd 令牌与元信息
       <key>/theme.css       该主题的 --dash-* 变量（按需）
   core/                   与 React 无关的通用能力
     ids.ts                  全项目唯一 id 生成入口（含非安全上下文降级）
     guards.ts               通用类型守卫（isRecord）
     asset-url.ts            资源地址解析：public 下的路径 → 带部署基础路径的链接
-    theme-preference.ts     主题键的类型与清单（八套主题的名字 / 默认主题）
+    theme-preference.ts     主题键的类型与清单（八套主题的名字 / 色调归属 / 两个槽位的默认值）
     appearance/
-      store.ts              外观偏好：主题 + 背景 + 卡片，三样共用一个 localStorage 键
+      store.ts              外观偏好：色调 + 两个槽位 + 逐主题档案（一个 localStorage 键）
       image-store.ts        上传的背景图片存 IndexedDB（不进导出）
-      hooks.ts              useAppearance() / useTheme()
+      hooks.ts              useAppearance() / useTheme() / useThemePatch(key)
     clock/
       store.ts              全局秒级时钟（引用计数订阅，无 Provider）
       hooks.ts              useClock() / useNow() / useClockValue() / useClockAt()
@@ -75,13 +76,18 @@ src/
     dashboard/              顶栏、编辑弹窗、表单
       TopbarClock.tsx         顶栏问候语与两个时间读数（秒级时钟只落在这几个叶子上）
     search/                 搜索弹窗、链接检索、搜索引擎注册表
-    settings/               系统设置弹窗（外观 / 跳转 / 数据管理）
+    settings/               系统设置弹窗（外观 / 主题编辑 / 跳转 / 数据管理）
       SettingsDialog.tsx      左侧分组 + 面板容器（分区是数据驱动的）
-      AppearanceSettingsPanel.tsx 外观外壳：主题 → 背景 → 卡片
-      appearance/             外观面板的三个自洽子模块
-        ThemePicker.tsx         八选一 + 换主题时同步背景与卡片参数
+      AppearanceSettingsPanel.tsx 外观：色调三选一 + 浅色 / 深色两个主题下拉
+      theme/
+        ThemeEditorPanel.tsx    主题编辑：选一套主题改它的背景与卡片 + 恢复默认
+      appearance/             共用控件与档案作用域
+        ColorModePicker.tsx     色调三选一（浅色 / 深色 / 跟随系统）
+        ThemeSelect.tsx         「标签 + 主题下拉」一行
         BackgroundSection.tsx   背景来源四选一 + 三种编辑器 + 图片显示
         Tunings.tsx             滑块行 + 背景显示 / 卡片底色两组调节
+        theme-profile.ts        useThemeProfile()：当前编辑对象的档案读写
+        theme-profile-provider.tsx  把编辑对象换成指定主题
       AutoOpenSettingsPanel.tsx 「跳转」：每行一个链接的文本域 + 行数/状态提示
       DataSettingsPanel.tsx   导入导出
     groups/                 分组面板、拖拽编排、分组表单
@@ -268,11 +274,12 @@ overlay 的 `height` / `top` 跟随 `visualViewport`（`--vv-top` / `--vv-height
 
 | 分组 | 内容 |
 | --- | --- |
-| 外观 | 主题（八选一，全部做完）；背景（无·跟随主题 / 纯色 / 图片链接 / 上传图片，图片固定铺满裁切、可调模糊·亮度）；卡片（不透明度、毛玻璃模糊） |
+| 外观 | 色调（浅色 / 深色 / 跟随系统）；浅色与深色各用哪套主题（八套都列出来，可自由组合） |
+| 主题编辑 | 挑一套主题改它自己的背景（无·跟随主题 / 纯色 / 图片链接 / 上传图片，图片固定铺满裁切、可调模糊·亮度）与卡片（不透明度、毛玻璃模糊）；每套一个「恢复默认」 |
 | 跳转 | 每行一个链接，每天首次进入页面时自动打开（同一分区里即时保存） |
 | 数据管理 | 把看板导出为 JSON；或从 JSON 导入覆盖当前看板 |
 
-以上参数都**立即生效**；主题、外观偏好与跳转设置都不属于看板数据（各自独立 key），因此不进导出。
+以上参数都**立即生效**；外观偏好（色调 / 槽位 / 每套主题的档案）与跳转设置都不属于看板数据（各自独立 key），因此不进导出。
 
 **「跳转」的两个要点**（纯逻辑在 `core/auto-open/`，启动副作用在 `app/AutoOpenLinks.tsx`）：
 
@@ -284,20 +291,25 @@ overlay 的 `height` / `top` 跟随 `visualViewport`（`--vv-top` / `--vv-height
   否则用户只会看到"设置没生效"。也正因为要判断有没有被拦，`window.open` **不能**带 `noopener`
   （带了按规范永远返回 null），改成开完再把 `opener` 清掉，效果与全站链接的 `rel="noopener noreferrer"` 一致。
 
-**换主题会连外观一起换**（`app/themes/appearance-sync.ts`）——**主题会盖掉你自己调过的值**：
+**色调、槽位与「每套主题各有一份外观」**（`core/appearance/store.ts` + `app/themes/appearance-sync.ts`）：
 
-| 项 | 规则 |
-| --- | --- |
-| 背景 | 主题自带图（银海是 `/bg/8-evercold.webp`）就自动写进「图片链接」并把模糊/亮度改成预设值；主题不带图（只有默认两套）就退回「无」 |
-| 卡片 | 取 `ThemeSpec.cards` 的不透明度 / 毛玻璃模糊 |
-| 主题没声明的项 | 回到基线（背景 →「无」、卡片 → 62 / 12），**不沿用上一套主题留下的值** |
+| 概念 | 位置 | 说明 |
+| --- | --- | --- |
+| 色调模式 | 「外观 → 色调」 | 浅色 / 深色 / 跟随系统；后者的具体色调由 `prefers-color-scheme` 决定 |
+| 两个槽位 | 「外观 → 主题」 | 浅色、深色各绑一套主题（默认「默认-浅色」/「默认-深色」）。选「浅色」就用浅色那一套 |
+| 主题档案 | 「主题编辑」 | 每套主题各有一份背景 + 卡片；改哪套就选哪套，互不影响、各自持久化 |
 
-背景写成「图片链接」而不是留个隐形回落，是为了让这张图的参数能在设置里直接调
-（「图片显示」一节只在图片来源下才出现）。换完随时可以自己再改。
-被盖掉的值不会丢：颜色 / 地址 / 上传文件名都还在状态里（上传的图也仍在 IndexedDB），
-点回对应来源就回来了。点到已选中的主题不做任何事（不会把调过的滑块重置）。
+- **出厂档案**：主题没被改过时用 `ThemeSpec` 声明的那一套（自带图 → 自动写进「图片链接」并取预设的模糊 / 亮度；
+  `cards` → 卡片的不透明度 / 毛玻璃）；主题没声明的项回到全局默认（纯色 `#1f2937`、卡片 62 / 12）。
+  背景写成「图片链接」而不是留个隐形回落，是为了让这张图的参数能在设置里直接调
+  （「图片显示」一节只在图片来源下才出现）。
+- **编辑的正好是页面上那套 → 实时预览；是别的主题 → 页面一点不动**。这不是一个开关，而是数据模型的结果：
+  外壳只读「生效主题的档案」，改别的主题根本碰不到页面。在「外观」里把色调切到那一档就能看到。
+- 档案里**只存你改过的那几项**，其余仍跟随主题出厂值 —— 将来主题预设调整时，没被碰过的字段会跟着更新。
+- 每个主题一个「恢复默认」：清掉这套主题的改动、回到它的出厂外观。
+- 切色调 / 换槽位**不会重置**你在这套主题上调过的东西 —— 切回来还是你调过的样子。
+- 「背景来源 = 无」= 跟随主题自带的背景（主题有图就显示图，没图才只剩底色）。
 
-「背景来源 = 无」= 跟随主题自带的背景（主题有图就显示图，没图才只剩底色）。
 主题细节见下面「主题」一节。
 
 **顶栏是页面顶端的一整条元素**（不在内容列里，所以天然铺满视口宽），它挂 `dash-card-surface` ——
@@ -541,13 +553,15 @@ https://ico.faviconkit.net/favicon/{domain}?sz=64
 
 ## 主题
 
-设置 → 外观里有八套主题：**默认-浅色 / 默认-深色** 与 **苍穹 / 红莲 / 暗影 / 晓月 / 金曦 / 银海**。
+设置里有八套主题：**默认-浅色 / 默认-深色** 与 **苍穹 / 红莲 / 暗影 / 晓月 / 金曦 / 银海**。
+「外观」把浅色与深色各绑一套（选哪个色调就用哪套，跟随系统时由系统决定）；
+每套主题自己的背景与卡片在「主题编辑」里改，一套一份档案。
 
 每套的取色来源、色板与数值取舍，以及主题系统的全部约定（变量、antd 的坑、
 新增/删除主题的步骤、八套速查表），都在 **[`docs/themes.md`](docs/themes.md)**。速览：
 
-- **默认-浅色（默认主题）**：就是基线本身（`ThemeSpec.antd` 为空），不维护任何色值。
-- **默认-深色**：antd 深色算法的原生观感；卡片是**不透明**的纯色深灰。
+- **默认-浅色（浅色槽位的默认）**：就是基线本身（`ThemeSpec.antd` 为空），不维护任何色值。
+- **默认-深色（深色槽位的默认）**：antd 深色算法的原生观感；卡片是**不透明**的纯色深灰。
 - **银海**：深色页面 + **浅色玻璃卡**；顶栏是半透明白玻璃 + 白字。
 - **金曦**：暖黑底 + 亮金（参考官方专题站 dawntrail）。
 - **晓月**：暗页面 + 暗顶栏 + **亮卡片**（纯色 `#F5F5FA`）。
@@ -580,8 +594,9 @@ src/app/themes/<key>/theme.css    该主题的 --dash-* 变量（只改 antd 令
 - 删主题：删文件夹 + 删两处键，**不需要清理任何残留**（变量没定义就回落到 `:root` 默认值）。
 - 卡片是浅色的主题（银海、晓月）：卡内要整体翻成深色文字；
   顶栏与卡片不同色的主题还得用 `:not(.dash-topbar)` 把两者拆开。见 `docs/themes.md`。
-- ⚠️ 主题键会写进 `localStorage`（`ffxiv-dash:appearance:v2` 的 `theme` 字段），
+- ⚠️ 主题键会写进 `localStorage`（`ffxiv-dash:appearance:v3` 的 `lightTheme` / `darkTheme` 与 `profiles` 的键），
   发布后不要再改名；改过名也没关系：校验通不过的旧值会自动回落到默认主题。
+  该版本**不读旧键**（`appearance:v2` 那套形状直接丢弃、走默认值）。
 
 ### 两套机制各管一半
 
