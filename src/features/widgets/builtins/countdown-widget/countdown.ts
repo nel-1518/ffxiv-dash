@@ -9,7 +9,7 @@
 /** 倒数周期：`none` 只倒到锚点那一天，过了就转成「已过去」；其余三种按周期往后滚。 */
 export type CountdownCycle = 'none' | 'weekly' | 'monthly' | 'yearly'
 
-/** 今天的 `YYYY-MM-DD`，由调用方以「天」粒度的时钟快照算好（`formatDateKey(useClockAt('day'))`）。 */
+/** 今天的 `YYYY-MM-DD`，由调用方以「天」粒度的时钟快照算好（`formatDateKey(useClockAt('day'))`，函数在 `core/clock/format.ts`）。 */
 export type DateKey = string
 
 /** 日历日的三个部分，month 从 1 开始（和 Date 的 0 起月份错开，故意的：写出来就是人读的样子）。 */
@@ -78,16 +78,6 @@ function atMidnight(year: number, month: number, day: number): Date {
  */
 function diffInDays(from: Date, to: Date): number {
   return Math.round((to.getTime() - from.getTime()) / 86_400_000)
-}
-
-/**
- * 把 Date 写成 `YYYY-MM-DD`（本地时区）。
- * ⚠️ 不要用 `toISOString().slice(0, 10)`：那是按 UTC 切的，东八区晚上会少一天。
- */
-export function formatDateKey(date: Date): DateKey {
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${date.getFullYear()}-${month}-${day}`
 }
 
 /** 卡片副行上的日期文案。 */

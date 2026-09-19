@@ -4,7 +4,20 @@
  * `formatRelativeTime` 原本长在物品价格卡里，房屋卡也要显示「这份数据是多久前拿的」，
  * 两处一字不差 —— 按 `core/world.ts` 的同一条理由提到 core：
  * 别让第二个用到它的地方再抄一份。
+ * `formatDateKey` 同理：倒数日要拿它当"今天"，设置里的「跳转」要拿它当"今天跳没跳过"。
  */
+
+/**
+ * 本地日历日的 `YYYY-MM-DD`。
+ *
+ * ⚠️ 不要用 `toISOString().slice(0, 10)`：那是按 UTC 切的，东八区晚上会少一天。
+ * 比较"是不是同一天"、把日期存进 localStorage 都走这里（本地 0 点为界）。
+ */
+export function formatDateKey(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${date.getFullYear()}-${month}-${day}`
+}
 
 /**
  * 相对时间：`刚刚` / `12 分前` / `3 小时前` / `2 天前`。

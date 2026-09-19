@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Modal } from 'antd'
-import { BgColorsOutlined, DatabaseOutlined } from '@ant-design/icons'
+import { BgColorsOutlined, DatabaseOutlined, ExportOutlined } from '@ant-design/icons'
 import { AppearanceSettingsPanel } from './AppearanceSettingsPanel.tsx'
+import { AutoOpenSettingsPanel } from './AutoOpenSettingsPanel.tsx'
 import { DataSettingsPanel } from './DataSettingsPanel.tsx'
 
 type SettingsSection = {
@@ -20,6 +21,7 @@ type SettingsSection = {
  */
 const SECTIONS = [
   { key: 'appearance', label: '外观', icon: <BgColorsOutlined />, Panel: AppearanceSettingsPanel },
+  { key: 'auto-open', label: '跳转', icon: <ExportOutlined />, Panel: AutoOpenSettingsPanel },
   { key: 'data', label: '数据管理', icon: <DatabaseOutlined />, Panel: DataSettingsPanel },
 ] as const satisfies readonly SettingsSection[]
 

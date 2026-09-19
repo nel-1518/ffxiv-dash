@@ -29,7 +29,8 @@ pnpm preview    # 预览构建产物
 ```
 src/
   app/                    应用外壳与全局装配
-    AppProviders.tsx        ConfigProvider(中文/主题) → App → BoardPersistence（无看板 Provider）
+    AppProviders.tsx        ConfigProvider(中文/主题) → App → BoardPersistence + AutoOpenLinks（无看板 Provider）
+    AutoOpenLinks.tsx       「跳转」：每天首次进入页面时自动打开设置里的链接（渲染 null 的启动副作用）
     theme-config.ts         基线主题 + 把主题规格合成 antd ThemeConfig
     AppShell.tsx            布局外壳；将来接路由的挂载点（只负责把视图放进 Layout）
     background-layer.ts     外观快照 + 主题预设 → 背景层样式（纯函数，无 React）
@@ -51,7 +52,10 @@ src/
     clock/
       store.ts              全局秒级时钟（引用计数订阅，无 Provider）
       hooks.ts              useClock() / useNow() / useClockValue() / useClockAt()
-      format.ts             时钟相关的纯格式化（formatRelativeTime）
+      format.ts             时钟相关的纯格式化（formatRelativeTime / formatDateKey）
+    auto-open/
+      store.ts              「跳转」：链接文本 + 每日一次的门禁（纯逻辑，一个 localStorage 键）
+      hooks.ts              useAutoOpenLinks()
     world.ts                中国区服务器表（大区 / 世界）
     favicon.ts              网站图标第三方接口封装
     favicon-cache.ts        图标失败负缓存（避免离线时反复重试）
@@ -71,13 +75,14 @@ src/
     dashboard/              顶栏、编辑弹窗、表单
       TopbarClock.tsx         顶栏问候语与两个时间读数（秒级时钟只落在这几个叶子上）
     search/                 搜索弹窗、链接检索、搜索引擎注册表
-    settings/               系统设置弹窗（外观 / 数据管理）
+    settings/               系统设置弹窗（外观 / 跳转 / 数据管理）
       SettingsDialog.tsx      左侧分组 + 面板容器（分区是数据驱动的）
       AppearanceSettingsPanel.tsx 外观外壳：主题 → 背景 → 卡片
       appearance/             外观面板的三个自洽子模块
         ThemePicker.tsx         八选一 + 换主题时同步背景与卡片参数
         BackgroundSection.tsx   背景来源四选一 + 三种编辑器 + 图片显示
         Tunings.tsx             滑块行 + 背景显示 / 卡片底色两组调节
+      AutoOpenSettingsPanel.tsx 「跳转」：每行一个链接的文本域 + 行数/状态提示
       DataSettingsPanel.tsx   导入导出
     groups/                 分组面板、拖拽编排、分组表单
       BoardDragOverlay.tsx    拖拽虚影宿主：正在拖的是谁从 dnd-kit 的 context 读，不放进 GroupBoard 的状态
@@ -264,9 +269,20 @@ overlay 的 `height` / `top` 跟随 `visualViewport`（`--vv-top` / `--vv-height
 | 分组 | 内容 |
 | --- | --- |
 | 外观 | 主题（八选一，全部做完）；背景（无·跟随主题 / 纯色 / 图片链接 / 上传图片，图片固定铺满裁切、可调模糊·亮度）；卡片（不透明度、毛玻璃模糊） |
+| 跳转 | 每行一个链接，每天首次进入页面时自动打开（同一分区里即时保存） |
 | 数据管理 | 把看板导出为 JSON；或从 JSON 导入覆盖当前看板 |
 
-以上参数都**立即生效**；主题与外观偏好都不属于看板数据（各自独立 key），因此不进导出。
+以上参数都**立即生效**；主题、外观偏好与跳转设置都不属于看板数据（各自独立 key），因此不进导出。
+
+**「跳转」的两个要点**（纯逻辑在 `core/auto-open/`，启动副作用在 `app/AutoOpenLinks.tsx`）：
+
+- **一天只跳一次**，以本地 0 点为界：`takeTodayLinks()` 查一次就顺手把「今天已跳」写进存储，
+  查询与记账在同一次同步调用里完成 —— 否则 dev 的 StrictMode 会把标签页开两遍。
+  只在页面启动时判一次、不挂任何定时器，这就是"不需要实时"的落地方式。
+- **浏览器会拦下没有用户手势的 `window.open`**（Chrome / Firefox / Safari 默认都拦），
+  所以被拦下时给一条常驻通知 + 「全部打开」按钮（点它是一次真实手势，浏览器就放行）——
+  否则用户只会看到"设置没生效"。也正因为要判断有没有被拦，`window.open` **不能**带 `noopener`
+  （带了按规范永远返回 null），改成开完再把 `opener` 清掉，效果与全站链接的 `rel="noopener noreferrer"` 一致。
 
 **换主题会连外观一起换**（`app/themes/appearance-sync.ts`）——**主题会盖掉你自己调过的值**：
 
