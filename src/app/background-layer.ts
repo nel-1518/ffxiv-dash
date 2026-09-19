@@ -4,6 +4,7 @@
  * 放在 app 层是因为它同时要看两边：**核心层的外观偏好**（用户选的来源/颜色/地址/参数）
  * 与**主题层的背景预设**。`AppShell` 只负责把它算出来的样式贴到一个铺满视口的层上。
  */
+import { assetUrl } from '../core/asset-url.ts'
 import { isImageUrl } from '../core/appearance/store.ts'
 import type { AppearanceSnapshot } from '../core/appearance/store.ts'
 import type { ThemeBackground } from './themes/types.ts'
@@ -13,11 +14,15 @@ import type { ThemeBackground } from './themes/types.ts'
  *
  * 铺法固定「铺满裁切」（`background-size: cover` 等写在 `.dash-bg-image` 里），
  * 所以这里只算三件事：图片地址、filter、模糊时把图层向外撑开。
+ *
+ * ⚠️ 地址必须过一遍 `assetUrl`：主题预设与用户填的都可能长成 `/bg/x.webp`
+ * （`public/` 下的根相对路径，Vite 不会改写写在 TS 里的字符串），
+ * 这里是背景图唯一的出口，补基础路径只做在这一处。
  */
 function imageLayer(url: string, blur = 0, brightness = 100): React.CSSProperties {
   const image: React.CSSProperties = {
     // JSON.stringify 顺带把引号与反斜杠转义掉，避免 url() 被提前闭合
-    backgroundImage: `url(${JSON.stringify(url)})`,
+    backgroundImage: `url(${JSON.stringify(assetUrl(url))})`,
   }
 
   if (blur > 0 || brightness !== 100) {

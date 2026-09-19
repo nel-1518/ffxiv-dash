@@ -42,6 +42,7 @@ src/
   core/                   与 React 无关的通用能力
     ids.ts                  全项目唯一 id 生成入口（含非安全上下文降级）
     guards.ts               通用类型守卫（isRecord）
+    asset-url.ts            资源地址解析：public 下的路径 → 带部署基础路径的链接
     theme-preference.ts     主题键的类型与清单（八套主题的名字 / 默认主题）
     appearance/
       store.ts              外观偏好：主题 + 背景 + 卡片，三样共用一个 localStorage 键
@@ -91,6 +92,36 @@ src/
     DashboardPage.tsx       页面组装
   styles/global.css         仅页面背景、字体栈、少量基线
 ```
+
+### 部署基础路径与资源地址
+
+应用部署在子路径下（`vite.config.ts` 的 `base: '/ffxiv-dash/'`）。这个 `base` 只对 **Vite 亲手处理的引用**生效：
+`index.html` 里的 `href`、CSS 里的 `url()`、打包产物的地址都会在构建时自动带上它；
+**写在 TS 字符串里的路径不会** —— 主题自带的背景图（`/bg/8-evercold.webp`）与物品库（`/data/item-db.json`）
+都属于后者，直接当链接用会指向站点根、静默 404。
+
+所以运行时凡是要拼 `public/` 下的资源地址，一律走 `src/core/asset-url.ts` 的 `assetUrl()`：
+
+```ts
+assetUrl('/data/item-db.json')    // → /ffxiv-dash/data/item-db.json
+assetUrl('/bg/8-evercold.webp')   // → /ffxiv-dash/bg/8-evercold.webp
+assetUrl('https://x/y.png')       // → 原样返回（http(s): / data: / blob: / //host 都不动）
+assetUrl('/ffxiv-dash/bg/x.webp') // → 原样返回
+```
+
+它是个**幂等**函数（`assetUrl(assetUrl(x)) === assetUrl(x)`）：地址可能来自我们自己的常量、
+用户填的「图片链接」，或历史 localStorage，其中有些已经带过 base ——
+出口处不必判断来源，过一遍就行（幂等就是这个设计的依据，不是打补丁）。
+
+约定：
+
+- 输入只有两种合法形态：**完整链接**（`http(s):` / `data:` / `blob:` / `//host`）或 **`/` 开头的根相对路径**。
+  函数不做容错：`bg/x.webp` 这种裸相对路径不是合法输入（我们自己的常量由 `PublicPath` 挡住，
+  用户填的地址由 `isImageUrl` 挡住）；
+- 我们**自己写**的资源路径统一用 `PublicPath`（`` `/${string}` ``）标注，
+  模块级常量与主题预设都这么写 —— 把 `'/data/item-db.json'` 写成 `'data/item-db.json'` 当场编译报错；
+- 存进主题与组件配置的地址必须是**部署无关**的写法（`/bg/x.webp`），补 base 只发生在 `assetUrl()` 一处；
+- 别处不要手写 `import.meta.env.BASE_URL`。
 
 ### 数据流
 

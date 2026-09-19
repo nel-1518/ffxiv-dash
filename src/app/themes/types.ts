@@ -1,4 +1,5 @@
 import type { ThemeConfig } from 'antd'
+import type { PublicPath } from '../../core/asset-url.ts'
 import type { ThemeKey } from '../../core/theme-preference.ts'
 
 /**
@@ -12,8 +13,11 @@ import type { ThemeKey } from '../../core/theme-preference.ts'
 
 /** 主题自带的背景预设（用户没自己选背景时用它）。固定“铺满裁切”（cover），不提供铺法选项。 */
 export type ThemeBackground = {
-  /** `public/` 下的绝对路径，例如 `/bg/8-evercold.webp`。 */
-  url: string
+  /**
+   * `public/` 下的根相对路径（`PublicPath` 保证写法），例如 `/bg/8-evercold.webp`。
+   * 存的是部署无关的路径：补上部署基础路径发生在渲染时（`app/background-layer.ts` 的 `assetUrl`）。
+   */
+  url: PublicPath
   /** 模糊 0-20（px）。 */
   blur?: number
   /** 亮度 20-150（%），压暗用 <100 的值。 */

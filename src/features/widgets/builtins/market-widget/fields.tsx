@@ -17,7 +17,7 @@ import type { WidgetRenderProps } from '../../types.ts'
  *
  * `enabled` 为 false 时**完全不碰物品库**（不请求、也不读模块级状态）。
  * 卡片平时就属于这一档 —— 物品名称与 HQ 标志已经随配置存了下来（`config.itemMeta`）；
- * 若无条件加载，几 MB 的 item-db.json 会在每次进网页时被重新拉一遗。
+ * 若无条件加载，几 MB 的 item-db.json 会在每次进网页时被重新拉一遍。
  *
  * 库本身只有一份（`items.ts` 里的模块级 Promise），多个调用方共享同一个请求，
  * 这里只负责把它映射成"能搜了 / 还在读 / 读失败"三态。

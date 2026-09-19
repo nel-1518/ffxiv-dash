@@ -12,7 +12,12 @@
  * 不必把几万条数据当参数传来传去。
  */
 
-const ITEM_DB_URL = `${import.meta.env.BASE_URL}data/item-db.json`
+import { assetUrl } from '../../../../core/asset-url.ts'
+import type { PublicPath } from '../../../../core/asset-url.ts'
+
+/** 物品库在 `public/data/` 下：`PublicPath` 保证写法是 `/` 开头的部署无关路径。 */
+const ITEM_DB_PATH: PublicPath = '/data/item-db.json'
+const ITEM_DB_URL = assetUrl(ITEM_DB_PATH)
 
 /** 待选列表上限。 */
 export const MAX_ITEM_SUGGESTIONS = 10

@@ -81,6 +81,9 @@ export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024
  * `public/bg/` 下的文件，写出来是 `/bg/8-evercold.webp` —— 选主题时会把它填进「图片链接」，
  * 而那个输入框用的就是这个校验。不用绝对地址（`location.origin + …`）是因为它会随部署
  * 地址变化、也没法离线打开。链接卡片那边（图标字段）保持原样，不动它。
+ *
+ * 这类地址是**部署无关**的 public 根相对写法：真正拼成可用链接在渲染时过一次
+ * `core/asset-url.ts` 的 `assetUrl`（补上 `base`），存回来的值不改写。
  */
 const IMAGE_URL_PATTERN = /^(?:https?:\/\/|data:image\/|\/)/i
 
