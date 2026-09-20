@@ -2,6 +2,7 @@ import { installWidgetConfigNormalizer, registerWidget } from '../registry.ts'
 import { countdownWidgetSpec } from './countdown-widget/widget.ts'
 import { houseWidgetSpec } from './house-widget/widget.ts'
 import { marketWidgetSpec } from './market-widget/widget.ts'
+import { memoWidgetSpec } from './memo-widget/widget.ts'
 import { pvpMapWidgetSpec } from './pvp-map-widget/widget.ts'
 import { statsWidgetSpec } from './stats-widget/widget.ts'
 import { taxWidgetSpec } from './tax-widget/widget.ts'
@@ -28,6 +29,7 @@ export function installBuiltinWidgets(): void {
   registerWidget(countdownWidgetSpec)
   registerWidget(taxWidgetSpec)
   registerWidget(todoWidgetSpec)
+  registerWidget(memoWidgetSpec)
 
   // 把组件配置的归一化能力注入 core/storage，供读取本地数据时使用
   installWidgetConfigNormalizer()

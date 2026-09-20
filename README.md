@@ -98,7 +98,7 @@ src/
       registry.ts           注册表（不导入任何具体组件，避免循环依赖）
       useFavicon.ts         图标接口 hook
       WidgetRenderer.tsx    统一卡片外壳 + 未注册组件降级
-      builtins/             内置组件，每个一个目录（stats / pvp-map / market / house / countdown / tax / todo）
+      builtins/             内置组件，每个一个目录（stats / pvp-map / market / house / countdown / tax / todo / memo）
   views/
     DashboardPage.tsx       页面组装
   styles/global.css         仅页面背景、字体栈、少量基线
@@ -438,7 +438,7 @@ dnd-kit 的 context 在**拖拽开始**与**指针每移动一帧**时都会换�
 ## 如何新增一个组件类型
 
 组件框架的目标是：**新增组件不需要改动任何既有组件，也不需要新增依赖**
-（唯一的例外是日期控件要用的 `dayjs`，见本节末尾）。
+（例外只有两个：日期控件要用的 `dayjs`、Markdown 渲染要用的 `marked`，见本节末尾）。
 
 1. 新建目录 `src/features/widgets/builtins/<name>-widget/`，放三个文件：
 
@@ -494,10 +494,47 @@ dnd-kit 的 context 在**拖拽开始**与**指针每移动一帧**时都会换�
 
 > **需要日期选择器时**：antd 的 `DatePicker` 只吃 `dayjs` 对象，而 `dayjs` 是 antd 的内部依赖，
 > 在 pnpm 的严格 `node_modules` 下源码里取不到，因此它被提升成了本项目的直接依赖（见 `package.json`）——
-> 这是"新增组件不需要新增依赖"的唯一例外，不要再引入第二个日期库。
+> 这是“新增组件不需要新增依赖”的例外之一，不要再引入第二个日期库。
 > 配置里仍然只存 `YYYY-MM-DD` 字符串，转换放在 `Form.Item` 的 `getValueProps` / `normalize` 两端，
 > 参考 `builtins/countdown-widget/fields.tsx`；日期解析、周期推进、闰年夹取这类纯计算
 > 单独放一个不导入 React 的模块（`builtins/countdown-widget/countdown.ts`），便于脱离浏览器验证。
+
+> **需要渲染 Markdown 时**：用直接依赖 `marked`（HTML 生成不是开箱即用的安全操作，
+> 注意事项见下面「备忘卡的 Markdown」）。内容永远存**原文**进 config，渲染是读取时的事。
+
+### 备忘卡的 Markdown
+
+`builtins/memo-widget/`（备忘）是唯一的 Markdown 消费者，两个文件分工：
+
+- `config.ts`：纯数据。config 只存**原文**（`{ text }`，长度上限 2000 —— 防呆，超长只在落盘时截断），
+  不是渲染结果：输入框要能原样回显，渲染是每次读取时现算的；
+- `markdown.ts`：`new Marked({ gfm: true, breaks: true })` **实例**（不是全局单例，否则
+  `marked.use()` 的覆盖规则会漏给别人）+ 三处 renderer 覆盖 + `renderMemoHtml(text)`，不导入 React。
+
+⚠️ **marked 从 v5 起不再 sanitize**（官方 README 也写明要自行接 DOMPurify）。我们的内容会经
+`dangerouslySetInnerHTML` 进 DOM，还可能是导入的看板 JSON 里带的，所以危险面必须自己收，
+而不是再引一个 sanitize 依赖：
+
+| 覆盖 | 做法 | 理由 |
+| --- | --- | --- |
+| `html()` | 把原始 HTML **转义**输出 | `<script>` / `onerror=` 一律变成可见文本 |
+| `link()` | 一律当**外链**：`http(s)` / `mailto` 原样，`//host` 补 `https:`，其余没写协议头的（`x.com`）补 `https://`；未知协议（`javascript:` / `data:`）与锚点、根相对路径只留文本 | marked 的 `cleanUrl` **不拦 `javascript:`**，判定前要先剥掉控制字符（`java\nscript:`）；而本看板没有站内路由，相对地址只会解析成本站的 404 |
+| `image()` | **完全不产出 `<img>`**，退化成 alt 文本（没写 alt 就亮出地址） | 用户 2026-09 明确要求不渲染图片；顺带绕开 `data:` 之类地址 |
+
+其余语法（标题 / 列表 / 表格 / 代码块 / 引用 / 强调 / 删除线 / 任务列表）走 marked 默认实现，
+它们产出的标签与属性都是固定的，没有注入面。链接**一律当外链**，所以都补
+`target="_blank" rel="noopener noreferrer"` —— 卡片里点一下就把整个仪表盘导航走是不可接受的，
+而"没写协议头就按相对路径解析"会让 `[123](x.com)` 打开本站的 `/ffxiv-dash/x.com`（实测踩到过）。
+
+卡面本身（`fields.tsx`）：`.dash-card-fill`（164px 上限）+ `.dash-note-scroll` 与待办卡同一套高度预算，
+长文只在卡内滚动；**双击正文**原地换成编辑原文的 `Input.TextArea`（`draft: string | null` 的 local state，
+与统计卡的读数编辑同形），失焦 / `Ctrl+Enter` 落库、`Esc` 放弃；空态是虚线占位块（同待办卡）。
+双击提示 = 原生 `title="双击编辑"` + `cursor: text`（不用 antd Tooltip：卡上的 rc-trigger 机器在拖拽期间会被叫醒）。
+
+⚠️ **编辑态的输入框是唯一的滚动容器**（高度写死 164px、编辑态不渲染 `.dash-note-scroll`），刻意**不用** `autoSize`：
+它的高度是"测出来"的，测量一旦撞上"布局还没定"的那一刻就会偏（实测刚进编辑态量到 795.6px、按最终宽度排完要 1402px），
+于是输入框变成第二个滚动容器：滚轮先滚它（文字在动、卡片右边那根滚动条纹丝不动），滚完这一大段才轮到外层。
+两态的滚动各由一层负责、每层只有一根滚动条，是这两张卡（备忘、待办）共同的约定。
 
 ### 组件要访问接口怎么做
 
@@ -627,9 +664,11 @@ src/app/themes/<key>/theme.css    该主题的 --dash-* 变量（只改 antd 令
 
 ## 已知事项
 
-- **构建产物体积**：antd + dnd-kit 后主包约 1.17 MB（gzip 约 378 kB）。
+- **构建产物体积**：antd + dnd-kit + marked 后主包约 1.26 MB（gzip 约 406 kB）；
+  其中 `marked` 约 87 kB（gzip 约 28 kB）。
   这是 antd 全量引入的正常水平；若要优化，可按需做
   `build.rolldownOptions.output.codeSplitting`，或改用 antd 的按需引入方案。
+  组件里 `import('marked')` 动态引入也能把它挪出主包，但注册表与渲染器都要跟着变成异步，不划算。
 - **`scripts/dsh-sandbox-shim.cjs`**：仅用于受限沙箱环境。
   Vite 在 Windows 上会执行一次 `net use` 探测（识别网络映射盘），
   而受限环境禁止创建管道，导致构建以 `spawn EPERM` 失败。

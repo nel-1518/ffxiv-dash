@@ -637,6 +637,265 @@ a:hover {
 }
 
 /*
+ * 备忘卡
+ *
+ * 卡面 = 一段按 Markdown 渲染的正文（`.dash-note-md`）；双击正文原地换成编辑原文的输入框
+ * （编辑态复用同一棵 DOM 形状，只把正文换成 TextArea）。
+ *
+ * 高度沿用 `.dash-card-fill` 的 164px 上限与待办卡同一条预算：正文再长也只在卡内滚动，
+ * 不会把同行的卡片撑高。**预览态**（`.dash-note-scroll` 包着 `.dash-note-md`）由外层那层滚，
+ * **编辑态**由输入框自己滚（原因见下面 `.dash-note--editing` 的注释），两态都只有一根滚动条。
+ *
+ * 悬停提示有两半：JSX 上的原生 `title="双击编辑"` + 这里的 `cursor: text`。
+ * 刻意不用 antd Tooltip —— 每张卡上的 rc-trigger 机器在拖拽期间都会被 dnd-kit 的 context 唤醒，
+ * 为一句话的提示不值得。
+ */
+.dash-note {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* 预览态的滚动层：markdown 那层的高度始终等于内容高度，所以滚动只挂在这一层 */
+.dash-note-scroll {
+  flex: 1 1 auto;
+  /* ⚠️ 必须有：flex 项的自动最小尺寸等于内容大小，不归零会把卡片顶破上限 */
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.dash-note-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dash-note-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dash-note-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--ant-color-fill-secondary, rgba(0, 0, 0, 0.06));
+}
+
+.dash-note-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--ant-color-fill, rgba(0, 0, 0, 0.15));
+}
+
+/*
+ * markdown 正文。
+ *
+ * 字号比常规正文小一档、行距略紧：备忘卡是"顺带看一眼"的信息，不该比同一行里的
+ * 读数卡更抢眼。所有外边距都压到 6px 以内 —— 卡片正文的留白由卡片自己给，
+ * 沿用浏览器默认的 1em 段落间距会让 164px 里只装得下三行字。
+ *
+ * ⚠️ 这里**没有 `img` 规则**：`markdown.ts` 的 `image()` 覆盖根本不产出 `<img>`（用户要求
+ * 不渲染图片），写规则等于给不存在的元素写样式。
+ */
+.dash-note-md {
+  /* 双击提示：鼠标移入正文变成文本光标 */
+  cursor: text;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ant-color-text);
+  /* 长 URL / 长单词不要顶破卡片 */
+  overflow-wrap: break-word;
+}
+
+/* 首末元素的上下外边距归零：否则正文会整体被顶下来、末尾多出一截空白 */
+.dash-note-md > :first-child {
+  margin-top: 0;
+}
+
+.dash-note-md > :last-child {
+  margin-bottom: 0;
+}
+
+.dash-note-md p {
+  margin: 0 0 6px;
+}
+
+/* 标题只靠字号与字重分层：卡片里放不下"隔一段空行才换级"的排版 */
+.dash-note-md h1,
+.dash-note-md h2,
+.dash-note-md h3,
+.dash-note-md h4,
+.dash-note-md h5,
+.dash-note-md h6 {
+  margin: 8px 0 4px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ant-color-text-heading, var(--ant-color-text));
+}
+
+.dash-note-md h1 {
+  font-size: 15px;
+}
+
+.dash-note-md h2 {
+  font-size: 14px;
+}
+
+.dash-note-md h3 {
+  font-size: 13px;
+}
+
+.dash-note-md h4,
+.dash-note-md h5,
+.dash-note-md h6 {
+  font-size: 12.5px;
+}
+
+.dash-note-md ul,
+.dash-note-md ol {
+  margin: 0 0 6px;
+  padding-inline-start: 18px;
+}
+
+.dash-note-md li + li {
+  margin-top: 2px;
+}
+
+/* 松散列表会把内容包进 <p>，那层不要再撑高度 */
+.dash-note-md li > p {
+  margin: 0;
+}
+
+/* GFM 任务列表：marked 产出 disabled 的 checkbox，这里只把它与文字对齐 */
+.dash-note-md li > input[type='checkbox'] {
+  margin-inline: 0 4px;
+  vertical-align: -1px;
+}
+
+.dash-note-md code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.04));
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+}
+
+.dash-note-md pre {
+  margin: 0 0 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+  /* 代码块自己横向滚动，不要撑宽卡片 */
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.dash-note-md pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.dash-note-md blockquote {
+  margin: 0 0 6px;
+  padding-inline-start: 8px;
+  border-inline-start: 3px solid var(--ant-color-border, #d9d9d9);
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+}
+
+.dash-note-md blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.dash-note-md table {
+  margin: 0 0 6px;
+  border-collapse: collapse;
+  font-size: 11.5px;
+}
+
+.dash-note-md th,
+.dash-note-md td {
+  padding: 2px 6px;
+  border: 1px solid var(--ant-color-border, #d9d9d9);
+}
+
+.dash-note-md th {
+  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+  font-weight: 600;
+}
+
+.dash-note-md a {
+  color: var(--ant-color-primary);
+  text-decoration: none;
+}
+
+/* 触屏的 :hover 会粘住，只在指针设备上下划线 */
+@media (hover: hover) and (pointer: fine) {
+  .dash-note-md a:hover {
+    text-decoration: underline;
+  }
+}
+
+.dash-note-md hr {
+  margin: 8px 0;
+  border: none;
+  border-top: 1px solid var(--ant-color-border, #d9d9d9);
+}
+
+/*
+ * 编辑态的输入框。
+ *
+ * ⚠️ **它是编辑态唯一的滚动容器**（外面不再套 `.dash-note-scroll`），高度写死 164px ——
+ * 与 `.dash-card-fill` 的上限同一个数，改一个要改另一个。
+ *
+ * 为什么不沿用"autoSize 撑高 + 外层滚动"：autoSize 的高度是**测量**出来的，而测量可能发生在
+ * 布局还没定下来的那一刻（实测刚进编辑态时量到 795.6px，而按最终宽度排完要 1402px，差 600 多像素）。
+ * 那时输入框自己就成了第二个滚动容器：滚轮先滚它 —— 文字在动、卡片右边那根滚动条纹丝不动，
+ * 要滚完这一大段才轮到外层。写死高度之后，滚动容器只有一个，行为与文本长短无关，
+ * 进编辑 / 输入 / 滚动都不会跳。
+ * 代价是短文本在编辑时也是这么高（提交后卡片会收回内容高度）。
+ */
+.dash-note--editing {
+  height: 164px;
+}
+
+.dash-note-input {
+  flex: 1 1 auto;
+  /* ⚠️ 必须有：flex 项的自动最小尺寸等于内容尺寸，不归零会被内容撑破上面那个 164px */
+  min-height: 0;
+  resize: none;
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.6;
+  /* 细滚动条：默认那根 15px 宽的会明显吃掉输入框的宽高（与 `.dash-note-scroll` 同一套） */
+  scrollbar-width: thin;
+}
+
+.dash-note-input::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dash-note-input::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dash-note-input::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--ant-color-fill-secondary, rgba(0, 0, 0, 0.06));
+}
+
+.dash-note-input::-webkit-scrollbar-thumb:hover {
+  background: var(--ant-color-fill, rgba(0, 0, 0, 0.15));
+}
+
+/* 空态与待办卡同形，但它是"可双击的格子"，所以光标与提示都跟着正文走 */
+.dash-note-empty {
+  padding: 18px 14px;
+  border: 1px dashed var(--ant-color-border, #d9d9d9);
+  border-radius: 10px;
+  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+  cursor: text;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}
+
+/*
  * 统计卡：环形进度 + 环外读数。
  *
  * 卡片里不放常驻的按钮与输入框 —— 在安静的卡片墙里那两块控件像贴了两块砖。
