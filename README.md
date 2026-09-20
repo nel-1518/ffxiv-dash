@@ -98,7 +98,7 @@ src/
       registry.ts           注册表（不导入任何具体组件，避免循环依赖）
       useFavicon.ts         图标接口 hook
       WidgetRenderer.tsx    统一卡片外壳 + 未注册组件降级
-      builtins/             内置组件，每个一个目录（stats / pvp-map / market / house / countdown / tax / todo / memo）
+      builtins/             内置组件，每个一个目录（stats / pvp-map / market / house / countdown / tax / todo / memo / pomodoro）
   views/
     DashboardPage.tsx       页面组装
   styles/global.css         仅页面背景、字体栈、少量基线
@@ -571,6 +571,39 @@ dnd-kit 的 context 在**拖拽开始**与**指针每移动一帧**时都会换�
 卡片该按什么粒度订阅时钟（别让整块跟着秒针渲染）见下面「时钟与渲染粒度」一节。
 
 `WidgetRenderProps` 只给 `{ config, item }`，**没有任何异步态**。
+
+反过来的例子是 `builtins/pomodoro-widget/`（休息提醒）：那是一段几十分钟内就作废的计时，
+刷新即回到起点也不可惜，所以它连独立键都不开（纯内存 state）。
+
+### 休息提醒卡（番茄钟）
+
+`builtins/pomodoro-widget/`（key `pomodoro`、标签「休息提醒」）多一个通知封装：
+`config.ts` / `timer.ts`（状态机与读数，纯逻辑）/ `notify.ts`（系统通知）/ `fields.tsx` / `widget.ts`。
+
+- **config 里只有设置**：`focusMinutes`（10-120，默认 30）/ `breakMinutes`（1-20，默认 5）/ `autoNext`（默认开）/
+  `focusDoneText` / `breakDoneText`（两句话是通知正文，**空串是合法值**＝只弹标题）。
+  **计时状态（跑到哪了）不落盘**：刷新即回到「准备专注」，也因此不会“刷新后突然弹一条过时提醒”。
+- **状态机**：`ready | running{phase,endsAt} | paused{phase,remainingMs} | awaiting{next}`。
+  计时**不数秒**，只记这一段的结束时刻，读数拿“现在”去减（后台被节流、系统休眠都不会走偏）。
+  自然到点：勾了自动接续就直接跑下一段，否则停在 00:00 等手动开始；两种都发提醒。
+  「结束」是提前收尾，落点同上但**不打扰**（不发通知）。
+- **时钟粒度**：父组件只订阅「是否已到点」这个**布尔快照**（到点那一秒重渲染一次），
+  每秒跳动的读数与环形进度全在 `Countdown` 叶子里（`useClockValue` 返回整数秒；暂停 / 就绪时它是常量
+  ⇒ 那两种状态**一次都不重渲染**）。
+  ⚠️ 到点判定与时段起点用 `Date.now()`，**不是**时钟的 `getNow()` —— “组件里不写 `Date.now()`”那条约定
+  是为了**读数**不走样，而这里是**动作**：后台标签页里时钟那一跳可能被节流拖后近一分钟，
+  拿缓存值会把新一段凭空缩短。组件另外自己听 `visibilitychange`：切回前台立刻补判一次。
+  ⚠️ 也正因为两个基准不同，读数必须**夹到本段总长**（`remainingSecondsOf` 夹显示、`pause` 夹冻结值）：
+  `endsAt` 用动作时刻算、读数的 `now` 来自上一次 tick（最多旧 1 秒），不夹的话 30 分钟的段一开就显示 `30:01`。
+- **通知**：`Notification` 只在 https / localhost 可用，所以 `notifyStatus()` 把“能不能用”显式建模成
+  `unsupported` / `insecure` / `default` / `granted` / `denied`；权限**只在编辑弹窗的测试按钮里申请**
+  （打开页面就弹权限框会被浏览器记恨）。发不出去就退化成 antd 应用内提示，并把原因写进描述，
+  卡面右侧也留一句「通知未授权」。通知标题 = **卡片标题**（可以改成“喝水提醒”），
+  `tag` = `卡片:时段:结束时刻`（同一段的重复触发只覆盖一条，不同轮次互不吞没），点击通知 `window.focus()`。
+  ⚠️ 系统通知需要页面开着（没有 Service Worker）；标签页隐藏久了定时器会被节流，提醒可能晚几秒到一分钟。
+- **卡面**：胶囊（专注 = 主色 / 休息 = 成功色 / 未开始 = 中性）+ 环内读数 + 三个纯图标按钮
+  （开始 / 暂停、结束、重置；用原生 `title` + `aria-label`，不用 antd Tooltip）。
+  环内读数 17px 是**算出来的**：专注上限 120 分钟会显示 `2:00:00`，再大就出圈。
 
 ## 网站图标
 

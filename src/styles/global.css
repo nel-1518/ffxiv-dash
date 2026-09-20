@@ -896,6 +896,86 @@ a:hover {
 }
 
 /*
+ * 休息提醒卡（番茄钟）
+ *
+ * 卡面三段：状态胶囊 + 右侧小字 → 环形钟面 → 三个图标按钮。
+ * 高度沿用 `.dash-card-fill` 的 164px：状态行 16 + 环 96 + 按钮 24 + 两个 gap 12 ≈ 148，还留有余量。
+ *
+ * ⚠️ 每秒重渲染**只发生在这个环里**（秒级快照在 `fields.tsx` 的 Countdown 叶子上），
+ * 所以这一段刻意保持轻：不加过渡、不加投影 —— 别给每秒要重画的东西加合成成本。
+ */
+.dash-rest {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* 状态行：左胶囊、右小字，两端对齐 */
+.dash-rest-status {
+  align-self: stretch;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}
+
+/*
+ * 状态胶囊：专注 = 主色、休息 = 成功色、未开始 / 已暂停 = 中性。
+ * 与房屋卡的「公示期 / 申请期」同一套做法（胶囊底取对应色的 -bg 档）。
+ */
+.dash-rest-phase {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.04));
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
+}
+
+.dash-rest-phase.is-focus {
+  background: var(--ant-color-primary-bg);
+  color: var(--ant-color-primary);
+}
+
+.dash-rest-phase.is-break {
+  background: var(--ant-color-success-bg, rgba(82, 196, 26, 0.12));
+  color: var(--ant-color-success, #52c41a);
+}
+
+/* 右侧小字：窄卡里先被省略号吃掉（全文靠 title） */
+.dash-rest-hint {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/*
+ * 环内读数。
+ * ⚠️ 字号不能再大：专注上限 120 分钟时会显示 `2:00:00` 七个字符，
+ * 17px + 等宽数字刚好落在 96px 圆的可用宽度里（改尺寸要重量）。
+ */
+.dash-rest-readout {
+  font-size: 17px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--ant-color-text);
+}
+
+/* 三个图标按钮：紧凑排一行，别把钟面挤下去 */
+.dash-rest-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/*
  * 统计卡：环形进度 + 环外读数。
  *
  * 卡片里不放常驻的按钮与输入框 —— 在安静的卡片墙里那两块控件像贴了两块砖。
