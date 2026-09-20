@@ -27,11 +27,11 @@ export type ItemFormProps = {
 
 function buildInitialValues(item: Item | undefined, defaultKind: ItemKind): ItemFormValues {
   if (!item) {
-    const spec = getWidget('stats')
+    const spec = getWidget('pvp-map')
     return {
       kind: defaultKind,
       link: { name: '', icon: '', url: '', desc: '' },
-      widget: { key: spec?.key ?? 'stats', title: spec?.defaultTitle ?? '自定义组件' },
+      widget: { key: spec?.key ?? 'pvp-map', title: spec?.defaultTitle ?? '自定义组件' },
       config: spec?.defaultConfig ?? {},
     }
   }
@@ -94,7 +94,7 @@ export function ItemForm({ form, formId, groupType, item, onFinish }: ItemFormPr
       return
     }
 
-    const key = values.widget?.key ?? 'stats'
+    const key = values.widget?.key ?? 'pvp-map'
     const spec = getWidget(key)
     const config = spec ? spec.normalizeConfig(values.config) : (values.config ?? {})
     const widget: WidgetItem = {

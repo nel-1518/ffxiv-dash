@@ -22,14 +22,14 @@ import { todoWidgetSpec } from './todo-widget/widget.ts'
  * 之后它会自动出现在"组件类型"选择器与组件配置区，无需改动任何既有组件。
  */
 export function installBuiltinWidgets(): void {
-  registerWidget(statsWidgetSpec)
   registerWidget(pvpMapWidgetSpec)
   registerWidget(marketWidgetSpec)
-  registerWidget(houseWidgetSpec)
-  registerWidget(countdownWidgetSpec)
   registerWidget(taxWidgetSpec)
+  registerWidget(houseWidgetSpec)
   registerWidget(todoWidgetSpec)
+  registerWidget(statsWidgetSpec)
   registerWidget(memoWidgetSpec)
+  registerWidget(countdownWidgetSpec)
 
   // 把组件配置的归一化能力注入 core/storage，供读取本地数据时使用
   installWidgetConfigNormalizer()
