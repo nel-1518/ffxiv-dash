@@ -78,17 +78,11 @@ export function startPhase(config: RestConfig, phase: Phase, now: number): RestS
   return { kind: 'running', phase, endsAt: now + durationOf(config, phase) }
 }
 
-export function pause(state: RestState, config: RestConfig, now: number): RestState {
+export function pause(state: RestState, now: number): RestState {
   if (state.kind !== 'running') {
     return state
   }
-  /*
-   * ⚠️ 冻结值要夹到这一段的总长：`endsAt` 是用**动作时刻**（`Date.now()`）算的，
-   * 而 `now` 可能来自上一次时钟 tick（最多旧 1 秒），直接相减会多出不到 1 秒 ——
-   * 不夹的话"刚开始就暂停、过一会儿再继续"会让这一段比配置长一点点。
-   */
-  const remaining = Math.min(durationOf(config, state.phase), Math.max(0, state.endsAt - now))
-  return { kind: 'paused', phase: state.phase, remainingMs: remaining }
+  return { kind: 'paused', phase: state.phase, remainingMs: Math.max(0, state.endsAt - now) }
 }
 
 export function resume(state: RestState, now: number): RestState {
@@ -138,17 +132,12 @@ export function totalMsOf(state: RestState, config: RestConfig): number {
 /**
  * 剩余秒数 —— 读数的快照就用它。
  *
- * ⚠️ 两个坑都要躲：
- * ① **上限夹到这一段的总长**：`endsAt` 用动作时刻（`Date.now()`）算，而读数的 `now` 来自
- *    秒级时钟上一次 tick（最多旧 1 秒）。刚点开始那一刻两者一减会比整段时长多出不到 1 秒，
- *    不夹就会先显示 `30:01` 再回到 `30:00`（实测踩到过）。
- * ② 用 `ceil` 而不是 `floor`：开始要显示整段时长（30:00 而不是 29:59），到点要显示 00:00。
- *    这也是 pvp-map 的 `RemainingTime` 不用分钟粒度 now 的原因 —— 拿"本分钟起点"去算就把
- *    向下取整变成了向上取整。
+ * ⚠️ 用 `ceil` 而不是 `floor`：开始那一刻要显示整段时长（30:00 而不是 29:59），
+ * 到点那一刻要显示 00:00。这也是 pvp-map 的 `RemainingTime` 不用分钟粒度 now 的原因 ——
+ * 拿"本分钟起点"去算会把向下取整变成向上取整。
  */
 export function remainingSecondsOf(state: RestState, config: RestConfig, now: number): number {
-  const totalSeconds = Math.ceil(totalMsOf(state, config) / 1000)
-  return Math.min(totalSeconds, Math.ceil(remainingMsOf(state, config, now) / 1000))
+  return Math.ceil(remainingMsOf(state, config, now) / 1000)
 }
 
 /**
@@ -165,15 +154,19 @@ export function progressOfSeconds(seconds: number, totalMs: number): number {
   return Math.min(100, Math.max(0, Math.round((elapsed / totalMs) * 100)))
 }
 
-/** `mm:ss`；满 60 分钟（专注上限 120 分钟）转 `h:mm:ss`。 */
-export function formatCountdown(ms: number): string {
-  const total = Math.max(0, Math.ceil(ms / 1000))
-  const hours = Math.floor(total / 3600)
-  const minutes = Math.floor((total % 3600) / 60)
-  const seconds = total % 60
-  const mm = String(minutes).padStart(2, '0')
-  const ss = String(seconds).padStart(2, '0')
-  return hours > 0 ? `${hours}:${mm}:${ss}` : `${mm}:${ss}`
+/**
+ * 读数：卡片上只写**整分钟**（向上取整）。
+ *
+ * 秒级的跳动留在内部：快照仍是整数秒，环形进度靠它每秒走一格；只有数字这一处按分钟显示。
+ * `ceil` 保证起点显示整段（30min）、最后 60 秒显示 1min、到点显示 0min。
+ *
+ * ⚠️ `maxSeconds` 是**这一段的总秒数**，必须传：读数用的"现在"来自时钟的缓存值，
+ * 它最多比真实时间晚 1 秒，不夹的话起点会算出 1801 秒 ⇒ 30 分钟的段一开就显示 `31min`
+ * （上一版秒级读数显示成 `30:01`，用户报过这个现象）。
+ */
+export function displayMinutes(seconds: number, maxSeconds: number): number {
+  const capped = Math.min(Math.max(0, seconds), Math.max(0, maxSeconds))
+  return Math.ceil(capped / 60)
 }
 
 /** 供编辑弹窗的 extra 文案用：一段跑完大概是什么节奏。 */

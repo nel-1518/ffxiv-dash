@@ -17,8 +17,8 @@ import { notifyStatus, notifyStatusText, requestNotifyPermission, sendNotificati
 import {
   INITIAL_REST_STATE,
   activePhase,
+  displayMinutes,
   finishPhase,
-  formatCountdown,
   formatCycleHint,
   nextPhase,
   noticeOf,
@@ -177,7 +177,7 @@ export function RestFormFields(): React.ReactNode {
         <Input maxLength={MAX_NOTICE_LENGTH} placeholder={REST_DEFAULT_CONFIG.breakDoneText} />
       </Form.Item>
 
-      <Form.Item label="通知测试">
+      <Form.Item label="通知测试" extra="系统通知需要 https 或 localhost，且页面保持开着（可以最小化）。">
         <NotifyTestField />
       </Form.Item>
     </>
@@ -185,24 +185,32 @@ export function RestFormFields(): React.ReactNode {
 }
 
 /**
- * 环形倒计时：环内是读数。
+ * 环形倒计时：环内读数只写整分钟（`30min`），秒级的跳动只体现在环上。
  *
  * ⚠️ 秒级订阅**只在这一层**（父组件订阅的是"是否到点"那个布尔快照）。
- * 快照是整数秒，`remainingSecondsOf` 用 `ceil` —— 开始显示整段时长、到点显示 00:00；
- * 暂停与就绪时它是常量，那两种状态下这个叶子一次都不会重渲染。
+ * 快照是整数秒（`remainingSecondsOf` 用 `ceil`），环靠它每秒走一格；
+ * 数字那一处用 `displayMinutes` 收成整分钟（并夹到本段总时长，免得起点显示 31min），
+ * 所以它每分钟才跳一次；暂停与就绪时快照是常量，那两种状态下这个叶子一次都不会重渲染。
  */
 function Countdown({ state, config }: { state: RestState; config: RestConfig }): React.ReactNode {
   const seconds = useClockValue((now) => remainingSecondsOf(state, config, now.getTime()))
   const totalMs = totalMsOf(state, config)
+  /* 夹到本段总时长再换算成分钟：读数用的时钟缓存值最多晚 1 秒，不夹起点会显示成 31min */
+  const totalSeconds = Math.round(totalMs / 1000)
 
   return (
     <Progress
       type="circle"
-      percent={progressOfSeconds(seconds, totalMs)}
+      percent={progressOfSeconds(Math.min(seconds, totalSeconds), totalMs)}
       size={96}
       strokeWidth={5}
       strokeLinecap="round"
-      format={() => <span className="dash-rest-readout">{formatCountdown(seconds * 1000)}</span>}
+      format={() => (
+        <span className="dash-rest-readout">
+          <span className="dash-rest-readout-value">{displayMinutes(seconds, totalSeconds)}</span>
+          <span className="dash-rest-readout-unit">min</span>
+        </span>
+      )}
     />
   )
 }
@@ -323,7 +331,7 @@ export function RestRender({ config, item }: WidgetRenderProps<RestConfig>): Rea
             type="text"
             size="small"
             icon={paused ? <CaretRightOutlined /> : <PauseOutlined />}
-            onClick={() => setState(paused ? resume(state, actionNow()) : pause(state, config, actionNow()))}
+            onClick={() => setState(paused ? resume(state, actionNow()) : pause(state, actionNow()))}
             title={paused ? '继续' : '暂停'}
             aria-label={paused ? '继续计时' : '暂停计时'}
           />

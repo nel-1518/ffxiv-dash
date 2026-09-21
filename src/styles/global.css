@@ -926,25 +926,23 @@ a:hover {
 }
 
 /*
- * 状态胶囊：专注 = 主色、休息 = 成功色、未开始 / 已暂停 = 中性。
- * 与房屋卡的「公示期 / 申请期」同一套做法（胶囊底取对应色的 -bg 档）。
+ * 状态胶囊：**只有文字色、没有底色**。
+ * 专注 = 主色；休息 / 未开始 / 已暂停 = 次级色（`.is-break` 与基础规则同色）。
+ * （padding / border-radius 是早期"实色胶囊"版本留下的，现在只是文字块的内边距。）
  */
 .dash-rest-phase {
   flex: none;
   padding: 1px 8px;
   border-radius: 999px;
-  background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.04));
   color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
 }
 
 .dash-rest-phase.is-focus {
-  background: var(--ant-color-primary-bg);
   color: var(--ant-color-primary);
 }
 
 .dash-rest-phase.is-break {
-  background: var(--ant-color-success-bg, rgba(82, 196, 26, 0.12));
-  color: var(--ant-color-success, #52c41a);
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
 }
 
 /* 右侧小字：窄卡里先被省略号吃掉（全文靠 title） */
@@ -956,16 +954,32 @@ a:hover {
 }
 
 /*
- * 环内读数。
- * ⚠️ 字号不能再大：专注上限 120 分钟时会显示 `2:00:00` 七个字符，
- * 17px + 等宽数字刚好落在 96px 圆的可用宽度里（改尺寸要重量）。
+ * 环内读数：只写整分钟（`30min`）。
+ *
+ * 秒级的读数留在内部 —— 环形进度每秒走一格，"还剩多久"的精度由它给；
+ * 数字每分钟才跳一次，所以这里给大字号（22px）+ 小号单位，与进度卡的 `%` 同一做法。
+ * 专注上限是 120 分钟，`120min` 实测仍落在 96px 圆的可用宽度里。
  */
 .dash-rest-readout {
-  font-size: 17px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+}
+
+.dash-rest-readout-value {
+  font-size: 22px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
+  line-height: 1;
   color: var(--ant-color-text);
+}
+
+/* 单位不跟读数抢眼：小一号、压到 55% 不透明度（同进度卡的百分比单位） */
+.dash-rest-readout-unit {
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.55;
 }
 
 /* 三个图标按钮：紧凑排一行，别把钟面挤下去 */
