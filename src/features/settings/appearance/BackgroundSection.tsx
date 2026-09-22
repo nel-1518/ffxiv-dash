@@ -8,12 +8,10 @@ import {
   UploadOutlined,
 } from '@ant-design/icons'
 import { clearBackgroundImage, putBackgroundImage } from '../../../core/appearance/image-store.ts'
-import { useAppearance } from '../../../core/appearance/hooks.ts'
 import {
   MAX_UPLOAD_BYTES,
   isColorValue,
   isImageUrl,
-  setBackgroundImageMeta,
 } from '../../../core/appearance/store.ts'
 import { useThemeProfile } from './theme-profile.ts'
 import { ImageTuning } from './Tunings.tsx'
@@ -121,13 +119,13 @@ function UrlEditor(): React.ReactNode {
  * 文件不经过 antd 的上传流程（`beforeUpload` 返回 false），我们自己写进 IndexedDB。
  * 超限的文件在选中那一刻就被拒，不会落盘。
  *
- * ⚠️ 图片本体与文件名 / 大小都是**全局一份**（IndexedDB 里只存一张），
- * 所有主题共用同一张图；逐主题的只有"用不用它"（`source`）。
- * 所以上传成功时写两处：全局的元信息 + 当前编辑对象的 `source`。
+ * ⚠️ 图片本体与文件名 / 大小都是**逐主题一份**（IndexedDB 键 `background:<主题键>`），
+ * 彼此完全独立 —— 所以这里读写的一律是"当前编辑对象"（`useThemeProfile()` 的 `key`），
+ * 而不是"某个当前的图"。上传成功时只写回**这套主题**的档案，别的主题一点不动。
  */
 function UploadEditor(): React.ReactNode {
-  const { imageName, imageSize } = useAppearance()
-  const { set } = useThemeProfile()
+  const { key: themeKey, profile, set } = useThemeProfile()
+  const { imageName, imageSize } = profile
   const { message } = App.useApp()
 
   const handleBeforeUpload = (file: File) => {
@@ -140,13 +138,12 @@ function UploadEditor(): React.ReactNode {
       return false
     }
 
-    void putBackgroundImage(file).then((ok) => {
+    void putBackgroundImage(themeKey, file).then((ok) => {
       if (!ok) {
         message.error('图片没能保存到本机（可能是浏览器禁用了本地存储）')
         return
       }
-      setBackgroundImageMeta(file.name, file.size)
-      set({ source: 'upload' })
+      set({ imageName: file.name, imageSize: file.size, source: 'upload' })
       message.success('背景图片已更新')
     })
 
@@ -155,9 +152,8 @@ function UploadEditor(): React.ReactNode {
   }
 
   const handleRemove = () => {
-    void clearBackgroundImage().then(() => {
-      setBackgroundImageMeta('', 0)
-      set({ source: 'none' })
+    void clearBackgroundImage(themeKey).then(() => {
+      set({ imageName: '', imageSize: 0, source: 'none' })
       message.success('已移除背景图片')
     })
   }
@@ -185,7 +181,7 @@ function UploadEditor(): React.ReactNode {
       </Flex>
       <Typography.Text type="secondary" className="dash-settings-hint is-inline">
         图片不超过 {MAX_UPLOAD_BYTES / MB} MB，保存在本机浏览器里（IndexedDB），
-        不会写进导出的看板数据。所有主题共用这一张图。
+        不会写进导出的看板数据。每套主题互不影响。
       </Typography.Text>
     </Flex>
   )

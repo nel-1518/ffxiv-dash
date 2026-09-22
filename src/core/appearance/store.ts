@@ -22,14 +22,15 @@ import type { ColorMode, ColorScheme, ThemeKey } from '../theme-preference.ts'
  *   ⚠️ **生效主题的档案也住在 `profiles` 里**，没有第二份 live 字段 ——
  *   于是"改非生效主题页面不动、改生效主题立刻可见"是数据模型的自然结果，
  *   不需要预览开关，也不需要"切主题时归档旧档案 / 装载新档案"那套编排；
- * - `imageName` / `imageSize`：上传图片的展示信息，**全局一份**
- *   （图片本体在 IndexedDB，见 ./image-store.ts；所有主题共用同一张图）。
+ * - `profiles[key].imageName` / `.imageSize`：该主题上传图的展示信息
+ *   （图片本体在 IndexedDB，见 ./image-store.ts；**逐主题一份，互不影响**）。
  *
  * 背景分四种来源（`ThemeProfile.source`）：
  * - `none`   不设背景，回落到主题自带的背景图（没有图就只剩底色）
  * - `color`  纯色，取自 `color`
  * - `url`    外链或主题自带的图片，取自 `url`
- * - `upload` 本地上传的图片，**图片本体在 IndexedDB 里**，这里只记文件名与大小
+ * - `upload` 本地上传的图片，**图片本体在 IndexedDB 里**（逐主题一份，键 `background:<主题键>`），
+ *   档案里只记文件名与大小
  *
  * ⚠️ 上传图片为什么不塞进这里：5MB 的图转成 base64 约 6.7MB，而 localStorage
  * 通常只有 5MB 配额，直接存必然失败（还会连带把看板数据一起写坏）。
@@ -39,7 +40,10 @@ import type { ColorMode, ColorScheme, ThemeKey } from '../theme-preference.ts'
 
 export type AppearanceSource = 'none' | 'color' | 'url' | 'upload'
 
-/** 一套主题的外观档案（背景 + 卡片）。出厂值见 `app/themes/appearance-sync.ts`。 */
+/**
+ * 一套主题的外观档案（背景 + 卡片 + 上传图的展示信息）。
+ * 出厂值见 `app/themes/appearance-sync.ts`。
+ */
 export type ThemeProfile = {
   source: AppearanceSource
   /** `color` 模式的颜色，`#rgb` / `#rrggbb`。 */
@@ -50,10 +54,17 @@ export type ThemeProfile = {
   blur: number
   /** 图片亮度，20-150（百分比）。 */
   brightness: number
-  /** 卡片（组件 / 链接）底色的不透明度，0-100。100 = 完全不透明。 */
+  /** 卡片（组件 / 导航卡）底色的不透明度，0-100。100 = 完全不透明。 */
   cardAlpha: number
   /** 卡片背后那层背景的模糊半径（毛玻璃），0-30（px）。0 = 不模糊。 */
   cardBlur: number
+  /**
+   * 本主题上传图片的文件名，空串 = 没上传过。**只用于设置面板里显示**。
+   * 图片本体不在这里（在 IndexedDB，见 ./image-store.ts）。
+   */
+  imageName: string
+  /** 本主题上传图片的大小（字节），0 = 没上传过。 */
+  imageSize: number
 }
 
 /**
@@ -68,9 +79,6 @@ export type AppearanceState = {
   lightTheme: ThemeKey
   darkTheme: ThemeKey
   profiles: Partial<Record<ThemeKey, ThemeProfilePatch>>
-  /** 上传图片的文件名与大小，仅用于在设置面板里显示（全局一份）。 */
-  imageName: string
-  imageSize: number
 }
 
 /**
@@ -82,8 +90,11 @@ export type AppearanceState = {
 export type AppearanceSnapshot = AppearanceState & {
   /** 系统当前色调（`prefers-color-scheme`）。不落盘：开机重新读一次更可靠。 */
   systemScheme: ColorScheme
-  /** 上传图片的 object URL（还没读回来时为 null）。 */
-  imageUrl: string | null
+  /**
+   * 逐主题上传图的 object URL（`<主题键>` → URL）。
+   * 只有已读回来 / 已上传过的主题才有键；没有就是没图。
+   */
+  imageUrls: Partial<Record<ThemeKey, string>>
 }
 
 /** 主题没声明背景 / 卡片时用的全局默认（与改造前的 `DEFAULT_APPEARANCE` 一致）。 */
@@ -191,6 +202,20 @@ export function normalizeThemePatch(raw: unknown): ThemeProfilePatch {
     patch.cardBlur = clamp(cardBlur, 0, CARD_BLUR_MAX)
   }
 
+  /*
+   * 上传图的展示信息。
+   * ⚠️ 空文件名是**合法值**（"用户把图移除了"）不能丢，理由同上面的空 `url`：
+   * 丢了的话，移除过的主题会继续显示上一次那个文件名。
+   */
+  if (typeof source.imageName === 'string' && source.imageName.length <= 120) {
+    patch.imageName = source.imageName
+  }
+
+  const imageSize = asNumber(source.imageSize)
+  if (imageSize !== null) {
+    patch.imageSize = Math.max(0, Math.round(imageSize))
+  }
+
   return patch
 }
 
@@ -215,8 +240,6 @@ function defaultAppearance(): AppearanceState {
     lightTheme: DEFAULT_LIGHT_THEME,
     darkTheme: DEFAULT_DARK_THEME,
     profiles: {},
-    imageName: '',
-    imageSize: 0,
   }
 }
 
@@ -234,8 +257,6 @@ export function normalizeAppearance(raw: unknown): AppearanceState {
     lightTheme: isThemeKey(source.lightTheme) ? source.lightTheme : DEFAULT_LIGHT_THEME,
     darkTheme: isThemeKey(source.darkTheme) ? source.darkTheme : DEFAULT_DARK_THEME,
     profiles: normalizeProfiles(source.profiles),
-    imageName: asString(source.imageName).slice(0, 120),
-    imageSize: Math.max(0, asNumber(source.imageSize) ?? 0),
   }
 }
 
@@ -269,8 +290,11 @@ export function readSystemScheme(): ColorScheme {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
-/** 上传图片的 object URL；由 ./image-store.ts 在图片准备好后填进来。 */
-let imageUrl: string | null = null
+/**
+ * 逐主题上传图的 object URL；由 ./image-store.ts 在图片准备好 / 上传成功时填进来。
+ * 换图时整份对象换新（不原地改），订阅者才看得到变化。
+ */
+let imageUrls: Partial<Record<ThemeKey, string>> = {}
 
 /** 系统色调（运行期字段，不进 localStorage）。 */
 let systemScheme: ColorScheme = 'light'
@@ -284,14 +308,14 @@ let systemScheme: ColorScheme = 'light'
  * `useThemePatch(key)` 就是靠这一点做细粒度订阅的。
  */
 let state: AppearanceState = defaultAppearance()
-let snapshot: AppearanceSnapshot = { ...state, systemScheme, imageUrl }
+let snapshot: AppearanceSnapshot = { ...state, systemScheme, imageUrls }
 let loaded = false
 
 type Listener = () => void
 const listeners = new Set<Listener>()
 
 function rebuildSnapshot(): void {
-  snapshot = { ...state, systemScheme, imageUrl }
+  snapshot = { ...state, systemScheme, imageUrls }
 }
 
 function notify(): void {
@@ -333,7 +357,7 @@ export function resolveScheme(current: AppearanceSnapshot = snapshot): ColorSche
  * 当前**生效主题** —— 由色调模式与两个槽位纯算出来，不是存下来的一个字段。
  *
  * `useSyncExternalStore` 拿这个字符串做 `Object.is` 比较，所以换背景图
- * （会重建含 `imageUrl` 的快照）不会顺带让主题的消费者重渲染。
+ * （会重建含 `imageUrls` 的快照）不会顺带让主题的消费者重渲染。
  */
 export function resolveTheme(current: AppearanceSnapshot = snapshot): ThemeKey {
   return resolveScheme(current) === 'light' ? current.lightTheme : current.darkTheme
@@ -345,21 +369,33 @@ export function getThemePatch(key: ThemeKey): ThemeProfilePatch | undefined {
 }
 
 /**
- * 记录/替换上传图片的 object URL。
+ * 记录/替换**某套主题**上传图的 object URL。
  *
- * 传新 URL 时会 revoke 上一个 —— object URL 不会被 GC 自动回收，
- * 每换一次图就漏一份内存，必须手动释放。
+ * 换图时会 revoke 这套主题上一个 URL —— object URL 不会被 GC 自动回收，
+ * 每换一次图就漏一份内存，必须手动释放。别的主题的 URL 一概不动。
  */
-export function setImageUrl(next: string | null): void {
-  if (imageUrl === next) {
+export function setThemeImageUrl(key: ThemeKey, next: string | null): void {
+  const previous = imageUrls[key] ?? null
+  if (previous === next) {
     return
   }
-  const previous = imageUrl
-  imageUrl = next
   if (previous) {
     URL.revokeObjectURL(previous)
   }
+
+  const nextUrls = { ...imageUrls }
+  if (next === null) {
+    delete nextUrls[key]
+  } else {
+    nextUrls[key] = next
+  }
+  imageUrls = nextUrls
   notify()
+}
+
+/** 某套主题上传图的 object URL；还没有（没上传过 / 没读回来）时是 null。 */
+export function getThemeImageUrl(key: ThemeKey): string | null {
+  return imageUrls[key] ?? null
 }
 
 export function subscribeAppearance(listener: Listener): () => void {
@@ -449,19 +485,4 @@ export function resetThemeProfile(key: ThemeKey): void {
   const profiles = { ...state.profiles }
   delete profiles[key]
   commit({ ...state, profiles })
-}
-
-/**
- * 记录上传图片的文件名与大小（图片本体在 IndexedDB）。
- *
- * ⚠️ 这是**全局**的一份，不挂在某套主题上：上传的图所有主题共用一张，
- * 只有"用不用它"（`source`）是逐主题的。
- */
-export function setBackgroundImageMeta(imageName: string, imageSize: number): void {
-  const name = imageName.slice(0, 120)
-  const size = Math.max(0, imageSize)
-  if (state.imageName === name && state.imageSize === size) {
-    return
-  }
-  commit({ ...state, imageName: name, imageSize: size })
 }

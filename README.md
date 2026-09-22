@@ -48,8 +48,8 @@ src/
     theme-preference.ts     主题键的类型与清单（八套主题的名字 / 色调归属 / 两个槽位的默认值）
     appearance/
       store.ts              外观偏好：色调 + 两个槽位 + 逐主题档案（一个 localStorage 键）
-      image-store.ts        上传的背景图片存 IndexedDB（不进导出）
-      hooks.ts              useAppearance() / useTheme() / useThemePatch(key)
+      image-store.ts        上传的背景图片存 IndexedDB（逐主题一份，不进导出）
+      hooks.ts              useAppearance() / useTheme() / useThemePatch(key) / useThemeImageUrl(key)
     clock/
       store.ts              全局秒级时钟（引用计数订阅，无 Provider）
       hooks.ts              useClock() / useNow() / useClockValue() / useClockAt()
@@ -309,6 +309,9 @@ overlay 的 `height` / `top` 跟随 `visualViewport`（`--vv-top` / `--vv-height
 - 每个主题一个「恢复默认」：清掉这套主题的改动、回到它的出厂外观。
 - 切色调 / 换槽位**不会重置**你在这套主题上调过的东西 —— 切回来还是你调过的样子。
 - 「背景来源 = 无」= 跟随主题自带的背景（主题有图就显示图，没图才只剩底色）。
+- **上传的背景图片也是逐主题一份**：图片本体在 IndexedDB 的 `background:<主题键>` 下，
+  文件名 / 大小写在该主题自己的档案里。换 / 删 A 主题的图不会动到 B 主题。
+  「主题编辑」里的「恢复默认」会把该主题的图一并删掉。
 
 主题细节见下面「主题」一节。
 

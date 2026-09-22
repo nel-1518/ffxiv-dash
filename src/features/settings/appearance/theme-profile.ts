@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo } from 'react'
 import { useTheme, useThemePatch } from '../../../core/appearance/hooks.ts'
-import { resetThemeProfile, setThemeProfile } from '../../../core/appearance/store.ts'
+import { setThemeProfile } from '../../../core/appearance/store.ts'
+import { resetThemeAppearance } from '../../../core/appearance/image-store.ts'
 import { factoryProfile } from '../../../app/themes/appearance-sync.ts'
 import type { ThemeProfile, ThemeProfilePatch } from '../../../core/appearance/store.ts'
 import type { ThemeKey } from '../../../core/theme-preference.ts'
@@ -26,7 +27,7 @@ export type ThemeProfileScope = {
   profile: ThemeProfile
   /** 写档案：**只传改动的项**，别把整份档案传进来。 */
   set: (patch: ThemeProfilePatch) => void
-  /** 恢复默认（清掉这一整套主题的改动）。 */
+  /** 恢复默认（清掉这一整套主题的改动，并删掉它上传的图片）。 */
   reset: () => void
 
 }
@@ -47,7 +48,7 @@ export function useThemeProfile(): ThemeProfileScope {
       key: activeKey,
       profile: { ...factoryProfile(activeKey), ...activePatch },
       set: (patch) => setThemeProfile(activeKey, patch),
-      reset: () => resetThemeProfile(activeKey),
+      reset: () => resetThemeAppearance(activeKey),
     }),
     [activeKey, activePatch],
   )

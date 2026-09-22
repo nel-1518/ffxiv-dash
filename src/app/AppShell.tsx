@@ -1,6 +1,6 @@
 import { Layout } from 'antd'
 import { DashboardPage } from '../views/DashboardPage.tsx'
-import { useAppearance, useTheme } from '../core/appearance/hooks.ts'
+import { useTheme, useThemeImageUrl } from '../core/appearance/hooks.ts'
 import { getThemeSpec } from './themes/index.ts'
 import { useThemeProfile } from './themes/hooks.ts'
 import { describeBackground } from './background-layer.ts'
@@ -16,8 +16,13 @@ import { describeBackground } from './background-layer.ts'
  * （背景层的样式算法在 `./background-layer.ts`）。
  */
 export function AppShell(): React.ReactNode {
-  const { imageUrl } = useAppearance()
   const themeKey = useTheme()
+  /*
+   * 上传图是**逐主题一份**的，外壳只要生效主题那一张。
+   * ⚠️ 不能直接拿 `useAppearance().imageUrls` 再取下标：那样任何一份外观变化
+   * （包括改别的主题）都会让整棵看板重渲染。
+   */
+  const imageUrl = useThemeImageUrl(themeKey)
   /*
    * 生效主题的档案（出厂值 + 用户改过的那几项）。改别的主题时它的引用不变，
    * 因此"编辑另一套主题"不会让外壳（以及整棵看板）重渲染。

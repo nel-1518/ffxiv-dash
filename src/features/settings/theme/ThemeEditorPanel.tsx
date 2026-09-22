@@ -3,7 +3,7 @@ import { App, Button, Flex, Popconfirm, Typography } from 'antd'
 import { UndoOutlined } from '@ant-design/icons'
 import { getThemeSpec } from '../../../app/themes/index.ts'
 import { useTheme } from '../../../core/appearance/hooks.ts'
-import { resetThemeProfile } from '../../../core/appearance/store.ts'
+import { resetThemeAppearance } from '../../../core/appearance/image-store.ts'
 import { BackgroundSection } from '../appearance/BackgroundSection.tsx'
 import { ThemeProfileScopeProvider } from '../appearance/theme-profile-provider.tsx'
 import { ThemeSelect } from '../appearance/ThemeSelect.tsx'
@@ -69,10 +69,13 @@ export function ThemeEditorPanel(): React.ReactNode {
 }
 
 /**
- * 「恢复默认」：清掉这一整套主题的改动，读时自然回落主题出厂档案。
+ * 「恢复默认」：清掉这一整套主题的改动，读时自然回落主题出厂档案，
+ * 并**把它上传的图片一并删掉**（走 `resetThemeAppearance`，它同时收 store 与 IndexedDB）。
  *
  * 按钮**不做**可用性判断（曾经按"有没有改过"置灰）：那个判断要拿档案逐字段与主题出厂值比，
  * 主题预设一调整按钮的灰/亮就跟着变；而这个动作本身是幂等的，点下去没有副作用（没改过就什么都不发生）。
+ *
+ * ⚠️ 它**会删掉用户的图片文件**，所以确认文案里要说清楚 —— 这是全仓唯一动用户上传内容的按钮。
  */
 function ResetProfileButton({ themeKey }: { themeKey: ThemeKey }): React.ReactNode {
   const { message } = App.useApp()
@@ -80,11 +83,11 @@ function ResetProfileButton({ themeKey }: { themeKey: ThemeKey }): React.ReactNo
   return (
     <Popconfirm
       title="恢复这套主题的默认外观？"
-      description="背景与卡片会回到主题自带的值。"
+      description="本主题上传的图片也会一并删除。"
       okText="恢复"
       cancelText="取消"
       onConfirm={() => {
-        resetThemeProfile(themeKey)
+        resetThemeAppearance(themeKey)
         message.success('已恢复默认外观')
       }}
     >

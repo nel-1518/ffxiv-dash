@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useThemePatch } from '../../../core/appearance/hooks.ts'
-import { resetThemeProfile, setThemeProfile } from '../../../core/appearance/store.ts'
+import { setThemeProfile } from '../../../core/appearance/store.ts'
+import { resetThemeAppearance } from '../../../core/appearance/image-store.ts'
 import { factoryProfile } from '../../../app/themes/appearance-sync.ts'
 import { ThemeProfileScope } from './theme-profile.ts'
 import type { ThemeProfilePatch } from '../../../core/appearance/store.ts'
@@ -30,7 +31,7 @@ export function ThemeProfileScopeProvider({
       key: themeKey,
       profile: { ...factoryProfile(themeKey), ...patch },
       set: (next: ThemeProfilePatch) => setThemeProfile(themeKey, next),
-      reset: () => resetThemeProfile(themeKey),
+      reset: () => resetThemeAppearance(themeKey),
     }),
     [themeKey, patch],
   )

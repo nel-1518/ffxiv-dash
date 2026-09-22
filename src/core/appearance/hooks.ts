@@ -1,5 +1,11 @@
 import { useSyncExternalStore } from 'react'
-import { getAppearance, getThemePatch, resolveTheme, subscribeAppearance } from './store.ts'
+import {
+  getAppearance,
+  getThemeImageUrl,
+  getThemePatch,
+  resolveTheme,
+  subscribeAppearance,
+} from './store.ts'
 import type { AppearanceSnapshot, ThemeProfilePatch } from './store.ts'
 import type { ThemeKey } from '../theme-preference.ts'
 
@@ -38,4 +44,15 @@ export function useTheme(): ThemeKey {
  */
 export function useThemePatch(key: ThemeKey): ThemeProfilePatch | undefined {
   return useSyncExternalStore(subscribeAppearance, () => getThemePatch(key))
+}
+
+/**
+ * 某套主题**上传图**的 object URL（`null` = 没上传过 / 还没从 IndexedDB 读回来）。
+ *
+ * ⚠️ 快照是那个**字符串本身**：换背景图只让盯着这套主题的组件重渲染，
+ * 不像 `useAppearance()` 那样把整份快照（含逐主题档案）都拉进依赖。
+ * `AppShell` 只关心"生效主题那一张"，所以传 `resolveTheme()` 的结果进来。
+ */
+export function useThemeImageUrl(key: ThemeKey): string | null {
+  return useSyncExternalStore(subscribeAppearance, () => getThemeImageUrl(key))
 }

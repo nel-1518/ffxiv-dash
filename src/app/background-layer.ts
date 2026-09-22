@@ -38,8 +38,9 @@ function imageLayer(url: string, blur = 0, brightness = 100): React.CSSPropertie
  *
  * 返回 null 表示"不需要背景层"，此时外壳照旧用主题的 colorBgLayout。
  *
- * ⚠️ `imageUrl` 单独传进来：上传图的 object URL 是**全局一份**（IndexedDB 里只有一张图，
- * 所有主题共用），它不属于任何一套主题的档案。
+ * ⚠️ `imageUrl` 单独传进来：上传图的 object URL 是**运行期**才有的（图片本体在 IndexedDB，
+ * 启动时异步读回来），因此不进档案。它现在是**逐主题一份** —— 调用方必须传**生效主题**
+ * 那一张（`useThemeImageUrl(themeKey)`），传错了就会把别的主题的图显示出来。
  *
  * 档案与主题预设的关系（两条路径，见 `themes/appearance-sync.ts`）：
  * - 主题的出厂档案会**把预设写进「图片链接」**（于是这里走 `url` 分支，用户还能接着调）；

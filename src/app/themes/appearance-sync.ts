@@ -33,6 +33,9 @@ export function factoryProfile(key: ThemeKey): ThemeProfile {
     brightness: background?.brightness ?? 100,
     cardAlpha: cards?.alpha ?? DEFAULT_CARD_ALPHA,
     cardBlur: cards?.blur ?? DEFAULT_CARD_BLUR,
+    // 上传图是**用户自己挑的**，主题不可能出厂带一张 —— 出厂值恒为空
+    imageName: '',
+    imageSize: 0,
   }
 }
 
