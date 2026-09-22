@@ -64,3 +64,20 @@ export function normalizeRestConfig(raw: unknown): RestConfig {
     breakDoneText: normalizeNotice(source.breakDoneText, REST_DEFAULT_CONFIG.breakDoneText),
   }
 }
+
+/**
+ * 两份配置在**值**上是否相同。
+ *
+ * ⚠️ 必须逐字段比，不能比引用：`normalizeConfig` 每次都返回新对象，编辑弹窗点「确定」时
+ * 即使一个字段都没改也会换掉 config 的引用 —— 拿引用当"用户改了设置"的信号，会把正在跑的
+ * 计时平白重置。新增字段时记得同步加到这里。
+ */
+export function isSameRestConfig(a: RestConfig, b: RestConfig): boolean {
+  return (
+    a.focusMinutes === b.focusMinutes &&
+    a.breakMinutes === b.breakMinutes &&
+    a.autoNext === b.autoNext &&
+    a.focusDoneText === b.focusDoneText &&
+    a.breakDoneText === b.breakDoneText
+  )
+}

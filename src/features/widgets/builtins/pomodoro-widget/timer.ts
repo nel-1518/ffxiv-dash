@@ -106,8 +106,56 @@ export function finishPhase(state: RestState, config: RestConfig, now: number): 
   return config.autoNext ? startPhase(config, next, now) : { kind: 'awaiting', next }
 }
 
+/** 补算最多往前推多少段；超过就认为跨度异常（系统时间被往前拨等），放弃网格。 */
+const MAX_CATCH_UP_STEPS = 1000
+
+export type CatchUpResult = {
+  /** 补算之后的状态。 */
+  state: RestState
+  /** 刚跨过的最后一段；没有跨过任何边界时为 null。 */
+  finished: Phase | null
+}
+
+/**
+ * 补算：把"这一段什么时候结束"推进到**原有时序网格**上的当前位置。
+ *
+ * 隐藏标签页被节流、系统休眠期间可能一下跨过好几段。这时不能简单地"从现在重新开始下一段"
+ * —— 那会让整条节奏整体往后漂（30+5 的循环离开两小时，回来后的起点会一直错开），
+ * 这里按已经排好的 `endsAt` 一格一格往前推，落点与"一直没离开过"完全一致。
+ *
+ * 只推状态、**不发通知**：发几条由调用方决定（离开半天回来不该一口气弹十几条）。
+ */
+export function catchUp(state: RestState, config: RestConfig, now: number): CatchUpResult {
+  if (state.kind !== 'running') {
+    return { state, finished: null }
+  }
+  // 关掉自动接续时不会有"自己往前走"的段，落点与单次到点完全一样
+  if (!config.autoNext) {
+    return { state: finishPhase(state, config, now), finished: state.phase }
+  }
+
+  let phase = state.phase
+  let endsAt = state.endsAt
+  let finished: Phase | null = null
+  let steps = 0
+
+  while (endsAt <= now) {
+    finished = phase
+    phase = nextPhase(phase)
+    endsAt += durationOf(config, phase)
+    steps += 1
+    if (steps >= MAX_CATCH_UP_STEPS) {
+      // 跨度以天计，网格已经没有意义：从现在重新开始，至少读数是对的
+      return { state: startPhase(config, phase, now), finished }
+    }
+  }
+
+  return { state: { kind: 'running', phase, endsAt }, finished }
+}
+
+/** 回到初始态。返回新对象而不是共享常量：状态是一份数据，不该有别名。 */
 export function resetPhase(): RestState {
-  return INITIAL_REST_STATE
+  return { kind: 'ready' }
 }
 
 /** 剩余毫秒：就绪时是整段专注，等待开始时是 0。 */

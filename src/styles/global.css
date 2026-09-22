@@ -926,14 +926,11 @@ a:hover {
 }
 
 /*
- * 状态胶囊：**只有文字色、没有底色**。
+ * 状态文字（历史名叫"胶囊"）：**只有文字色、没有底色**。
  * 专注 = 主色；休息 / 未开始 / 已暂停 = 次级色（`.is-break` 与基础规则同色）。
- * （padding / border-radius 是早期"实色胶囊"版本留下的，现在只是文字块的内边距。）
  */
 .dash-rest-phase {
   flex: none;
-  padding: 1px 8px;
-  border-radius: 999px;
   color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
 }
 
@@ -980,6 +977,16 @@ a:hover {
   font-size: 12px;
   font-weight: 500;
   opacity: 0.55;
+}
+
+/*
+ * 「待开始」：上一段刚结束、下一段还没开始（关掉了自动接续）。
+ * 这时没有可读的倒数，写 `0min` 会被当成"还在跑"，所以换成一个词。
+ */
+.dash-rest-readout-pending {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
 }
 
 /* 三个图标按钮：紧凑排一行，别把钟面挤下去 */

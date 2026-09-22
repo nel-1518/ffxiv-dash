@@ -1,22 +1,24 @@
 /**
  * 休息提醒卡的配置字段与渲染。
  *
- * 卡面（三段）：状态胶囊 + 一行小字 → 环形倒计时钟面 → 三个图标按钮（开始/暂停、结束、重置）。
- * 计时状态是组件自己的 local state（刷新即回到「准备专注」，不落盘、不进 config）。
+ * 卡面（三段）：状态文字 + 一行小字 → 环形倒计时钟面 → 三个图标按钮（开始/暂停、结束、重置）。
+ * 计时状态是组件自己的 local state（刷新即回到「准备专注」，不落盘、不进 config）；
+ * 状态机接线集中在下面的 `useRestTimer`，`RestRender` 只负责画。
  *
  * ⚠️ **时钟粒度**：父组件只订阅一个**布尔快照**「是否已到点」——到点那一秒重渲染一次
  * （与待办卡"过点快照"同一套路）；每秒跳动的读数与环形进度全部落在 `<Countdown>` 那个叶子里。
  * 暂停与就绪时叶子的快照是常量，那两种状态下一次都不会重渲染。
+ * 但**配置一变整个组件就重置**，见 `useRestTimer` 里那段说明。
  */
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { App, Button, Flex, Form, Input, InputNumber, Progress, Slider, Switch, Typography } from 'antd'
 import { BellOutlined, CaretRightOutlined, PauseOutlined, StepForwardOutlined, UndoOutlined } from '@ant-design/icons'
 import { useClockValue } from '../../../../core/clock/hooks.ts'
-import { BREAK_MINUTES, FOCUS_MINUTES, MAX_NOTICE_LENGTH, REST_DEFAULT_CONFIG } from './config.ts'
+import { BREAK_MINUTES, FOCUS_MINUTES, MAX_NOTICE_LENGTH, REST_DEFAULT_CONFIG, isSameRestConfig } from './config.ts'
 import { notifyStatus, notifyStatusText, requestNotifyPermission, sendNotification } from './notify.ts'
 import {
   INITIAL_REST_STATE,
-  activePhase,
+  catchUp,
   displayMinutes,
   finishPhase,
   formatCycleHint,
@@ -35,6 +37,7 @@ import {
 import type { NotifyStatus } from './notify.ts'
 import type { Phase, RestState } from './timer.ts'
 import type { RestConfig } from './config.ts'
+import type { WidgetItem } from '../../../../core/storage/types.ts'
 import type { WidgetRenderProps } from '../../types.ts'
 
 /**
@@ -197,32 +200,75 @@ function Countdown({ state, config }: { state: RestState; config: RestConfig }):
   const totalMs = totalMsOf(state, config)
   /* 夹到本段总时长再换算成分钟：读数用的时钟缓存值最多晚 1 秒，不夹起点会显示成 31min */
   const totalSeconds = Math.round(totalMs / 1000)
+  const capped = Math.min(seconds, totalSeconds)
 
   return (
     <Progress
       type="circle"
-      percent={progressOfSeconds(Math.min(seconds, totalSeconds), totalMs)}
+      percent={progressOfSeconds(capped, totalMs)}
       size={96}
       strokeWidth={5}
       strokeLinecap="round"
-      format={() => (
-        <span className="dash-rest-readout">
-          <span className="dash-rest-readout-value">{displayMinutes(seconds, totalSeconds)}</span>
-          <span className="dash-rest-readout-unit">min</span>
-        </span>
-      )}
+      format={() =>
+        state.kind === 'awaiting' ? (
+          /* 这一段已经结束、下一段还没开始：没有可读的倒数，写 `0min` 会被当成还在跑 */
+          <span className="dash-rest-readout-pending">待开始</span>
+        ) : (
+          <span className="dash-rest-readout">
+            <span className="dash-rest-readout-value">{displayMinutes(capped, totalSeconds)}</span>
+            <span className="dash-rest-readout-unit">min</span>
+          </span>
+        )
+      }
     />
   )
 }
 
-/** 卡面渲染。 */
-export function RestRender({ config, item }: WidgetRenderProps<RestConfig>): React.ReactNode {
+/** `useRestTimer` 的返回值：状态 + 卡面要用的派生值 + 四个动作。 */
+type RestTimer = {
+  state: RestState
+  /** 能点「开始」时是要开始的那一段，否则 null。 */
+  pending: Phase | null
+  running: boolean
+  paused: boolean
+  start: () => void
+  togglePause: () => void
+  finish: () => void
+  reset: () => void
+}
+
+/**
+ * 计时接线：状态机 + 到点判定 + 提醒 + 恢复对账。
+ *
+ * 与"卡面长什么样"无关，抽出来是为了让 `RestRender` 只剩渲染。刻意**不导出**：
+ * `fields.tsx` 的约定是只导出组件，导出 hook 会破坏 react-refresh 的边界。
+ */
+function useRestTimer(item: WidgetItem, config: RestConfig): RestTimer {
   const { notification } = App.useApp()
   const [state, setState] = useState<RestState>(INITIAL_REST_STATE)
   /** 已经处理过的结束时刻：StrictMode 双跑、切回前台补判都可能让同一段被处理两次 */
   const handledRef = useRef<number | null>(null)
   /** 切回前台时 +1，用来强制再判一次（那会儿时钟可能还没跳） */
   const [reconcile, forceReconcile] = useReducer((count: number) => count + 1, 0)
+
+  /*
+   * 配置一变就重置计时。
+   *
+   * 时长一改，`endsAt`（这一段的结束时刻）这个冻结值就与新配置脱节了 —— 而环的分母、
+   * 读数的夹取都取自 config，继续跑只会显示出对不上的读数（例如把 30 分钟的专注改成 10 分钟
+   * 后，读数会一直冻在「10min」）。回到「准备专注」让用户按新设置重新开始最诚实。
+   *
+   * ⚠️ 用**值**比较而不是引用：`normalizeConfig` 每次返回新对象，编辑弹窗点「确定」时
+   * 一个字段都没改也会换掉 config 的引用，比引用会把正在跑的计时平白重置。
+   * ⚠️ 走"渲染期调整状态"而不是 effect：effect 在绘制之后才跑，会先在屏幕上画一帧
+   * 与新配置对不上的旧读数再跳回初始态（看得见的闪动）；渲染期 setState 会让 React
+   * 直接丢弃这一帧重来，用户看不到中间态。
+   */
+  const [syncedConfig, setSyncedConfig] = useState(config)
+  if (!isSameRestConfig(syncedConfig, config)) {
+    setSyncedConfig(config)
+    setState(INITIAL_REST_STATE)
+  }
 
   /*
    * 父组件只订阅"是否已到点"这个**布尔快照**：到点那一秒重渲染一次。
@@ -261,44 +307,79 @@ export function RestRender({ config, item }: WidgetRenderProps<RestConfig>): Rea
       return
     }
     handledRef.current = state.endsAt
-    const finished = state.phase
-    const endsAt = state.endsAt
-    setState(finishPhase(state, config, actionNow()))
-    announce(finished, `${item.id}:${finished}:${endsAt}`)
+    const crossFrom = state.endsAt
+    // 离开期间可能跨过好几段：补算到原有时序网格上的当前位置，而不是从现在重新开始
+    const result = catchUp(state, config, actionNow())
+    setState(result.state)
+    // 通知只发最后跨过的那个边界：离开半天回来不该一口气弹十几条
+    if (result.finished !== null) {
+      announce(result.finished, `${item.id}:${result.finished}:${crossFrom}`)
+    }
   }, [state, expired, reconcile, config, announce, item.id])
 
   /*
    * 切回前台立刻对账：后台标签页的定时器会被节流（Chrome 隐藏几分钟后可能压到每分钟一次），
    * 回到前台时时钟那一跳可能还没补上 —— 强制再判一次，保证"回来就看到正确的状态"。
+   * `pageshow` 是给 bfcache 的：从前进 / 后退恢复本页时**不会**触发 `visibilitychange`。
    */
   useEffect(() => {
-    const onVisibilityChange = (): void => {
+    const reconcileIfVisible = (): void => {
       if (document.visibilityState === 'visible') {
         forceReconcile()
       }
     }
-    document.addEventListener('visibilitychange', onVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+    document.addEventListener('visibilitychange', reconcileIfVisible)
+    window.addEventListener('pageshow', reconcileIfVisible)
+    return () => {
+      document.removeEventListener('visibilitychange', reconcileIfVisible)
+      window.removeEventListener('pageshow', reconcileIfVisible)
+    }
   }, [])
 
   const pending = pendingPhase(state)
-  const running = state.kind === 'running'
-  const paused = state.kind === 'paused'
+
+  return {
+    state,
+    pending,
+    running: state.kind === 'running',
+    paused: state.kind === 'paused',
+    start: () => {
+      if (pending !== null) {
+        setState(startPhase(config, pending, actionNow()))
+      }
+    },
+    togglePause: () => {
+      setState((current) => (current.kind === 'paused' ? resume(current, actionNow()) : pause(current, actionNow())))
+    },
+    finish: () => {
+      setState((current) => finishPhase(current, config, actionNow()))
+    },
+    reset: () => {
+      handledRef.current = null
+      setState(resetPhase())
+    },
+  }
+}
+
+/** 卡面渲染。计时接线在 `useRestTimer`，这里只管"画成什么样"。 */
+export function RestRender({ config, item }: WidgetRenderProps<RestConfig>): React.ReactNode {
+  const { state, pending, running, paused, start, togglePause, finish, reset } = useRestTimer(item, config)
+
   /*
-   * 胶囊显示的是"此刻这件事"：跑着的就是当前段，刚结束的就是上一段，`ready` 还没开始。
-   * `awaiting` 的 `activePhase` 给的是**下一段**，所以这里要取反。
+   * 状态文字读的是"此刻这件事"：跑着 / 暂停的是当前段，刚结束的 `awaiting` 要看**上一段**
+   * —— 它记的 `next` 指向还没开始的那一段，所以这里要取反。`ready` 还没有段。
    */
-  const shownPhase = state.kind === 'awaiting' ? nextPhase(state.next) : activePhase(state)
-  const capsule = state.kind === 'ready'
-    ? '准备专注'
-    : state.kind === 'awaiting' && shownPhase !== null
-      ? `${phaseLabel(shownPhase)}结束`
-      : shownPhase === null
-        ? '准备专注'
-        : paused
-          ? `${phaseLabel(shownPhase)}已暂停`
-          : phaseLabel(shownPhase)
-  const capsuleKind = state.kind === 'ready' || shownPhase === null ? 'is-idle' : shownPhase === 'focus' ? 'is-focus' : 'is-break'
+  let phaseText = '准备专注'
+  let phaseTone = 'is-idle'
+  if (state.kind === 'awaiting') {
+    const done = nextPhase(state.next)
+    phaseText = `${phaseLabel(done)}结束`
+    phaseTone = done === 'focus' ? 'is-focus' : 'is-break'
+  } else if (state.kind !== 'ready') {
+    const phase = state.phase
+    phaseText = paused ? `${phaseLabel(phase)}已暂停` : `${phaseLabel(phase)}中`
+    phaseTone = phase === 'focus' ? 'is-focus' : 'is-break'
+  }
 
   // 提醒发不出去的时候，卡面上留一句"为什么"（能用就不占地方）
   const notify = notifyStatus()
@@ -308,7 +389,7 @@ export function RestRender({ config, item }: WidgetRenderProps<RestConfig>): Rea
   return (
     <div className="dash-card-fill dash-rest">
       <div className="dash-rest-status">
-        <span className={`dash-rest-phase ${capsuleKind}`}>{capsule}</span>
+        <span className={`dash-rest-phase ${phaseTone}`}>{phaseText}</span>
         <span className="dash-rest-hint" title={notifyBlocked ? notifyStatusText(notify) : hint}>
           {hint}
         </span>
@@ -322,7 +403,7 @@ export function RestRender({ config, item }: WidgetRenderProps<RestConfig>): Rea
             type="text"
             size="small"
             icon={<CaretRightOutlined />}
-            onClick={() => setState(startPhase(config, pending, actionNow()))}
+            onClick={start}
             title={`开始${phaseLabel(pending)}时段`}
             aria-label={`开始${phaseLabel(pending)}时段`}
           />
@@ -331,7 +412,7 @@ export function RestRender({ config, item }: WidgetRenderProps<RestConfig>): Rea
             type="text"
             size="small"
             icon={paused ? <CaretRightOutlined /> : <PauseOutlined />}
-            onClick={() => setState(paused ? resume(state, actionNow()) : pause(state, actionNow()))}
+            onClick={togglePause}
             title={paused ? '继续' : '暂停'}
             aria-label={paused ? '继续计时' : '暂停计时'}
           />
@@ -342,7 +423,7 @@ export function RestRender({ config, item }: WidgetRenderProps<RestConfig>): Rea
           type="text"
           size="small"
           icon={<StepForwardOutlined />}
-          onClick={() => setState(finishPhase(state, config, actionNow()))}
+          onClick={finish}
           disabled={!running && !paused}
           title="结束当前时段"
           aria-label="结束当前时段"
@@ -352,10 +433,7 @@ export function RestRender({ config, item }: WidgetRenderProps<RestConfig>): Rea
           type="text"
           size="small"
           icon={<UndoOutlined />}
-          onClick={() => {
-            handledRef.current = null
-            setState(resetPhase())
-          }}
+          onClick={reset}
           disabled={state.kind === 'ready'}
           title="重置到准备专注"
           aria-label="重置到准备专注"
