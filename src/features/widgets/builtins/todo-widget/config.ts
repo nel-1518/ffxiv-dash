@@ -9,8 +9,8 @@
 import { TODO_CYCLE_OPTIONS, formatHhMm, isTodoCycle, parseHhMm } from './schedule.ts'
 import type { TodoCycle } from './schedule.ts'
 
-/** 默认刷新时刻 23:00。 */
-export const DEFAULT_TODO_TIME = '23:00'
+/** 默认刷新时刻 16:00。 */
+export const DEFAULT_TODO_TIME = '16:00'
 
 /** 待办数量上限。超出的行不渲染，面板里会明说忽略了几行。 */
 export const MAX_TODO_ITEMS = 20
@@ -94,7 +94,7 @@ export function normalizeTodoConfig(raw: unknown): TodoConfig {
 
   return {
     cycle: isTodoCycle(source.cycle) ? source.cycle : TODO_DEFAULT_CONFIG.cycle,
-    // 认不出来的时刻一律回落默认值：宁可每天 23:00 刷新，也不要"从不刷新"
+    // 认不出来的时刻一律回落默认值
     time: parsedTime === null ? DEFAULT_TODO_TIME : formatHhMm(parsedTime.hour, parsedTime.minute),
     items: rawItems.length > MAX_TODO_TEXT_LENGTH ? rawItems.slice(0, MAX_TODO_TEXT_LENGTH) : rawItems,
   }

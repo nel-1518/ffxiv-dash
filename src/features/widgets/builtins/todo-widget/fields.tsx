@@ -83,7 +83,7 @@ export function TodoFormFields(): React.ReactNode {
           format="HH:mm"
           minuteStep={5}
           showNow={false}
-          placeholder="23:00"
+          placeholder="16:00"
         />
       </Form.Item>
 
