@@ -1822,6 +1822,33 @@ a:hover {
   min-height: 32px;
 }
 
+.dash-search-engine-block {
+  margin-bottom: 5px;
+  min-height: 32px;
+}
+
+.dash-search-engine-row {
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.dash-search-engine-row.is-drag-over {
+  border-color: var(--ant-color-primary);
+  background: var(--ant-color-primary-bg);
+}
+
+.dash-search-engine-drag-handle {
+  flex: none;
+  cursor: grab;
+  color: var(--ant-color-text-tertiary);
+}
+
+.dash-search-engine-drag-handle:active {
+  cursor: grabbing;
+}
+
 .dash-settings-option {
   flex: 1;
   display: flex;

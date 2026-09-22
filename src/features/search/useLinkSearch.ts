@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { flushSync } from 'react-dom'
 import { subscribeBoard } from '../../state/board-store.ts'
-import { buildEngineUrl, SEARCH_ENGINES } from './engines.tsx'
+import { useSearchEngines } from '../../core/search/hooks.ts'
+import { buildEngineUrl, toSearchEngine } from './engines.tsx'
 import { getLinkIndex } from './link-index.ts'
 import { searchLinks } from './searchLinks.ts'
 
@@ -65,6 +66,7 @@ export function useLinkSearch({ suspended }: UseLinkSearchOptions): LinkSearch {
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const [selectAllOnOpen, setSelectAllOnOpen] = useState(false)
+  const searchEngines = useSearchEngines()
 
   /*
    * 搜索只关心链接，所以订阅拍平后的索引而不是整份 doc：
@@ -129,16 +131,19 @@ export function useLinkSearch({ suspended }: UseLinkSearchOptions): LinkSearch {
     const engineRows =
       trimmed === ''
         ? []
-        : SEARCH_ENGINES.map<SearchRow>((engine) => ({
-            key: `engine:${engine.key}`,
-            kind: 'engine',
-            title: `用${engine.name}搜索 ${trimmed}`,
-            url: buildEngineUrl(engine, trimmed),
-            icon: engine.icon,
-          }))
+        : searchEngines.filter((config) => config.enabled && config.urlTemplate.includes('%s')).map<SearchRow>((config) => {
+            const engine = toSearchEngine(config)
+            return {
+              key: `engine:${engine.key}`,
+              kind: 'engine',
+              title: `用『${engine.name}』搜索 “${trimmed}”`,
+              url: buildEngineUrl(engine, trimmed),
+              icon: engine.icon,
+            }
+          })
 
     return [...linkRows, ...engineRows]
-  }, [links, keyword])
+  }, [links, keyword, searchEngines])
 
   // 结果条数变化时把高亮收回范围内。
   // 用"渲染期间调整 state"而不是 effect：effect 里同步 setState 会被
