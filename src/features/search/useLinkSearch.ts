@@ -53,6 +53,11 @@ function isImeStart(event: KeyboardEvent): boolean {
   return (event as KeyboardEvent & { keyCode: number }).keyCode === 229
 }
 
+/** 清除 FF14 物品名称中的特殊字符。 */
+function cleanPastedText(text: string): string {
+  return text.replace(/[\uE03C\uE0BB]/g, '')
+}
+
 /**
  * 搜索弹窗的状态中枢：关键词、结果行、高亮下标，以及全局键盘。
  *
@@ -245,6 +250,35 @@ export function useLinkSearch({ suspended }: UseLinkSearchOptions): LinkSearch {
 
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
+  }, [open, suspended, openDialog])
+
+  useEffect(() => {
+    const handler = (event: ClipboardEvent) => {
+      if (suspended) {
+        return
+      }
+
+      const target = event.target as HTMLElement | null
+      const tag = target?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable) {
+        return
+      }
+
+      const text = cleanPastedText(event.clipboardData?.getData('text') ?? '')
+      if (text === '') {
+        return
+      }
+
+      event.preventDefault()
+      if (!open) {
+        openDialog(false)
+      }
+      setKeyword(text)
+      setActiveIndex(0)
+    }
+
+    document.addEventListener('paste', handler)
+    return () => document.removeEventListener('paste', handler)
   }, [open, suspended, openDialog])
 
   return {
