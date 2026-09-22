@@ -91,6 +91,7 @@ export function EditDialog({
 
   return (
     <Modal
+      className="dash-edit-dialog"
       open 
       title={title}
       destroyOnHidden

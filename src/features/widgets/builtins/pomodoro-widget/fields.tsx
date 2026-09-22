@@ -179,10 +179,6 @@ export function RestFormFields(): React.ReactNode {
       >
         <Input maxLength={MAX_NOTICE_LENGTH} placeholder={REST_DEFAULT_CONFIG.breakDoneText} />
       </Form.Item>
-
-      <Form.Item label="通知测试" extra="系统通知需要 https 或 localhost，且页面保持开着（可以最小化）。">
-        <NotifyTestField />
-      </Form.Item>
     </>
   )
 }

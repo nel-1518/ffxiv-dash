@@ -1868,6 +1868,75 @@ a:hover {
   margin-top: 0;
 }
 
+/* 新建 / 编辑弹窗：减少空白，把注意力留给字段和底部操作。 */
+.dash-edit-dialog {
+  max-width: calc(100vw - 24px);
+}
+
+.dash-edit-dialog .ant-modal-content {
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.dash-edit-dialog .ant-modal-header {
+  margin-bottom: 0;
+  padding: 18px 22px 12px;
+}
+
+.dash-edit-dialog .ant-modal-title {
+  font-size: 17px;
+  line-height: 24px;
+}
+
+.dash-edit-dialog .ant-modal-body {
+  max-height: min(640px, calc(100svh - 190px));
+  overflow-y: auto;
+  padding: 4px 22px 2px;
+  scrollbar-color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.25)) transparent;
+  scrollbar-width: thin;
+}
+
+.dash-edit-dialog .ant-form-item {
+  margin-bottom: 12px;
+}
+
+.dash-edit-dialog .ant-form-item-label {
+  padding-bottom: 5px;
+}
+
+.dash-edit-dialog .ant-form-item-label > label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.dash-edit-dialog .ant-divider {
+  margin: 14px 0 12px;
+  font-size: 12px;
+}
+
+.dash-edit-dialog .ant-modal-footer {
+  margin-top: 0;
+  padding: 12px 22px 16px;
+}
+
+.dash-edit-dialog .ant-modal-footer .ant-flex {
+  min-height: 32px;
+}
+
+@media (max-width: 520px) {
+  .dash-edit-dialog .ant-modal-header {
+    padding-inline: 16px;
+  }
+
+  .dash-edit-dialog .ant-modal-body {
+    padding-inline: 16px;
+  }
+
+  .dash-edit-dialog .ant-modal-footer {
+    padding-inline: 16px;
+  }
+}
+
 .dash-settings-actions {
   margin-top: 14px;
 }
