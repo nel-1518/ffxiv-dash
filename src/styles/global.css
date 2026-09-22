@@ -188,8 +188,16 @@ body {
 .dash-card-surface {
   background: var(--dash-card-bg, var(--ant-color-bg-container));
   box-shadow: var(--dash-card-shadow);
+  /*
+   * ⚠️ 只写标准属性，**不要**再手写 `-webkit-backdrop-filter` 那一行：
+   * 构建期压缩器（Vite 8 默认那套）会自己按目标浏览器补前缀 —— 主题里只写了标准属性的
+   * `evercold` 顶栏规则，产物里就是 `-webkit-` + 标准两行。
+   * 手写前缀行与本行取值完全相同，会被压缩器当重复声明合并掉，而实测**保留的是被合并到
+   * 后面那行的 `-webkit-`、标准行反而消失**；Chromium 并不认 `-webkit-backdrop-filter`
+   * （实测 `CSS.supports('-webkit-backdrop-filter', 'blur(1px)')` 为 false）——
+   * 症状正是"开发态好、**部署后卡片模糊完全失效**"（算出来是 `none`，滑块怎么拖都不动）。
+   */
   backdrop-filter: var(--dash-card-backdrop, none);
-  -webkit-backdrop-filter: var(--dash-card-backdrop, none);
 }
 
 /*
