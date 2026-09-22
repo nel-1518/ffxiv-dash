@@ -179,6 +179,11 @@ export function RestFormFields(): React.ReactNode {
       >
         <Input maxLength={MAX_NOTICE_LENGTH} placeholder={REST_DEFAULT_CONFIG.breakDoneText} />
       </Form.Item>
+
+      <Form.Item label="通知测试">
+        <NotifyTestField />
+      </Form.Item>
+
     </>
   )
 }
