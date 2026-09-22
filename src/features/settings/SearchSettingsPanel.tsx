@@ -60,7 +60,7 @@ export function SearchSettingsPanel(): React.ReactNode {
             key={engine.key}
             vertical
             gap={8}
-            className={`dash-search-engine-block dash-search-engine-row${overKey === engine.key ? ' is-drag-over' : ''}`}
+            className={`dash-search-engine-row${overKey === engine.key ? ' is-drag-over' : ''}`}
             onDragOver={(event) => {
               event.preventDefault()
               setOverKey(engine.key)
@@ -89,9 +89,18 @@ export function SearchSettingsPanel(): React.ReactNode {
               </Checkbox>
               <Input
                 value={engine.name}
+                className="dash-search-engine-name"
                 aria-label="搜索引擎名称"
                 placeholder="名称"
                 onChange={(event) => update(engine.key, { name: event.target.value })}
+              />
+              <Input
+                value={engine.urlTemplate}
+                style={{ flex: 1, minWidth: 0 }}
+                aria-label={`${engine.name || '搜索引擎'}地址`}
+                placeholder="https://example.com/search?q=%s"
+                status={engine.urlTemplate.includes('%s') ? undefined : 'warning'}
+                onChange={(event) => update(engine.key, { urlTemplate: event.target.value })}
               />
               <Button
                 danger
@@ -102,13 +111,6 @@ export function SearchSettingsPanel(): React.ReactNode {
                 onClick={() => remove(engine.key)}
               />
             </Flex>
-            <Input
-              value={engine.urlTemplate}
-              aria-label={`${engine.name || '搜索引擎'}地址`}
-              placeholder="https://example.com/search?q=%s"
-              status={engine.urlTemplate.includes('%s') ? undefined : 'warning'}
-              onChange={(event) => update(engine.key, { urlTemplate: event.target.value })}
-            />
             {!engine.urlTemplate.includes('%s') ? (
               <Typography.Text type="warning" className="dash-settings-hint">
                 地址中需要包含 `%s`，否则不会带上搜索内容。
