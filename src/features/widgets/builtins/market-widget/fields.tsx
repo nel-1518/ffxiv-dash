@@ -177,7 +177,7 @@ export function MarketFormFields(): React.ReactNode {
       <Form.Item
         label="基准价格"
         name={['config', 'basePrice']}
-        extra="可选。最低价格高于基准价标红、低于基准价标绿"
+        extra="可选。最低价格低于基准价时高亮显示。"
       >
         <InputNumber min={1} style={{ width: '100%' }} placeholder="留空即不比较" />
       </Form.Item>
@@ -188,18 +188,16 @@ export function MarketFormFields(): React.ReactNode {
 // 金币只显示整数：接口的平均售价带小数（如 47.15475960236723），小数点后几位没有意义
 const gilFormat = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 0 })
 
-/** 与基准价比较：高于基准 = 贵了 = 红，低于 = 便宜 = 绿，相等/无基准/无数据 → 不着色。 */
-function priceTone(price: number, basePrice: number | undefined): 'above' | 'below' | null {
+/**
+ * 与基准价比较：**只有低于基准价**（= 便宜）返回 `'below'`，改用主题强调色。
+ *
+ * 高于 / 等于基准价、没填基准价、没有数据一律返回 `null` —— 不着色，
+ */
+function priceTone(price: number, basePrice: number | undefined): 'below' | null {
   if (basePrice === undefined || price <= 0) {
     return null
   }
-  if (price > basePrice) {
-    return 'above'
-  }
-  if (price < basePrice) {
-    return 'below'
-  }
-  return null
+  return price < basePrice ? 'below' : null
 }
 
 function ReadingValue({
@@ -207,7 +205,7 @@ function ReadingValue({
   tone,
 }: {
   reading: PriceReading | undefined
-  tone: 'above' | 'below' | null
+  tone: 'below' | null
 }): React.ReactNode {
   // 接口在无数据时返回 0，显示成「0 金币」会误导，统一用破折号
   if (!reading || !reading.hasData) {
@@ -254,7 +252,7 @@ function QualityBlock({
       <Flex vertical gap={1} style={{ minWidth: 0 }}>
         <Flex className="dash-market-row" align="baseline" gap={6}>
           <span className="dash-market-label">最低价格</span>
-          {/* 只给最低价格上色：三项都比会满屏红绿，反而看不出重点 */}
+          {/* 只给最低价格上色，且只在「低于基准价」时：三项都比会满屏彩字，反而看不出重点 */}
           <ReadingValue reading={minListing} tone={priceTone(minListing?.price ?? 0, basePrice)} />
         </Flex>
         {/* 与价格分行：挤在一行会压窄数字。两者贴成一组（gap 1）—— 出处是给最低价格做注解的，

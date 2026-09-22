@@ -2082,12 +2082,11 @@ a:hover {
   color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45));
 }
 
-.dash-market-value.is-above {
-  color: var(--ant-color-error, #ff4d4f);
-}
-
+/*
+ * 低于基准价（便宜）才上色，用**主题强调色**（跟着主题换色）。
+ */
 .dash-market-value.is-below {
-  color: var(--ant-color-success, #52c41a);
+  color: var(--ant-color-primary);
 }
 
 /*

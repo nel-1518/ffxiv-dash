@@ -41,7 +41,7 @@ export type MarketConfig = {
   itemMeta: MarketItemMeta[]
   /** 区服：服务器名、大区名，或 `中国`（整个中国区）。 */
   scope: string
-  /** 基准单价（可选）。最低挂价高于它标红、低于它标绿；缺失则不比较。 */
+  /** 基准单价（可选）。最低挂价低于它用主题强调色，缺失则不比较。 */
   basePrice?: number
 }
 
