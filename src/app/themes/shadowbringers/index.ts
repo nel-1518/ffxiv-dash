@@ -37,6 +37,6 @@ export const shadowbringersSpec: ThemeSpec = {
       borderRadius: 8,
     },
   },
-  background: { url: '/bg/5-shadowbringers.webp', brightness: 35, blur: 1 },
+  background: { url: '/bg/5-shadowbringers.jpg', brightness: 35, blur: 1 },
   cards: { alpha: 50, blur: 1 },
 }

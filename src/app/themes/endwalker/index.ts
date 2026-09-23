@@ -39,6 +39,6 @@ export const endwalkerSpec: ThemeSpec = {
       borderRadius: 8,
     },
   },
-  background: { url: '/bg/6-endwalker.webp', brightness: 75, blur: 1 },
+  background: { url: '/bg/6-endwalker.jpg', brightness: 75, blur: 1 },
   cards: { alpha: 90, blur: 0 },
 }

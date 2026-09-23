@@ -37,6 +37,6 @@ export const heavenswardSpec: ThemeSpec = {
       borderRadius: 6,
     },
   },
-  background: { url: '/bg/3-heavensward.webp', brightness: 70, blur: 0 },
+  background: { url: '/bg/3-heavensward.jpg', brightness: 70, blur: 0 },
   cards: { alpha: 100, blur: 0 },
 }

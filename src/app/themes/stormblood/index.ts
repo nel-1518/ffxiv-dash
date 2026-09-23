@@ -37,6 +37,6 @@ export const stormbloodSpec: ThemeSpec = {
       borderRadius: 4,
     },
   },
-  background: { url: '/bg/4-stormblood.webp', brightness: 70, blur: 0 },
+  background: { url: '/bg/4-stormblood.jpg', brightness: 70, blur: 0 },
   cards: { alpha: 100, blur: 0 },
 }

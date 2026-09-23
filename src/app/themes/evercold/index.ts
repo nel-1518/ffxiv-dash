@@ -34,6 +34,6 @@ export const evercoldSpec: ThemeSpec = {
       borderRadius: 8,
     },
   },
-  background: { url: '/bg/8-evercold.webp', brightness: 60, blur: 1 },
+  background: { url: '/bg/8-evercold.jpg', brightness: 60, blur: 1 },
   cards: { alpha: 85, blur: 1 },
 }

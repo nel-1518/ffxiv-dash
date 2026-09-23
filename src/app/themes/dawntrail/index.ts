@@ -37,6 +37,6 @@ export const dawntrailSpec: ThemeSpec = {
       borderRadius: 10,
     },
   },
-  background: { url: '/bg/7-dawntrail.webp', brightness: 70, blur: 1 },
+  background: { url: '/bg/7-dawntrail.jpg', brightness: 70, blur: 1 },
   cards: { alpha: 80, blur: 1 },
 }
