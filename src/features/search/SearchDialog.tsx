@@ -159,6 +159,7 @@ export function SearchDialog({
       ) : null}
       <span className="dash-search-item-text">
         <span className="dash-search-item-title">{row.title}</span>
+        {row.abbreviation ? <span className="dash-search-item-abbr">{row.abbreviation}</span> : null}
         {row.subtitle ? <span className="dash-search-item-sub">{row.subtitle}</span> : null}
       </span>
       <span className="dash-search-item-enter" aria-hidden="true">

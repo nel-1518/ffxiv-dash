@@ -176,7 +176,7 @@ type Group = {
   items: Item[]
 }
 
-type LinkItem = { id; kind: 'link'; name; url; desc?; icon? }
+type LinkItem = { id; kind: 'link'; name; url; desc?; icon?; abbreviation? }
 
 type WidgetItem = {
   id; kind: 'widget'
@@ -227,9 +227,9 @@ type WidgetItem = {
 
 | 项 | 行为 |
 | --- | --- |
-| 检索范围 | 只检索**已保存的链接**（`kind: 'link'`）的 `name` / `desc` / `url`；组件卡片不参与 |
-| 结果条数 | 链接最多 5 条（`MAX_LINK_RESULTS`），名称命中排在前，其次描述/网址命中，同档内保持看板里的顺序 |
-| 结果行 | 单行：左侧名称，右侧描述（没填描述就回退显示网址），过长一侧省略 |
+| 检索范围 | 只检索**已保存的链接**（`kind: 'link'`）的 `abbreviation` / `name` / `desc` / `url`；组件卡片不参与 |
+| 结果条数 | 链接最多 5 条（`MAX_LINK_RESULTS`），缩写命中排在最前（精确 → 前缀 → 包含），其次名称命中，最后描述/网址命中，同档内保持看板里的顺序 |
+| 结果行 | 单行：左侧名称（右侧紧跟缩写，没设就不显示），右侧描述（没填描述就回退显示网址），过长一侧省略 |
 | 搜索引擎 | 链接结果之后追加「搜索引擎」段，回车即跳转 |
 | 入口 | 进页时顶栏输入框已聚焦；**开始打字或点击搜索框**才弹出卡片，两者共享同一份关键词 |
 | 遮罩 | 纯半透明色 |
@@ -403,8 +403,8 @@ dnd-kit 的 context 在**拖拽开始**与**指针每移动一帧**时都会换�
 落盘结构是 `BoardDoc`（`{ version, groups }`），键名 `ffxiv-dash:board:v1`。
 `loadDoc()` 会依次做 JSON 解析 → 结构校验，任何一步失败都回退到默认数据并在控制台告警；
 校验过程中若补齐或丢弃了字段，会自动回写一次。
-⚠️ 版本号（`SCHEMA_VERSION`，当前 3）对不上时**直接判为无法识别**：没有逐版迁移，
-未上线期间发生破坏性改动就重置旧数据。
+⚠️ 版本号（`SCHEMA_VERSION`，当前 4）对不上时**直接判为无法识别**：没有逐版迁移，
+未上线期间发生破坏性改动就重置旧数据（v4 加的 `abbreviation` 就没有迁移）。
 分组类型与卡片种类都是 `link` / `widget` 两种，非法值在归一化时回落到 `widget` / `link`。
 
 ## 时钟与渲染粒度

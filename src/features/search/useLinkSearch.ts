@@ -12,6 +12,8 @@ export type SearchRow = {
   kind: 'link' | 'engine'
   /** 主文案。链接是名称，引擎是「用 xxx 搜索 …」。 */
   title: string
+  /** 链接的缩写（没设就不渲染）；引擎行不用。 */
+  abbreviation?: string
   /** 次文案：链接显示描述（缺省回退网址），引擎不需要。 */
   subtitle?: string
   /** 点击 / 回车要打开的地址。 */
@@ -127,6 +129,7 @@ export function useLinkSearch({ suspended }: UseLinkSearchOptions): LinkSearch {
       key: `link:${hit.item.id}`,
       kind: 'link',
       title: hit.item.name,
+      abbreviation: hit.item.abbreviation,
       subtitle: hit.item.desc || hit.item.url,
       url: hit.item.url,
     }))

@@ -208,9 +208,30 @@ function LinkFace({
         </div>
 
         <Flex vertical style={{ minWidth: 0, flex: 1 }}>
-          <Typography.Text strong ellipsis>
-            {item.name}
-          </Typography.Text>
+          {/*
+            名称行：缩写（有就）跟在名称右边。两者都可压缩（`flex: 0 1 auto` + `minWidth: 0`），
+            窄卡里先省略名称，缩写作为"搜索时敲什么"的提示尽量留住。
+          */}
+          <Flex align="baseline" gap={6} style={{ minWidth: 0 }}>
+            <Typography.Text strong ellipsis style={{ minWidth: 0 }}>
+              {item.name}
+            </Typography.Text>
+            {item.abbreviation ? (
+              <span
+                style={{
+                  flex: '0 1 auto',
+                  minWidth: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  fontSize: 11,
+                  color: 'var(--ant-color-text-quaternary)',
+                }}
+              >
+                {item.abbreviation}
+              </span>
+            ) : null}
+          </Flex>
           <Typography.Text type="secondary" ellipsis style={{ fontSize: 12 }}>
             {item.desc || item.url}
           </Typography.Text>

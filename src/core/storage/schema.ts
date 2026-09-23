@@ -1,7 +1,7 @@
 import { createId } from '../ids.ts'
 import { isRecord } from '../guards.ts'
 import { canPlaceItem } from '../../features/groups/group-types.ts'
-import { GROUP_TYPES, ITEM_KINDS, clampGroupColumns } from './types.ts'
+import { GROUP_TYPES, ITEM_KINDS, LINK_ABBREVIATION_PATTERN, MAX_LINK_ABBREVIATION_LENGTH, clampGroupColumns } from './types.ts'
 import type {
   BoardDoc,
   Group,
@@ -13,8 +13,10 @@ import type {
   WidgetItem,
 } from './types.ts'
 
-/** 当前数据结构版本；未上线期间发生破坏性改动时直接重置旧数据。 */
-export const SCHEMA_VERSION = 3
+/**
+ * 当前数据结构版本；未上线期间发生破坏性改动时直接重置旧数据。
+ */
+export const SCHEMA_VERSION = 4
 
 const MAX_TEXT_LENGTH = 500
 const MAX_URL_LENGTH = 2048
@@ -47,6 +49,20 @@ function asId(value: unknown): string {
   return text || createId()
 }
 
+/**
+ * 链接缩写：只接受纯 ASCII 字母数字，且不超过上限。
+ *
+ * ⚠️ 刻意**不做任何自动处理** —— 不 trim（用户输入里的空格/符号就是非法）、
+ * 不改大小写、不截断：整体不匹配就当成"没设"（返回 undefined）。
+ * 表单已用同一份规则拦在提交前，这里是存档被手改时的兜底。
+ */
+function asAbbreviation(value: unknown): string | undefined {
+  if (typeof value !== 'string' || value === '' || value.length > MAX_LINK_ABBREVIATION_LENGTH) {
+    return undefined
+  }
+  return LINK_ABBREVIATION_PATTERN.test(value) ? value : undefined
+}
+
 function sanitizeLinkItem(raw: Record<string, unknown>): LinkItem {
   const name = asString(raw.name, '未命名网站').trim() || '未命名网站'
   const url = asString(raw.url, '', MAX_URL_LENGTH).trim() || 'https://example.com'
@@ -58,6 +74,7 @@ function sanitizeLinkItem(raw: Record<string, unknown>): LinkItem {
     desc: asOptionalString(raw.desc),
     // 图标既可能是缩写文字，也可能是图片地址，统一按 URL 的上限收
     icon: asOptionalString(raw.icon, MAX_URL_LENGTH),
+    abbreviation: asAbbreviation(raw.abbreviation),
   }
 }
 

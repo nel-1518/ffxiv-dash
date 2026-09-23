@@ -11,7 +11,20 @@ export type LinkItem = {
   url: string
   desc?: string
   icon?: string
+  /**
+   * 用户自定的缩写：搜索时优先匹配它。
+   *
+   * 只允许 `[A-Za-z0-9]`（见 `LINK_ABBREVIATION_PATTERN`），**不做任何自动处理** ——
+   * 不 trim、不改大小写、不从名称或网址推导；留空表示没设。
+   */
+  abbreviation?: string
 }
+
+/** 缩写的字符集：只允许 ASCII 字母与数字。 */
+export const LINK_ABBREVIATION_PATTERN = /^[A-Za-z0-9]+$/
+
+/** 缩写的最大长度；输入框与校验共用，别各写一份。 */
+export const MAX_LINK_ABBREVIATION_LENGTH = 16
 
 export type WidgetItem = {
   id: string

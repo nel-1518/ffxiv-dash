@@ -69,6 +69,7 @@ export function metadataToLinkItem(url: string, metadata: LinkMetadata): LinkMet
       url,
       ...(fields.desc ? { desc: fields.desc } : {}),
       ...(fields.icon ? { icon: fields.icon } : {}),
+      // 缩写刻意留空：它只能由用户手填，不猜、不从标题或域名推导
     },
     safetyTags: fields.safetyTags,
   }

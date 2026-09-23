@@ -4,6 +4,10 @@ import type { FormInstance } from 'antd'
 import { createId } from '../../core/ids.ts'
 import { getWidget, listWidgetOptions } from '../widgets/registry.ts'
 import { allowedItemKinds, canPlaceItem } from '../groups/group-types.ts'
+import {
+  LINK_ABBREVIATION_PATTERN,
+  MAX_LINK_ABBREVIATION_LENGTH,
+} from '../../core/storage/types.ts'
 import type { GroupType, Item, ItemKind, LinkItem, WidgetItem } from '../../core/storage/types.ts'
 
 /**
@@ -21,7 +25,7 @@ export const MAX_LINK_DESC_INPUT_LENGTH = 120
 /** 表单里的扁平结构：组件自身字段放 config。 */
 export type ItemFormValues = {
   kind: ItemKind
-  link?: { name?: string; icon?: string; url?: string; desc?: string }
+  link?: { name?: string; icon?: string; url?: string; desc?: string; abbreviation?: string }
   widget?: { key?: string; title?: string }
   config?: Record<string, unknown>
 }
@@ -49,7 +53,7 @@ function buildInitialValues(item: Item | undefined, defaultKind: ItemKind): Item
     const spec = getWidget('pvp-map')
     return {
       kind: defaultKind,
-      link: { name: '', icon: '', url: '', desc: '' },
+      link: { name: '', icon: '', url: '', desc: '', abbreviation: '' },
       widget: { key: spec?.key ?? 'pvp-map', title: spec?.defaultTitle ?? '自定义组件' },
       config: spec?.defaultConfig ?? {},
     }
@@ -58,7 +62,13 @@ function buildInitialValues(item: Item | undefined, defaultKind: ItemKind): Item
   if (item.kind === 'link') {
     return {
       kind: 'link',
-      link: { name: item.name, icon: item.icon ?? '', url: item.url, desc: item.desc ?? '' },
+      link: {
+        name: item.name,
+        icon: item.icon ?? '',
+        url: item.url,
+        desc: item.desc ?? '',
+        abbreviation: item.abbreviation ?? '',
+      },
     }
   }
 
@@ -118,6 +128,9 @@ export function ItemForm({
         desc: values.link?.desc?.trim() || undefined,
         // 留空就保持留空：由卡片按网址走接口取站点图标，这里不要再塞首字母
         icon: values.link?.icon?.trim() || undefined,
+        // ⚠️ 缩写**不做 trim 也不改大小写**（用户要求"不用自动处理"）：
+        // 合法性由字段校验拦在提交前，这里只把空串收成"没设"
+        abbreviation: values.link?.abbreviation || undefined,
       }
       onFinish(link)
       return
@@ -188,6 +201,24 @@ function LinkSection({ layout, autoFetch, onAutoFetchChange, loading }: {
       <Input placeholder="https://example.com" maxLength={2048} disabled={loading} />
     </Form.Item>
   )
+  const abbreviation = (
+    <Form.Item
+      label="缩写"
+      name={['link', 'abbreviation']}
+      extra={`填写字母或数字，最多 ${MAX_LINK_ABBREVIATION_LENGTH} 个，可留空，搜索时会优先匹配它。`}
+      rules={[
+        {
+          // 空值合法（就是不设）；非空必须是纯字母数字
+          validator: (_rule, value: unknown) =>
+            value === undefined || value === '' || (typeof value === 'string' && LINK_ABBREVIATION_PATTERN.test(value))
+              ? Promise.resolve()
+              : Promise.reject(new Error('缩写只能包含字母或数字')),
+        },
+      ]}
+    >
+      <Input placeholder="例如：FF14" maxLength={MAX_LINK_ABBREVIATION_LENGTH} disabled={loading} />
+    </Form.Item>
+  )
   const icon = (
     <Form.Item
       label="图标"
@@ -233,13 +264,15 @@ function LinkSection({ layout, autoFetch, onAutoFetchChange, loading }: {
     <>
       {url}
       {name}
+      {abbreviation}
       {icon}
       {desc}
     </>
   ) : (
     <>
-      {name}
       {url}
+      {name}
+      {abbreviation}
       {icon}
       {desc}
     </>
