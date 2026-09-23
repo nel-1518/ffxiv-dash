@@ -12,7 +12,7 @@ pnpm lint       # oxlint
 pnpm preview    # 预览构建产物
 ```
 
-可选：复制 `.env.example` 为 `.env` 配置运行时开关（目前只有第三方图标接口一项）。
+可选：复制 `.env.example` 为 `.env` 配置运行时开关（目前**没有任何运行时开关**，图标底色已改为本地计算）。
 
 ## 技术选型
 
@@ -58,8 +58,7 @@ src/
       store.ts              「跳转」：链接文本 + 每日一次的门禁（纯逻辑，一个 localStorage 键）
       hooks.ts              useAutoOpenLinks()
     world.ts                中国区服务器表（大区 / 世界）
-    favicon.ts              网站图标第三方接口封装
-    favicon-cache.ts        图标失败负缓存（避免离线时反复重试）
+    pastel.ts               图标默认底色（稳定 hash + 12 色 pastel 调色板）
     storage/
       types.ts              BoardDoc / Group / Item 数据模型
       schema.ts             校验、归一化、版本号把关（对不上直接回退默认数据）
@@ -96,7 +95,6 @@ src/
     widgets/                组件框架（注册表 + 渲染器）
       types.ts              WidgetSpec / WidgetRenderProps / defineWidget
       registry.ts           注册表（不导入任何具体组件，避免循环依赖）
-      useFavicon.ts         图标接口 hook
       WidgetRenderer.tsx    统一卡片外壳 + 未注册组件降级
       builtins/             内置组件，每个一个目录（stats / pvp-map / market / house / countdown / tax / todo / memo / pomodoro）
   views/
@@ -611,21 +609,22 @@ dnd-kit 的 context 在**拖拽开始**与**指针每移动一帧**时都会换�
   环内读数是 `数字 + 小号 min`（同进度卡的百分比单位）：数字 22px、单位 12px，
   专注上限 120 分钟时 `120min` 实测 58px，仍落在 96px 圆的可用宽度里。
 
-## 网站图标
+## 图标底色
 
-导航卡片的图标来自第三方接口：
+导航卡片的图标**不发任何外部请求**：`icon` 填的是图片地址就显示图片，
+否则显示「**一个字符** + 一层底色」（字符取 `icon` 里的第一个字；`icon` 留空则取名称首字）。
+中英文一视同仁都只显示一个字；取字走 `Intl.Segmenter` 按字素簇切，emoji 图标不会被截成半个。
 
-```
-https://ico.faviconkit.net/favicon/{domain}?sz=64
-```
+底色由 `src/core/pastel.ts` 决定：**稳定 hash + 12 色固定 pastel 调色板**。
+刻意**不用** hash 直接生成 RGB —— 随机 RGB 容易出现太亮、太艳或发脏的颜色；
+这 12 个色是人工挑过的低饱和 pastel（Linear / Raycast 那类导航 UI 的观感）。
 
-- 域名从用户填写的网址解析（先按原样解析，失败再补 `https://` 重试）。
-- 图标取不到、离线或被墙时，`Avatar`/图标块回退显示名称首字母，不会留空。
-- 失败的域名会写入 7 天的负缓存，避免每次渲染都重新请求同一批地址。
-- **隐私**：启用后，浏览器会把访问的域名发给该第三方服务；图片请求带
-  `referrerPolicy="no-referrer"`。若不想发外部请求，设置环境变量
-  `VITE_FAVICON_ENABLED=false`，卡片即只显示首字母。
-- 需要换服务时，只改 `src/core/favicon.ts` 里的 `FAVICON_SERVICE`；缓存 key 带服务标识，会自动失效。
+- hash 是 FNV-1a 32 位（`Math.imul` + `>>> 0`，全整数运算，结果跨浏览器一致，不含 `Math.random()`）。
+- key 取**域名**：同一个站点无论叫什么名字、放在哪个分组、排在第几行，颜色都一样，改名也不换色；
+  域名解析不出来时退回名称。
+- 稳定性来自「hash 只取决于 key」：刷新、重开页面、拖动排序都不会变色。
+- ⚠️ `pastelPalette` 的**顺序即取值顺序**（`hash % 12`）：加色或换序会让所有已有链接整体换色。
+- 显示图片时不铺 pastel；图片加载失败才退回「字符 + pastel 底色」。
 
 ## 主题
 
@@ -696,8 +695,10 @@ src/app/themes/<key>/theme.css    该主题的 --dash-* 变量（只改 antd 令
 
 | 变量 | 默认值 | 说明 |
 | --- | --- | --- |
-| `VITE_FAVICON_ENABLED` | `true` | 是否请求第三方图标接口 |
+| （暂无） | — | 图标底色已改为本地计算，不再有外部图标接口开关 |
 
+早先的 `VITE_FAVICON_ENABLED` 已随第三方图标接口一起删除（`core/favicon.ts` / `core/favicon-cache.ts`
+与 `features/widgets/useFavicon.ts` 都已不存在，改为 `core/pastel.ts` 的本地 pastel 底色）。
 早先的 `VITE_API_BASE_URL` / `VITE_API_TIMEOUT_MS` / `VITE_API_RETRIES` 已随请求层一起删除
 （源码里不再有 `import.meta.env.VITE_API_*`），`.env.example` 里还留着，见「已知事项」。
 

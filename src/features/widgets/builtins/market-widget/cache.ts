@@ -7,7 +7,7 @@
  *
  * 网页打开时先看它：命中且未过期就直接用、**不发请求** —— 这正是「有缓存就不请求」的落地方式。
  *
- * 写法对齐 `core/favicon-cache.ts`：localStorage 在隐私模式 / 配额超限时会抛，
+ * 写法对齐其它 localStorage 缓存（如 `core/search/store.ts`）：localStorage 在隐私模式 / 配额超限时会抛，
  * 一律 try/catch 掉，缓存失败不影响功能。
  */
 import { MARKET_CACHE_TTL_MS } from './config.ts'

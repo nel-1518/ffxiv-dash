@@ -2,7 +2,7 @@ import { memo, useState } from 'react'
 import { App, Button, Flex, Space, Tooltip, Typography } from 'antd'
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
 import { WidgetRenderer } from '../widgets/WidgetRenderer.tsx'
-import { useFavicon } from '../widgets/useFavicon.ts'
+import { pastelColorOfLink } from '../../core/pastel.ts'
 import type { LinkItem, WidgetItem } from '../../core/storage/types.ts'
 
 /** 卡片外观所需的最小形状：链接卡片与组件卡片共有。 */
@@ -54,8 +54,8 @@ export const CardFace = memo(function CardFace({
 /**
  * 图标字段的取值判定。
  *
- * 三种形态对应三种渲染：图片地址 → 显示图片；其他文字 → 显示文字；
- * 留空 → 交给接口按网址取站点图标（见 useFavicon）。
+ * 两种形态：图片地址 → 显示图片；其他非空文字 → 显示这段文字。
+ * 留空 → 显示名称首字 + `core/pastel.ts` 给的 pastel 底色。
  * 只认协议头，不去猜扩展名：`example.com/a.png` 这种没写协议的仍按文字处理。
  */
 const IMAGE_URL_PATTERN = /^(?:https?:\/\/|data:image\/|\/\/)/i
@@ -67,6 +67,29 @@ function linkIconKind(value: string): LinkIconKind {
     return 'auto'
   }
   return IMAGE_URL_PATTERN.test(value) ? 'image' : 'text'
+}
+
+/**
+ * 取第一个"字符"。
+ *
+ * 优先走 `Intl.Segmenter` 按**字素簇**切：`🕹️`（U+1F579 + 变体选择符）这种组合
+ * 会被整体保留下来（只取码点会让 emoji 从彩色字形退化成单色文字字形）；
+ * 没有 Segmenter 时才退回按码点切（`Array.from`），它至少不会像 `slice(0, 1)`
+ * 那样把代理对劈成半个乱码字符。
+ */
+const graphemeSegmenter =
+  typeof Intl !== 'undefined' && 'Segmenter' in Intl
+    ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+    : null
+
+function firstChar(text: string): string {
+  if (graphemeSegmenter) {
+    for (const { segment } of graphemeSegmenter.segment(text)) {
+      return segment
+    }
+    return ''
+  }
+  return Array.from(text)[0] ?? ''
 }
 
 function LinkFace({
@@ -82,7 +105,6 @@ function LinkFace({
   onEdit: () => void
   onRemove: () => void
 }): React.ReactNode {
-  const favicon = useFavicon(item.url)
   const { modal } = App.useApp()
   /**
    * 手填图片地址加载失败的那一个值。
@@ -106,17 +128,21 @@ function LinkFace({
 
   const manualIcon = item.icon?.trim() ?? ''
   const iconKind = linkIconKind(manualIcon)
-  const initials = item.name.slice(0, 2).toUpperCase() || '?'
-  // 手填的图片最优先；留空时用接口取的站点图标；填的是文字则根本不渲染图片
-  const iconSrc =
-    iconKind === 'image'
-      ? brokenIcon === manualIcon
-        ? undefined
-        : manualIcon
-      : iconKind === 'auto'
-        ? favicon.src
-        : undefined
-  const iconFallback = iconKind === 'text' ? manualIcon : initials
+  /*
+   * 图标上只显示**一个**字符（中英文一视同仁）：
+   * 「名称首字」沿用原有的大写化，「手填文字」保持用户原样（只是截到一个字）。
+   */
+  const initials = firstChar(item.name).toUpperCase() || '?'
+  // 只有手填的图片地址会渲染 <img>；文字或留空都走"字符 + pastel 底色"
+  const iconSrc = iconKind === 'image' && brokenIcon !== manualIcon ? manualIcon : undefined
+  const iconFallback = iconKind === 'text' ? firstChar(manualIcon) : initials
+  /*
+   * 字符回退的底色：按**域名**取，所以同一个站点永远同一个颜色，
+   * 刷新 / 重开 / 拖动排序都不会变（见 `core/pastel.ts`）。
+   * 显示图片时不用 pastel，保留主题的中性图标底。
+   */
+  const showChar = !iconSrc
+  const pastel = pastelColorOfLink(item.url, item.name)
 
   return (
     <Flex
@@ -127,10 +153,6 @@ function LinkFace({
        * `dash-card-surface` 是**卡片表面**这个概念的标记：底色/投影/毛玻璃，
        * 以及主题对卡片的适配（如银海"深色主题 + 浅色卡"的文字翻转）都挂在它上面。
        * 组件卡由 WidgetShell 挂同一个类，两边共用一套规则（见 global.css）。
-       *
-       * ⚠️ 两种模式都挂：曾经只在浏览模式挂，结果编辑模式下整块适配全掉了。
-       * 编辑模式要的"卡片静止"由悬停规则自己保证 —— 抬起判定挂在浏览模式的
-       * `.dash-link-cell` 上，没有它卡片不会动。
        */
       className="dash-link-card dash-card-surface"
       style={{
@@ -183,8 +205,9 @@ function LinkFace({
             borderRadius: 8,
             display: 'grid',
             placeItems: 'center',
-            background: 'var(--ant-color-primary-bg)',
-            color: 'var(--ant-color-primary)',
+            // 字符用 pastel 底色；图片保持主题的中性图标底
+            background: showChar ? pastel.bg : 'var(--ant-color-primary-bg)',
+            color: showChar ? pastel.fg : 'var(--ant-color-primary)',
             fontWeight: 700,
             flex: '0 0 auto',
             overflow: 'hidden',
@@ -198,9 +221,8 @@ function LinkFace({
               height={18}
               loading="lazy"
               referrerPolicy="no-referrer"
-              // 只有接口图标才要把加载结果写进失败缓存；手填图片失败就退回文字
-              onLoad={iconKind === 'auto' ? favicon.onLoad : undefined}
-              onError={iconKind === 'auto' ? favicon.onError : () => setBrokenIcon(manualIcon)}
+              // 手填图片加载失败就退回"字符 + pastel 底色"（记下失败的那个地址）
+              onError={() => setBrokenIcon(manualIcon)}
             />
           ) : (
             iconFallback

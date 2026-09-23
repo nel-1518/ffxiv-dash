@@ -126,9 +126,8 @@ export function ItemForm({
         name,
         url: values.link?.url?.trim() || 'https://example.com',
         desc: values.link?.desc?.trim() || undefined,
-        // 留空就保持留空：由卡片按网址走接口取站点图标，这里不要再塞首字母
+        // 留空就保持留空：卡片会用名称首字 + `core/pastel.ts` 的 pastel 底色，这里不要塞首字母
         icon: values.link?.icon?.trim() || undefined,
-        // ⚠️ 缩写**不做 trim 也不改大小写**（用户要求"不用自动处理"）：
         // 合法性由字段校验拦在提交前，这里只把空串收成"没设"
         abbreviation: values.link?.abbreviation || undefined,
       }
@@ -223,7 +222,7 @@ function LinkSection({ layout, autoFetch, onAutoFetchChange, loading }: {
     <Form.Item
       label="图标"
       name={['link', 'icon']}
-      extra="填写图标链接或字符，留空则自动获取站点图标"
+      extra="图片链接或字符；留空则显示名称首字 + 自动底色"
     >
       <Input placeholder="https://…/icon.png" maxLength={2048} disabled={loading} />
     </Form.Item>

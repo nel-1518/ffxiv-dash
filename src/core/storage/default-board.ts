@@ -29,7 +29,7 @@ export function createDefaultBoard(): BoardDoc {
             name: '官网新闻',
             url: 'https://ff.web.sdo.com/web8/index.html#/simple',
             desc: '官方新闻公告',
-            icon: '',
+            icon: 'https://ff.web.sdo.com/favicon.ico',
           },
           {
             id: createId(),
@@ -37,7 +37,7 @@ export function createDefaultBoard(): BoardDoc {
             name: '活动中心',
             url: 'https://actff1.web.sdo.com/Project/20181018ffactive/index.html',
             desc: '查看最新活动',
-            icon: '',
+            icon: 'https://actff1.web.sdo.com/favicon.ico',
           },
           {
             id: createId(),
@@ -45,7 +45,7 @@ export function createDefaultBoard(): BoardDoc {
             name: '道具商城',
             url: 'https://qu.sdo.com/tools-shop?merchantId=1',
             desc: '买买买',
-            icon: '',
+            icon: 'https://qu.sdo.com/favicon.ico',
           },
           {
             id: createId(),
@@ -53,7 +53,7 @@ export function createDefaultBoard(): BoardDoc {
             name: '超域传送',
             url: 'https://ff14bjz.sdo.com/RegionKanTelepo?',
             desc: '跨区游玩',
-            icon: '',
+            icon: 'https://ff14bjz.sdo.com/favicon.ico',
           },
           {
             id: createId(),
@@ -61,7 +61,7 @@ export function createDefaultBoard(): BoardDoc {
             name: '石之家',
             url: 'https://ff14risingstones.web.sdo.com/pc/index.html#/post',
             desc: '官方社区',
-            icon: '',
+            icon: 'https://ff14risingstones.web.sdo.com/favicon.ico',
           },
           {
             id: createId(),
@@ -69,7 +69,7 @@ export function createDefaultBoard(): BoardDoc {
             name: '最终幻想XIV 中文维基',
             url: 'https://ff14.huijiwiki.com/wiki/%E9%A6%96%E9%A1%B5',
             desc: '游戏百科',
-            icon: '',
+            icon: 'https://av.huijiwiki.com/site_avatar_ff14_l.png',
           },
           {
             id: createId(),
@@ -77,7 +77,7 @@ export function createDefaultBoard(): BoardDoc {
             name: '素素攻略站',
             url: 'https://www.ffxiv.cn/v2/',
             desc: '攻略以及小工具',
-            icon: '',
+            icon: 'https://www.ffxiv.cn/favicon.ico',
           },
           {
             id: createId(),
@@ -85,7 +85,7 @@ export function createDefaultBoard(): BoardDoc {
             name: '新大陆见闻录',
             url: 'https://ff14.org/',
             desc: '新人帮手',
-            icon: '',
+            icon: 'https://ff14.org/favicon.ico',
           },
         ],
       },
