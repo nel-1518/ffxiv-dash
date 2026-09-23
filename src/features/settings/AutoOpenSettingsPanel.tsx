@@ -30,8 +30,7 @@ export function AutoOpenSettingsPanel(): React.ReactNode {
         </Typography.Title>
         <Typography.Text type="secondary" className="dash-settings-hint is-inline">
           每行一个链接，每天首次进入页面时会自动打开。
-        </Typography.Text>
-        <Typography.Text type="secondary" className="dash-settings-hint">
+          <br />
           浏览器默认会拦截"页面自己打开的新标签页"：允许本站弹出窗口后才能真正自动跳转，
           否则会弹出一条提示，点那里的按钮也能一次性打开。
         </Typography.Text>

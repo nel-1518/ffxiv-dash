@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Modal } from 'antd'
-import { BgColorsOutlined, DatabaseOutlined, ExportOutlined, HighlightOutlined, SearchOutlined } from '@ant-design/icons'
+import { BgColorsOutlined, DatabaseOutlined, ExportOutlined, HighlightOutlined, ImportOutlined, SearchOutlined } from '@ant-design/icons'
 import { AppearanceSettingsPanel } from './AppearanceSettingsPanel.tsx'
 import { AutoOpenSettingsPanel } from './AutoOpenSettingsPanel.tsx'
 import { DataSettingsPanel } from './DataSettingsPanel.tsx'
 import { ThemeEditorPanel } from './theme/ThemeEditorPanel.tsx'
 import { SearchSettingsPanel } from './SearchSettingsPanel.tsx'
+import { BatchLinksSettingsPanel } from './BatchLinksSettingsPanel.tsx'
 
 type SettingsSection = {
   key: string
@@ -24,8 +25,9 @@ type SettingsSection = {
 const SECTIONS = [
   { key: 'appearance', label: '外观', icon: <BgColorsOutlined />, Panel: AppearanceSettingsPanel },
   { key: 'theme', label: '主题编辑', icon: <HighlightOutlined />, Panel: ThemeEditorPanel },
-  { key: 'auto-open', label: '跳转', icon: <ExportOutlined />, Panel: AutoOpenSettingsPanel },
+  { key: 'batch-links', label: '批量添加链接', icon: <ImportOutlined />, Panel: BatchLinksSettingsPanel },
   { key: 'search', label: '搜索', icon: <SearchOutlined />, Panel: SearchSettingsPanel },
+  { key: 'auto-open', label: '每日自动跳转', icon: <ExportOutlined />, Panel: AutoOpenSettingsPanel },
   { key: 'data', label: '数据管理', icon: <DatabaseOutlined />, Panel: DataSettingsPanel },
 ] as const satisfies readonly SettingsSection[]
 
