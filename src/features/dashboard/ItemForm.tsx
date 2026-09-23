@@ -1,10 +1,22 @@
 import { useEffect, useMemo } from 'react'
-import { Divider, Form, Input, Select, Typography } from 'antd'
+import { Checkbox, Divider, Flex, Form, Input, Select, Typography } from 'antd'
 import type { FormInstance } from 'antd'
 import { createId } from '../../core/ids.ts'
 import { getWidget, listWidgetOptions } from '../widgets/registry.ts'
 import { allowedItemKinds, canPlaceItem } from '../groups/group-types.ts'
 import type { GroupType, Item, ItemKind, LinkItem, WidgetItem } from '../../core/storage/types.ts'
+
+/**
+ * 链接字段的三种排版。
+ *
+ * - `url-only`：新建链接的第一步 —— 只有网址，右侧带「自动获取数据」开关；
+ * - `url-first`：自动获取成功后 —— 网址仍在最上，名称 / 图标 / 描述出现在它下方；
+ * - `default`：编辑已有链接 —— 保持历史顺序（名称在最上）。
+ */
+export type LinkFormLayout = 'url-only' | 'url-first' | 'default'
+
+/** 描述输入框的字数上限（比落盘上限小，元数据回填时要按这个切一刀）。 */
+export const MAX_LINK_DESC_INPUT_LENGTH = 120
 
 /** 表单里的扁平结构：组件自身字段放 config。 */
 export type ItemFormValues = {
@@ -23,6 +35,13 @@ export type ItemFormProps = {
   /** 编辑已有条目时传入，用于保留 id。 */
   item: Item | undefined
   onFinish: (item: Item) => void
+  /** 链接字段的排版，见 `LinkFormLayout`。 */
+  linkLayout?: LinkFormLayout
+  /** 「自动获取数据」开关的状态（仅 `url-only` 排版渲染它）。 */
+  autoFetch?: boolean
+  onAutoFetchChange?: (checked: boolean) => void
+  /** 元数据请求进行中：禁用输入，避免用户改了网址又拿到上一版的回填。 */
+  loading?: boolean
 }
 
 function buildInitialValues(item: Item | undefined, defaultKind: ItemKind): ItemFormValues {
@@ -64,7 +83,17 @@ function buildInitialValues(item: Item | undefined, defaultKind: ItemKind): Item
  *   新类型默认值会被当成脏值清掉（PvP 的「显示下一个地图」就这么被清成了未勾选）。
  *   表单的"干净"由 `clearOnDestroy` + Modal 的 `destroyOnHidden` 保证，不靠这个属性。
  */
-export function ItemForm({ form, formId, groupType, item, onFinish }: ItemFormProps): React.ReactNode {
+export function ItemForm({
+  form,
+  formId,
+  groupType,
+  item,
+  onFinish,
+  linkLayout = 'default',
+  autoFetch = false,
+  onAutoFetchChange,
+  loading = false,
+}: ItemFormProps): React.ReactNode {
   const widgetOptions = useMemo(() => listWidgetOptions(), [])
   const kindOptions = useMemo(() => allowedItemKinds(groupType), [groupType])
   const allowedKind = kindOptions[0]?.value ?? 'link'
@@ -130,7 +159,12 @@ export function ItemForm({ form, formId, groupType, item, onFinish }: ItemFormPr
           getFieldValue('kind') === 'widget' ? (
             <WidgetSection widgetOptions={widgetOptions} />
           ) : (
-            <LinkSection />
+            <LinkSection
+              layout={linkLayout}
+              autoFetch={autoFetch}
+              onAutoFetchChange={onAutoFetchChange}
+              loading={loading}
+            />
           )
         }
       </Form.Item>
@@ -138,25 +172,76 @@ export function ItemForm({ form, formId, groupType, item, onFinish }: ItemFormPr
   )
 }
 
-function LinkSection(): React.ReactNode {
-  return (
+function LinkSection({ layout, autoFetch, onAutoFetchChange, loading }: {
+  layout: LinkFormLayout
+  autoFetch: boolean
+  onAutoFetchChange: ((checked: boolean) => void) | undefined
+  loading: boolean
+}): React.ReactNode {
+  const name = (
+    <Form.Item label="名称" name={['link', 'name']} rules={[{ required: true, message: '请输入名称' }]}>
+      <Input placeholder="例如：最终幻想14 官网" maxLength={60} disabled={loading} />
+    </Form.Item>
+  )
+  const url = (
+    <Form.Item label="网址" name={['link', 'url']} rules={[{ required: true, message: '请输入网址' }]}>
+      <Input placeholder="https://example.com" maxLength={2048} disabled={loading} />
+    </Form.Item>
+  )
+  const icon = (
+    <Form.Item
+      label="图标"
+      name={['link', 'icon']}
+      extra="填写图标链接或字符，留空则自动获取站点图标"
+    >
+      <Input placeholder="https://…/icon.png" maxLength={2048} disabled={loading} />
+    </Form.Item>
+  )
+  const desc = (
+    <Form.Item label="描述" name={['link', 'desc']}>
+      <Input placeholder="一句话说明" maxLength={MAX_LINK_DESC_INPUT_LENGTH} disabled={loading} />
+    </Form.Item>
+  )
+
+  if (layout === 'url-only') {
+    return (
+      <>
+        {/*
+          网址与「自动获取数据」同一行：网址是这一步唯一要填的东西，
+          开关贴在它右边，默认勾选（由 `EditDialog` 给初值）。
+          因为是自绘的行头，输入框要自己挂 `aria-label`。
+        */}
+        <Flex align="center" justify="space-between" gap={12} style={{ marginBottom: 8 }}>
+          <span style={{ fontSize: 14, lineHeight: '22px' }}>网址</span>
+          <Checkbox
+            checked={autoFetch}
+            disabled={loading}
+            onChange={(event) => onAutoFetchChange?.(event.target.checked)}
+          >
+            自动获取数据
+          </Checkbox>
+        </Flex>
+        <Form.Item name={['link', 'url']} rules={[{ required: true, message: '请输入网址' }]} style={{ marginBottom: 0 }}>
+          <Input placeholder="https://example.com" maxLength={2048} aria-label="网址" disabled={loading} />
+        </Form.Item>
+      </>
+    )
+  }
+
+  // `url-first`：刚用网址换回元数据，网址留在原处、其余字段出现在它下方
+  return layout === 'url-first' ? (
     <>
-      <Form.Item label="名称" name={['link', 'name']} rules={[{ required: true, message: '请输入名称' }]}>
-        <Input placeholder="例如：最终幻想14 官网" maxLength={60} />
-      </Form.Item>
-      <Form.Item label="网址" name={['link', 'url']} rules={[{ required: true, message: '请输入网址' }]}>
-        <Input placeholder="https://example.com" maxLength={2048} />
-      </Form.Item>
-      <Form.Item
-        label="图标"
-        name={['link', 'icon']}
-        extra="填写图标链接或字符，留空则自动获取站点图标"
-      >
-        <Input placeholder="https://…/icon.png" maxLength={2048} />
-      </Form.Item>
-      <Form.Item label="描述" name={['link', 'desc']}>
-        <Input placeholder="一句话说明" maxLength={120} />
-      </Form.Item>
+      {url}
+      {name}
+      {icon}
+      {desc}
+    </>
+  ) : (
+    <>
+      {name}
+      {url}
+      {icon}
+      {desc}
     </>
   )
 }

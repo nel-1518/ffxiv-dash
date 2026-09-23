@@ -1,15 +1,11 @@
 import { App, Button, Flex, Input, Select, Typography } from 'antd'
 import { ImportOutlined } from '@ant-design/icons'
 import { useMemo, useState } from 'react'
+import { fetchLinkMetadata } from '../../core/link-metadata.ts'
 import { DEFAULT_GROUP_COLUMNS, type LinkItem } from '../../core/storage/types.ts'
 import { useBoardDoc } from '../../state/hooks.ts'
 import { boardActions, readBoardDoc } from '../../state/board-store.ts'
-import {
-  fetchLinkMetadata,
-  getMaxInputLines,
-  metadataToLinkItem,
-  parseLinkLines,
-} from './link-metadata.ts'
+import { getMaxInputLines, metadataToLinkItem, parseLinkLines } from './link-metadata.ts'
 
 const NEW_GROUP_VALUE = '__new-link-group__'
 
@@ -33,20 +29,20 @@ export function BatchLinksSettingsPanel(): React.ReactNode {
   const showValidation = (): void => {
     if (parsed.excessCount > 0) {
       notification.warning({
-        message: '链接数量超过限制',
+        title: '链接数量超过限制',
         description: `最多输入 ${getMaxInputLines()} 行，请删除多出的 ${parsed.excessCount} 行后再导入。`,
       })
       return
     }
     if (parsed.lines.length === 0) {
       notification.warning({
-        message: '没有可导入的链接',
+        title: '没有可导入的链接',
         description: parsed.invalid.length > 0 ? '输入中没有可识别的 HTTP 或 HTTPS 链接。' : '请先输入链接。',
       })
       return
     }
     if (selectedExistingGroup === NEW_GROUP_VALUE && newGroupName.trim() === '') {
-      notification.warning({ message: '请输入分组名称' })
+      notification.warning({ title: '请输入分组名称' })
     }
   }
 
@@ -173,9 +169,9 @@ export function BatchLinksSettingsPanel(): React.ReactNode {
 }
 
 type ImportNotification = {
-  success: (config: { message: string; description?: string; duration?: number }) => void
-  warning: (config: { message: string; description?: string; duration?: number }) => void
-  error: (config: { message: string; description?: string; duration?: number }) => void
+  success: (config: { title: string; description?: string; duration?: number }) => void
+  warning: (config: { title: string; description?: string; duration?: number }) => void
+  error: (config: { title: string; description?: string; duration?: number }) => void
 }
 
 type BatchResult =
@@ -203,11 +199,11 @@ function notifyImportResult(
   const description = [...details, ...failureDetails, ...riskDetails].join('\n')
 
   if (importedCount > 0 && failures.length === 0 && risks.length === 0) {
-    notification.success({ message: '批量导入完成', description })
+    notification.success({ title: '批量导入完成', description })
   } else if (importedCount > 0) {
-    notification.warning({ message: '批量导入完成，但有部分项目需要注意', description, duration: 0 })
+    notification.warning({ title: '批量导入完成，但有部分项目需要注意', description, duration: 0 })
   } else {
-    notification.error({ message: '没有成功导入链接', description, duration: 0 })
+    notification.error({ title: '没有成功导入链接', description, duration: 0 })
   }
 }
 
