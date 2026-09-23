@@ -23,9 +23,21 @@ export const DEFAULT_SEARCH_ENGINES: readonly SearchEngineConfig[] = [
     enabled: false,
   },
   {
-    key: 'google',
-    name: 'Google',
-    urlTemplate: 'https://www.google.com/search?q=%s',
+    key: 'bilibili',
+    name: '哔哩哔哩',
+    urlTemplate: 'https://search.bilibili.com/all?keyword=%s',
+    enabled: false,
+  },
+  {
+    key: 'xiaohongshu',
+    name: '小红书',
+    urlTemplate: 'https://www.xiaohongshu.com/search_result?keyword=%s',
+    enabled: false,
+  },
+  {
+    key: 'weibo',
+    name: '微博',
+    urlTemplate: 'https://s.weibo.com/weibo?q=%s',
     enabled: false,
   },
   {
@@ -120,4 +132,8 @@ export function setSearchEngines(engines: SearchEngineConfig[]): void {
     urlTemplate: engine.urlTemplate.trim(),
   }))
   save(next)
+}
+
+export function resetSearchEngines(): void {
+  save([...DEFAULT_SEARCH_ENGINES])
 }

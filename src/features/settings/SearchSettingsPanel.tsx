@@ -1,8 +1,8 @@
-import { DeleteOutlined, HolderOutlined, PlusOutlined } from '@ant-design/icons'
-import { Button, Checkbox, Flex, Input, Typography } from 'antd'
+import { DeleteOutlined, HolderOutlined, PlusOutlined, UndoOutlined } from '@ant-design/icons'
+import { App, Button, Checkbox, Flex, Input, Popconfirm, Typography } from 'antd'
 import { useState } from 'react'
 import { useSearchEngines } from '../../core/search/hooks.ts'
-import { setSearchEngines, type SearchEngineConfig } from '../../core/search/store.ts'
+import { resetSearchEngines, setSearchEngines, type SearchEngineConfig } from '../../core/search/store.ts'
 
 function newEngine(): SearchEngineConfig {
   return {
@@ -17,6 +17,7 @@ export function SearchSettingsPanel(): React.ReactNode {
   const engines = useSearchEngines()
   const [draggingKey, setDraggingKey] = useState<string | null>(null)
   const [overKey, setOverKey] = useState<string | null>(null)
+  const { message } = App.useApp()
 
   const update = (key: string, patch: Partial<SearchEngineConfig>) => {
     setSearchEngines(engines.map((engine) => (engine.key === key ? { ...engine, ...patch } : engine)))
@@ -24,6 +25,10 @@ export function SearchSettingsPanel(): React.ReactNode {
 
   const add = () => setSearchEngines([...engines, newEngine()])
   const remove = (key: string) => setSearchEngines(engines.filter((engine) => engine.key !== key))
+  const reset = () => {
+    resetSearchEngines()
+    message.success('已恢复默认搜索引擎设置')
+  }
 
   const handleDrop = (targetKey: string) => {
     if (!draggingKey || draggingKey === targetKey) {
@@ -50,7 +55,7 @@ export function SearchSettingsPanel(): React.ReactNode {
       <section>
         <Typography.Title className="dash-settings-label" level={5}>搜索引擎</Typography.Title>
         <Typography.Text type="secondary" className="dash-settings-hint is-inline">
-          勾选后，输入关键词时会在搜索弹窗中显示对应候选项。地址中的 `%s` 会替换为搜索词。
+          勾选后，输入关键词时会在搜索弹窗中显示对应候选项。地址中的 "%s" 会替换为搜索词。
         </Typography.Text>
       </section>
 
@@ -113,14 +118,25 @@ export function SearchSettingsPanel(): React.ReactNode {
             </Flex>
             {!engine.urlTemplate.includes('%s') ? (
               <Typography.Text type="warning" className="dash-settings-hint">
-                地址中需要包含 `%s`，否则不会带上搜索内容。
+                地址中需要包含 "%s"，否则不会带上搜索内容。
               </Typography.Text>
             ) : null}
           </Flex>
         ))}
       </Flex>
 
-      <Button icon={<PlusOutlined />} onClick={add}>添加搜索引擎</Button>
+      <Flex gap={8} wrap="wrap">
+        <Button icon={<PlusOutlined />} onClick={add}>添加搜索引擎</Button>
+        <Popconfirm
+          title="恢复默认搜索引擎设置？"
+          description="将搜索引擎列表和启用状态恢复到默认配置。"
+          okText="恢复"
+          cancelText="取消"
+          onConfirm={reset}
+        >
+          <Button icon={<UndoOutlined />}>恢复默认</Button>
+        </Popconfirm>
+      </Flex>
     </Flex>
   )
 }
