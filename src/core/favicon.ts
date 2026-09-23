@@ -45,9 +45,3 @@ export function buildFaviconUrl(url: string): string | null {
 
 /** 失败缓存的作用域标识：换服务或换尺寸时自动失效。 */
 export const FAVICON_CACHE_SCOPE = `${FAVICON_SERVICE}|${FAVICON_SIZE}`
-
-/**
- * 隐私开关：关掉后只显示首字母，不再向第三方发起图标请求。
- * 通过 `VITE_FAVICON_ENABLED=false` 关闭。
- */
-export const faviconEnabled = import.meta.env.VITE_FAVICON_ENABLED !== 'false'

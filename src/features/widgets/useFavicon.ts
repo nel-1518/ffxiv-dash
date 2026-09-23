@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { buildFaviconUrl, faviconEnabled, toHost } from '../../core/favicon.ts'
+import { buildFaviconUrl, toHost } from '../../core/favicon.ts'
 import { clearFaviconFailure, isFaviconKnownBad, markFaviconFailed } from '../../core/favicon-cache.ts'
 
 export type FaviconState = {
@@ -10,9 +10,6 @@ export type FaviconState = {
 }
 
 function resolveSrc(url: string): string | undefined {
-  if (!faviconEnabled) {
-    return undefined
-  }
   const host = toHost(url)
   if (!host || isFaviconKnownBad(host)) {
     return undefined
