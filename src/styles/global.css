@@ -1599,7 +1599,10 @@ a:hover {
 }
 
 .dash-search-item-title {
-  /* 名称按内容宽度占位，过长时先压缩自己（0 1 auto） */
+  /*
+   * 名称优先显示：按内容宽度占位（0 1 auto），且**不会被右边的长网址挤掉** ——
+   * 让位的是 `.dash-search-item-sub`（它的 flex-basis 是 0，见下）。
+   */
   flex: 0 1 auto;
   min-width: 0;
   font-size: 14px;
@@ -1617,7 +1620,14 @@ a:hover {
 
 /* 描述 / 网址：吃掉剩余宽度并靠右，过长就省略而不是换行 */
 .dash-search-item-sub {
-  flex: 1 1 auto;
+  /*
+   * ⚠️ `flex-basis` 必须是 **0**，不能写 `auto`：
+   * 写 `auto` 时基准宽度就是整条网址，一行装不下时负的剩余空间会按「基准宽度」
+   * 分摊到两个子项上 —— 名称也会被压缩，表现就是“网址太长，名称被省略”。
+   * 基准为 0 时它完全靠 `flex-grow` 去拿剩余宽度，于是**只压自己**：
+   * 名称拿满自然宽度，网址先省略、实在不够再缩到 0。
+   */
+  flex: 1 1 0;
   min-width: 0;
   text-align: right;
   font-size: 12px;
