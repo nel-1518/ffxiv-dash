@@ -100,20 +100,23 @@ export function boardReducer(doc: BoardDoc, action: BoardAction): BoardDoc {
       /*
        * 编辑已有条目本身不占新名额；但把组件**改成另一种类型**等价于"再放一个新类型的实例"，
        * 同样要过上限。同类型改标题 / 配置不受限。
+       * ⚠️ 条目先提取成局部 const：判别收窄（kind === 'widget'）只在别名条件
+       * 引用 const 局部量时才能延续到后面的 if，直接写 action.item 会收窄失败。
        */
+      const { item: nextItem } = action
       const existing = doc.groups
         .flatMap((group) => group.items)
-        .find((entry) => entry.id === action.item.id)
+        .find((entry) => entry.id === nextItem.id)
       const switchedType =
-        action.item.kind === 'widget' &&
-        (existing?.kind !== 'widget' || existing.widget !== action.item.widget)
-      if (switchedType && widgetLimitReached(doc, action.item.widget)) {
-        console.warn(`[ffxiv-dash] 组件 "${action.item.widget}" 已达实例上限，拒绝修改类型`)
+        nextItem.kind === 'widget' &&
+        (existing?.kind !== 'widget' || existing.widget !== nextItem.widget)
+      if (switchedType && widgetLimitReached(doc, nextItem.widget)) {
+        console.warn(`[ffxiv-dash] 组件 "${nextItem.widget}" 已达实例上限，拒绝修改类型`)
         return doc
       }
       return updateGroupById(doc, action.groupId, (group) =>
-        canPlaceItem(group.type, action.item.kind)
-          ? { ...group, items: group.items.map((item) => (item.id === action.item.id ? action.item : item)) }
+        canPlaceItem(group.type, nextItem.kind)
+          ? { ...group, items: group.items.map((item) => (item.id === nextItem.id ? nextItem : item)) }
           : group,
       )
     }
