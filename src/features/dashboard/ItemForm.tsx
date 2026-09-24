@@ -3,7 +3,8 @@ import { Checkbox, Divider, Flex, Form, Input, Select, Typography } from 'antd'
 import type { FormInstance } from 'antd'
 import { createId } from '../../core/ids.ts'
 import { getWidget, listWidgetOptions } from '../widgets/registry.ts'
-import { allowedItemKinds, canPlaceItem } from '../groups/group-types.ts'
+import { canPlaceItem } from '../../core/group-rules.ts'
+import { allowedItemKinds } from '../groups/group-types.ts'
 import {
   LINK_ABBREVIATION_PATTERN,
   MAX_LINK_ABBREVIATION_LENGTH,

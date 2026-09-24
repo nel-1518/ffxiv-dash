@@ -1,7 +1,7 @@
 import { useCallback, useSyncExternalStore } from 'react'
 import { readBoardDoc, readGroup, readGroupRows, subscribeBoard } from './board-store.ts'
 import type { BoardDoc, Group } from '../core/storage/types.ts'
-import type { GroupRow } from '../features/groups/group-types.ts'
+import type { GroupRow } from './group-rows.ts'
 
 /**
  * 看板数据的**订阅入口**，全部走 `useSyncExternalStore`。

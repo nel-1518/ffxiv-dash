@@ -1,6 +1,6 @@
 import { createId } from '../ids.ts'
 import { isRecord } from '../guards.ts'
-import { canPlaceItem } from '../../features/groups/group-types.ts'
+import { canPlaceItem } from '../group-rules.ts'
 import { GROUP_TYPES, ITEM_KINDS, LINK_ABBREVIATION_PATTERN, MAX_LINK_ABBREVIATION_LENGTH, clampGroupColumns } from './types.ts'
 import type {
   BoardDoc,

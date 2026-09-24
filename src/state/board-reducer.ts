@@ -1,6 +1,6 @@
 import { createId } from '../core/ids.ts'
+import { canPlaceItem } from '../core/group-rules.ts'
 import { clampGroupColumns } from '../core/storage/types.ts'
-import { canPlaceItem } from '../features/groups/group-types.ts'
 import type { BoardDoc, Group, WidgetItem } from '../core/storage/types.ts'
 import type { BoardAction } from './board-types.ts'
 

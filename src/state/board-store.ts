@@ -1,9 +1,9 @@
 import { loadInitialDoc } from './board-storage.ts'
 import { boardReducer } from './board-reducer.ts'
-import { splitIntoRows } from '../features/groups/group-types.ts'
+import { splitIntoRows } from './group-rows.ts'
 import type { BoardDoc, Group, Item } from '../core/storage/types.ts'
 import type { BoardAction, BoardActions } from './board-types.ts'
-import type { GroupRow } from '../features/groups/group-types.ts'
+import type { GroupRow } from './group-rows.ts'
 
 /**
  * 看板状态的**唯一来源**（纯逻辑，无 React）。

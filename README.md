@@ -183,7 +183,9 @@ type WidgetItem = {
 }
 ```
 
-分组"放在哪一行"的规则集中在 `src/features/groups/group-types.ts` 的 `GROUP_TYPE_META`：
+分组"放在哪一行"的规则集中在 `src/core/group-rules.ts` 的 `GROUP_TYPE_META`
+（能力规则在 core：校验、reducer 与界面共用；`src/features/groups/group-types.ts` 只剩界面文案，
+`src/state/group-rows.ts` 持有切行结构）：
 每种类型声明 `allowedKinds`（能放哪种卡片）、`columnsVisible` / `defaultColumns` 与 `perRow`（同类一行放几个）。
 `GroupBoard` 依据 `perRow` 把连续的同类型分组切行——`widget` 的 `perRow` 是 1，所以每个小组件分组独占一行；
 `link` 是 4，不足 4 个时按 24 栅格均分。
