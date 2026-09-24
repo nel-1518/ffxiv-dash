@@ -98,7 +98,8 @@ src/
       builtins/             内置组件，每个一个目录（stats / pvp-map / market / house / countdown / tax / todo / memo / pomodoro）
   views/
     DashboardPage.tsx       页面组装
-  styles/global.css         仅页面背景、字体栈、少量基线
+  styles/global.css         令牌、基线、背景层、卡片材质、页面布局、全局动效兜底；
+                            各域样式在 features 下各域目录的同名 css（由各自入口组件引入）
 ```
 
 ### 部署基础路径与资源地址

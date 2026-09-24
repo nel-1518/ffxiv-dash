@@ -1,0 +1,342 @@
+/* 搜索弹窗：内联 fixed overlay、输入区与结果区、键盘高亮与回车键帽。 */
+/*
+ * 搜索弹窗
+ *
+ * 内联 fixed overlay，**不用 antd Modal**：Modal 会 portal 到 document.body，
+ * 从而逃出 ConfigProvider 的 .css-var-* 容器，--ant-color-* 全部取不到值。
+ *
+ * 尺寸链路：overlay 用 flex 居中，高度跟随 --vv-height（visualViewport），
+ * 卡片 max-height 再扣掉上下边距——移动端键盘弹出时卡片不会被顶出屏幕。
+ */
+.dash-search-overlay {
+  position: fixed;
+  top: var(--vv-top, 0);
+  left: 0;
+  right: 0;
+  height: var(--vv-height, 100%);
+  /* 低于 antd 的弹层（1000+），因此命令式 modal.confirm 仍会盖在它上面 */
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  /*
+   * 纯半透明遮罩。
+   */
+  background: rgba(24, 21, 35, 0.32);
+  animation: dash-search-fade-in 0.2s ease;
+}
+
+.dash-search-card {
+  width: 100%;
+  max-width: 600px;
+  max-height: min(560px, calc(var(--vv-height, 100vh) - 48px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 18px !important;
+  background: var(--ant-color-bg-container) !important;
+  border: 1px solid var(--ant-color-border-secondary) !important;
+  box-shadow: var(--dash-shadow-xl) !important;
+  animation: dash-search-card-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 卡片内边距归零：输入区与结果区各自控内边距，结果区才能整体滚动 */
+.dash-search-card .ant-card-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
+}
+
+.dash-search-input-row {
+  padding: 14px 16px;
+  /* 描边放在不参与滚动的容器上，分割线才不会随结果一起滚走 */
+  border-bottom: 1px solid var(--ant-color-split);
+}
+
+.dash-search-input-row .dash-search-input.ant-input-affix-wrapper {
+  height: 48px;
+  padding: 0 6px 0 14px;
+  /* 必顶：外层 48px 而内部 .ant-input 只有 34px，不给 center 的话
+     输入框会贴在外层顶部，文字看起来偏高约 6px */
+  align-items: center;
+  border-radius: 14px !important;
+  background: var(--ant-color-fill-quaternary);
+  border: 1px solid var(--ant-color-border-secondary) !important;
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.dash-search-input-row .dash-search-input.ant-input-affix-wrapper:hover {
+  background: var(--ant-color-bg-container);
+  border-color: var(--ant-color-primary-border) !important;
+}
+
+.dash-search-input-row .dash-search-input.ant-input-affix-wrapper:focus-within {
+  background: var(--ant-color-bg-container);
+  border-color: var(--ant-color-primary) !important;
+  box-shadow: 0 0 0 3px var(--ant-color-primary-bg) !important;
+}
+
+.dash-search-input-row .dash-search-input .ant-input {
+  height: 34px;
+  color: var(--ant-color-text);
+  font-size: 14px;
+  background: transparent;
+  caret-color: var(--ant-color-primary);
+}
+
+.dash-search-input-row .dash-search-input .ant-input::placeholder {
+  color: var(--ant-color-text-placeholder);
+}
+
+.dash-search-input-row .dash-search-input .ant-input-prefix {
+  display: flex;
+  align-items: center;
+  margin-inline-end: 8px;
+  color: var(--ant-color-text-tertiary);
+  transition: color 0.2s ease;
+}
+
+.dash-search-input-row .dash-search-input.ant-input-affix-wrapper:focus-within .ant-input-prefix {
+  color: var(--ant-color-primary);
+}
+
+.dash-search-results {
+  flex: 1;
+  min-height: 120px;
+  padding: 10px 16px 16px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ant-color-border) transparent;
+  scrollbar-gutter: stable;
+}
+
+.dash-search-results::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dash-search-results::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dash-search-results::-webkit-scrollbar-thumb {
+  background: var(--ant-color-border);
+  border-radius: 3px;
+}
+
+/* 分段标题：链接段与搜索引擎段之间除了留白还给一条分隔线 */
+.dash-search-section {
+  padding: 8px 4px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--ant-color-text-tertiary);
+}
+
+.dash-search-section:not(:first-child) {
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ant-color-split);
+}
+
+.dash-search-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px 9px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  color: inherit;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.dash-search-item:hover,
+.dash-search-item.is-active {
+  background: var(--ant-color-primary-bg);
+  border-color: var(--ant-color-primary-border);
+}
+
+/* 选中项左侧的强调条：键盘移动时一眼能看出停在哪一行 */
+.dash-search-item.is-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  border-radius: 0 3px 3px 0;
+  background: var(--ant-color-primary);
+}
+
+.dash-search-item-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  font-size: 16px;
+  color: var(--ant-color-text-tertiary);
+  transition: color 0.18s ease;
+}
+
+.dash-search-item:hover .dash-search-item-icon,
+.dash-search-item.is-active .dash-search-item-icon {
+  color: var(--ant-color-primary);
+}
+
+/* 文字区只有一行：名称靠左、描述（或网址）靠右，中间自动拉开 */
+.dash-search-item-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  /* baseline 而不是 center：两者字号不同，齐基线才对齐正文，不会显得浮 */
+  align-items: baseline;
+  gap: 10px;
+}
+
+.dash-search-item-title {
+  /*
+   * 名称优先显示：按内容宽度占位（0 1 auto），且**不会被右边的长网址挤掉** ——
+   * 让位的是 `.dash-search-item-sub`（它的 flex-basis 是 0，见下）。
+   */
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ant-color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-search-item:hover .dash-search-item-title,
+.dash-search-item.is-active .dash-search-item-title {
+  color: var(--ant-color-text-heading);
+}
+
+/* 描述 / 网址：吃掉剩余宽度并靠右，过长就省略而不是换行 */
+.dash-search-item-sub {
+  /*
+   * ⚠️ `flex-basis` 必须是 **0**，不能写 `auto`：
+   * 写 `auto` 时基准宽度就是整条网址，一行装不下时负的剩余空间会按「基准宽度」
+   * 分摊到两个子项上 —— 名称也会被压缩，表现就是“网址太长，名称被省略”。
+   * 基准为 0 时它完全靠 `flex-grow` 去拿剩余宽度，于是**只压自己**：
+   * 名称拿满自然宽度，网址先省略、实在不够再缩到 0。
+   */
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: right;
+  font-size: 12px;
+  color: var(--ant-color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+  缩写：紧跟在名称右边、不吃剩余宽度（`flex: none`），描述仍靠右。
+  比正文小一档 + 三级色，是"顺带看一眼"的提示，不抢名称的注意力。
+*/ 
+.dash-search-item-abbr {
+  flex: none;
+  max-width: 40%;
+  font-size: 11px;
+  color: var(--ant-color-text-quaternary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 回车键帽：只在悬停/选中那一行出现，平时不干扰阅读 */
+.dash-search-item-enter {
+  flex: none;
+  min-width: 24px;
+  height: 20px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--ant-color-bg-elevated);
+  font-size: 12px;
+  color: var(--ant-color-text-tertiary);
+  opacity: 0;
+  transition:
+    opacity 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.dash-search-item:hover .dash-search-item-enter,
+.dash-search-item.is-active .dash-search-item-enter {
+  opacity: 1;
+  color: var(--ant-color-primary);
+  border-color: var(--ant-color-primary-border);
+  background: var(--ant-color-primary-bg);
+}
+
+.dash-search-hint {
+  padding: 24px 4px;
+  text-align: center;
+}
+
+.dash-search-hint .ant-typography {
+  font-size: 13px;
+}
+
+@keyframes dash-search-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dash-search-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 768px) {
+  .dash-search-overlay {
+    padding: 12px;
+  }
+
+  .dash-search-card {
+    max-height: calc(var(--vv-height, 100vh) - 24px);
+    border-radius: 16px !important;
+  }
+
+  .dash-search-input-row {
+    padding: 12px;
+  }
+
+  .dash-search-input-row .dash-search-input .ant-input {
+    /* 移动端字号提到 16px：iOS 聚焦输入框时不会自动放大整个页面 */
+    font-size: 16px;
+  }
+
+  .dash-search-results {
+    padding: 8px 12px 12px;
+  }
+
+  .dash-search-item {
+    padding: 8px 10px 8px 12px;
+  }
+}

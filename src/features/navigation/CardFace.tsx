@@ -1,3 +1,4 @@
+import './navigation.css'
 import { memo, useState } from 'react'
 import { App, Button, Flex, Space, Tooltip, Typography } from 'antd'
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons'

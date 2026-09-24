@@ -1,3 +1,4 @@
+import './widgets.css'
 import { Component, useMemo } from 'react'
 import { Alert, App, Button, Card, Flex, Space, Tooltip, Typography } from 'antd'
 import { DeleteOutlined, EditOutlined, WarningOutlined } from '@ant-design/icons'

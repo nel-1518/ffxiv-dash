@@ -1,3 +1,4 @@
+import './dashboard.css'
 import { useEffect, useRef } from 'react'
 import { Button, Flex, Input } from 'antd'
 import { CheckOutlined, EditOutlined, PlusOutlined, SearchOutlined, SettingOutlined } from '@ant-design/icons'

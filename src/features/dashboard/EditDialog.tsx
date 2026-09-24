@@ -1,3 +1,4 @@
+import './dashboard.css'
 import { useMemo, useState } from 'react'
 import { Alert, Button, Flex, Form, Modal, Space } from 'antd'
 import { DeleteOutlined } from '@ant-design/icons'

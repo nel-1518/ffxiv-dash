@@ -1,0 +1,223 @@
+/* 系统设置弹窗：两栏布局、分组导航、外观选项块、搜索引擎管理行。 */
+/*
+ * 系统设置弹窗
+ *
+ * 壳子交给 antd Modal（焦点陷阱 / Esc / 遮罩都是现成的），
+ * 这里只排版它内部的两栏：左侧分组导航 + 右侧内容。
+ * antd 的 cssVar 类会打在 .ant-modal 自身上，所以这些 var(--ant-color-*) 在 portal 里照样能取到。
+ */
+.dash-settings {
+  display: flex;
+  gap: 20px;
+  min-height: 300px;
+}
+
+.dash-settings-nav {
+  flex: none;
+  width: 168px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-right: 12px;
+  border-right: 1px solid var(--ant-color-split);
+}
+
+.dash-settings-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 13px;
+  color: var(--ant-color-text);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.dash-settings-nav-item:hover {
+  background: var(--ant-color-fill-quaternary);
+}
+
+.dash-settings-nav-item.is-active {
+  background: var(--ant-color-primary-bg);
+  color: var(--ant-color-primary);
+  font-weight: 500;
+}
+
+.dash-settings-nav-icon {
+  display: inline-flex;
+  font-size: 15px;
+}
+
+.dash-settings-panel {
+  flex: 1;
+  min-width: 0;
+  /*
+   * 内容长了让**面板自己滚**，而不是把整个弹窗撑高、由遮罩层去滚 ——
+   * 后者会把标题栏和关闭按钮一起滚出视口，用户找不到出口。
+   *
+   * 200px 是弹窗外壳占掉的纵向空间：antd 的 top(100) + 标题栏(≈52) +
+   * 内容区下内边距(20) + 底部留白(≈28)。这四项没法用 CSS 算，
+   * 所以只能写成一个估计值；下限 240px 是防止视口极矮时面板被压成一条缝
+   * （那种极端情况下仍由遮罩层滚动兜底）。
+   *
+   * 左侧导航会跟着面板一起变矮 —— 它们同处一个 flex 行，行高取的是较高的一方。
+   */
+  max-height: max(240px, calc(100svh - 200px));
+  overflow-y: auto;
+  /*
+   * 给滚动条留出"自己的地盘"：
+   * ① padding-right 是内容与滚动条之间的空隙 —— 不留的话最后一列控件会紧贴滚动条，
+   *    看着像被压住（尤其是系统默认的深色滚动条，在浅色弹窗里对比极强）；
+   * ② scrollbar-gutter: stable 让这条空隙常驻，切换分区时内容不会左右跳。
+   */
+  padding-right: 12px;
+  scrollbar-gutter: stable;
+  /* 细一档、并跟随主题取色，别再出现一条粗黑的系统滚动条 */
+  scrollbar-width: thin;
+  scrollbar-color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.25)) transparent;
+}
+
+.dash-settings-panel:focus-visible {
+  outline: none;
+}
+
+.dash-settings-label.ant-typography {
+  margin: 0 0 10px;
+  font-size: 13px;
+}
+
+/* 主题是「三选一」，做成三块等宽大按钮，比下拉更好选 */
+.dash-settings-options {
+  display: flex;
+  gap: 12px;
+}
+
+/*
+ * 选项多于 4 个时改排成网格（八套主题）：
+ * flex 行排会把每块压到 ~80px，「银海」这种两字词就开始换行了。
+ */
+.dash-settings-options.is-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* 选中某个来源后才出现的那块控件（取色器 / 地址框 / 上传按钮） */
+.dash-settings-block {
+  margin-top: 16px;
+  min-height: 32px;
+}
+
+.dash-search-engine-row {
+  padding: 5px 0px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.dash-search-engine-row.is-drag-over {
+  border-color: var(--ant-color-primary);
+  background: var(--ant-color-primary-bg);
+}
+
+.dash-search-engine-drag-handle {
+  flex: none;
+  cursor: grab;
+  color: var(--ant-color-text-tertiary);
+}
+
+.dash-search-engine-drag-handle:active {
+  cursor: grabbing;
+}
+
+/*
+ * 名称列。
+ */
+.dash-search-engine-name {
+  flex: none;
+  width: calc(6em + 10px);
+}
+
+.dash-settings-option {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 12px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 12px;
+  background: var(--ant-color-fill-quaternary);
+  font-size: 13px;
+  color: var(--ant-color-text);
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.dash-settings-option:hover {
+  border-color: var(--ant-color-primary-border);
+  color: var(--ant-color-primary);
+}
+
+.dash-settings-option.is-active {
+  border-color: var(--ant-color-primary);
+  background: var(--ant-color-primary-bg);
+  color: var(--ant-color-primary);
+  font-weight: 500;
+}
+
+.dash-settings-option-icon {
+  font-size: 20px;
+}
+
+.dash-settings-hint.ant-typography {
+  display: block;
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.dash-settings-hint.is-inline.ant-typography {
+  margin-top: 0;
+}
+
+.dash-settings-actions {
+  margin-top: 14px;
+}
+
+/* 窄屏：两栏竖过来，分组导航变成一排横向标签 */
+@media (max-width: 575px) {
+  .dash-settings {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .dash-settings-nav {
+    flex-direction: row;
+    gap: 6px;
+    width: 100%;
+    padding-right: 0;
+    padding-bottom: 10px;
+    border-right: 0;
+    border-bottom: 1px solid var(--ant-color-split);
+    overflow-x: auto;
+  }
+
+  .dash-settings-nav-item {
+    flex: none;
+    width: auto;
+  }
+
+  .dash-settings-options {
+    flex-direction: column;
+  }
+}

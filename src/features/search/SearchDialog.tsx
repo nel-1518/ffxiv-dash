@@ -1,3 +1,4 @@
+import './search.css'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Card, Input, Typography } from 'antd'
 import { SearchOutlined } from '@ant-design/icons'

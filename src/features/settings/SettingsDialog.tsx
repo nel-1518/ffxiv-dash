@@ -1,3 +1,4 @@
+import './settings.css'
 import { useState } from 'react'
 import { Modal } from 'antd'
 import { BgColorsOutlined, DatabaseOutlined, ExportOutlined, HighlightOutlined, ImportOutlined, SearchOutlined } from '@ant-design/icons'

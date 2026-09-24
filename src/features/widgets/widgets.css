@@ -1,0 +1,1178 @@
+/* 组件卡（builtins）的卡面样式：todo / memo / rest / stats / market / house / tax / countdown，以及三张读数卡共用的 .dash-card-fill 与 .dash-card-link。 */
+/*
+ * 「铺满但不越界」的两条公用规则（房屋 / 物品价格 / 市场税率三张读数卡共用）。
+ *
+ * 矮卡被本行最高那张撑高时，内容若只长到一半就停，上下会各空一大块（像内容没写完）。
+ * 做法：内容列（`.dash-card-fill`）跟着长，但**封顶在 PvP 地图轮换卡的高度**：
+ * 235px（它单独一张时的卡高）− 72px（卡片头 + 卡面上下内边距）= **164px**。
+ * 再高的富余交回卡面 —— 上面那条 `justify-content: center` 会把它均分到上下两侧。
+ * ⚠️ 卡片尺寸 / 内边距变了，或 PvP 卡的排版变了，这个数要重新量。
+ *
+ * 内部还要再安排一层：哪一块具体吃掉这些高度（房屋是合计块、价格卡是两个品质块、
+ * 税率卡是 2×4 的格子），那是各卡自己的事，见各自的 `.dash-*` 规则。
+ */
+.dash-card-fill {
+  flex: 1 1 auto;
+  max-height: 164px;
+}
+
+/*
+ * 「整块可点」的正文链接（三张卡共用）。
+ *
+ * ⚠️ 它同时是卡内的纵向 flex 容器，所以必须 `display: flex`：
+ * 写成 `display: block` 会让内层的 `flex: 1 1 auto` 失效，上面那套「跟着长」就没了。
+ */
+.dash-card-link {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  color: inherit;
+}
+
+/*
+ * 待办卡
+ *
+ * 卡面 = 一行小字（刷新规则 + 完成进度）+ 待办列表。
+ *
+ * 列表**按列填充**：`grid-auto-flow: column` + 固定 5 行 —— 第一列先从上往下填满
+ * 「卡片能显示的行数」，装不下了才开第二列。于是待办变多时先是纵向延长（卡片自然变高），
+ * 到顶之后才往右铺，而不是一直把卡片顶高。
+ *
+ * ⚠️ 5 行是**算出来的**，不是一个随意的排版数字：内容区上限 164px（`.dash-card-fill`）
+ * 减去小字 13px 与间距 6px 得 145px，而一行 27px（胶囊行高，间隙用透明描边造，见 `.dash-todo-check`）
+ * —— 5 行 135px 装得下（剩下的 10px 刚好容纳 8px 的横向滚动条，不会再连出纵向滚动条），6 行 162px 就溢出。
+ * 改行高 / 卡片尺寸之后这个数要重量，它直接决定"第几项开始换列"。
+ */
+.dash-todo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dash-todo-meta {
+  /* ⚠️ 不能压缩：列表一溢出，flex 会把这一行也按比例缩掉（实测 13.2px → 3.4px，文字被裁）*/
+  flex: none;
+  /*
+   * 两端对齐：刷新规则靠左、完成进度靠右。
+   * 进度是这张卡唯一"会变"的读数，给它一个固定位置（否则规则文字一截断，它就会左右乱跳）。
+   * `padding-inline` 与下面待办行的胶囊内边距一致，左侧光学边缘才对得齐。
+   */
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  /* 与待办行的内容左缘对齐：胶囊 1px 透明描边 + 7px 内边距 = 8px */
+  padding-inline: 8px;
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}
+
+/* 刷新规则：窄卡里先被省略号吃掉的是它，进度永远留着 */
+.dash-todo-rule {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 完成进度：等宽数字（跳动时宽度不抖），比说明文字更显眼一档 */
+.dash-todo-progress {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+}
+
+/* 全部完成：只给这个读数上强调色（整张卡唯一一处带彩色的地方，一眼就能看出"清干了"） */
+.dash-todo-progress.is-complete {
+  color: var(--ant-color-primary);
+}
+
+/* 滚动只挂在这一层：里面那层网格的高度始终等于内容高度 */
+.dash-todo-scroll {
+  flex: 1 1 auto;
+  /* ⚠️ 必须有：flex 项的自动最小尺寸等于内容大小，不归零会把卡片顶破上限 */
+  min-height: 0;
+  /* 两个方向都要能滚到：列数顶到上限（20 项 / 窄卡）时会横向溢出 */
+  overflow: auto;
+  /* 细滚动条：默认那根 15px 宽的会明显吃掉列表宽高（Firefox 只认这一行，Chromium 还有下面一套） */
+  scrollbar-width: thin;
+}
+
+.dash-todo-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dash-todo-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dash-todo-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--ant-color-fill-secondary, rgba(0, 0, 0, 0.06));
+}
+
+.dash-todo-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--ant-color-fill, rgba(0, 0, 0, 0.15));
+}
+
+.dash-todo-list {
+  display: grid;
+  /* 先纵向塞满 5 行，再往右开一列 —— 这是"纵向优先"的来源 */
+  grid-auto-flow: column;
+  grid-template-rows: repeat(5, auto);
+  /*
+   * 列宽下限 7rem：常见的组件卡（正文宽 ~250px）刚好能拆两列，更窄的卡退回一列。
+   * ⚠️ 必须写成 `min(7rem, 100%)`：裸的 7rem 下限会把正文宽不足 7rem 的窄卡撑出横向滚动条（实测 137px 宽的卡）。
+   * ⚠️ 行间距必须是 0：胶囊之间那 2px 空隙由行自己的透明描边造（见 `.dash-todo-check`）——
+   * 写成 row-gap 的话"5 行 = 140px"就不成立了，列内行数会跟着少一行。
+   */
+  grid-auto-columns: minmax(min(7rem, 100%), 1fr);
+  gap: 0 12px;
+  /* 卡片被同组更高的卡拉高时，列表留在顶部（清单要从上往下读），不要把行距拉开 */
+  align-content: start;
+}
+
+/* 长文本要能在列内省略，而不是把列撑宽 */
+.dash-todo-item {
+  min-width: 0;
+  overflow: hidden;
+}
+
+/*
+ * 待办行 = 一条圆角胶囊（勾选框 + 文案）。
+ *
+ * 胶囊底承载两件事：已完成是常驻浅底、悬停再深一档 ——
+ * 与房屋卡合计块（fill-quaternary → hover fill-tertiary）同一套深浅关系，不引入新颜色。
+ * 单行内容用 `align-items: center` 对齐即可（比"顶对齐 + 1px 微调"准确，也不必去凑勾选框 16px 与文字 18px 的差）。
+ */
+.dash-todo-item .dash-todo-check {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  /*
+   * ⚠️ 高度写死是故意的：列内行数是算出来的（见上面 `.dash-todo-list` 的 5 行），
+   * 一旦它随 antd 内部的 line box 浮动，"第几项开始换列"就会跟着漂。
+   */
+  height: 27px;
+  padding: 0 7px;
+  /*
+   * 相邻胶囊之间那 2px 的空隙：1px 透明描边 + `background-clip: padding-box`（底色只画到内边距框）。
+   * 这样"行高 28px"就是行占的全部高度，不必再用 grid 的 row-gap 去挤那 5 行 140px 的预算。
+   */
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  border-radius: 8px;
+  transition: background-color 120ms ease;
+}
+
+/*
+ * ⚠️ antd 会把 children 再包一层（`<span class="ant-checkbox-label">`），**那层才是 flex 项**：
+ * 不写 `min-width: 0` 就永远是"整段文字的宽度"，省略号无从谈起（实测：项宽 138px、文字盒 268px，
+ * 被裁得干巴巴、没有省略号）。这里用结构选择器而不是 antd 类名 —— 类名在 antd 6 里改过好几处。
+ */
+.dash-todo-item .dash-todo-check > :last-child {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dash-todo-text {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ant-color-text);
+}
+
+.dash-todo-item.is-done .dash-todo-text {
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+  text-decoration: line-through;
+}
+
+/* 悬停：整行提亮一档（只有指针设备上才有意义；触屏的 :hover 会粘住） */
+@media (hover: hover) and (pointer: fine) {
+  .dash-todo-item .dash-todo-check:hover {
+    background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.04));
+  }
+}
+
+/* 空态与倒数日同形：一块虚线占位，读成"待填的格子"而不是"渲染失败" */
+.dash-todo-empty {
+  padding: 18px 14px;
+  border: 1px dashed var(--ant-color-border, #d9d9d9);
+  border-radius: 10px;
+  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}
+
+/*
+ * 备忘卡
+ *
+ * 卡面 = 一段按 Markdown 渲染的正文（`.dash-note-md`）；双击正文原地换成编辑原文的输入框
+ * （编辑态复用同一棵 DOM 形状，只把正文换成 TextArea）。
+ *
+ * 高度沿用 `.dash-card-fill` 的 164px 上限与待办卡同一条预算：正文再长也只在卡内滚动，
+ * 不会把同行的卡片撑高。**预览态**（`.dash-note-scroll` 包着 `.dash-note-md`）由外层那层滚，
+ * **编辑态**由输入框自己滚（原因见下面 `.dash-note--editing` 的注释），两态都只有一根滚动条。
+ *
+ * 悬停提示有两半：JSX 上的原生 `title="双击编辑"` + 这里的 `cursor: text`。
+ * 刻意不用 antd Tooltip —— 每张卡上的 rc-trigger 机器在拖拽期间都会被 dnd-kit 的 context 唤醒，
+ * 为一句话的提示不值得。
+ */
+.dash-note {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* 预览态的滚动层：markdown 那层的高度始终等于内容高度，所以滚动只挂在这一层 */
+.dash-note-scroll {
+  flex: 1 1 auto;
+  /* ⚠️ 必须有：flex 项的自动最小尺寸等于内容大小，不归零会把卡片顶破上限 */
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.dash-note-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dash-note-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dash-note-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--ant-color-fill-secondary, rgba(0, 0, 0, 0.06));
+}
+
+.dash-note-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--ant-color-fill, rgba(0, 0, 0, 0.15));
+}
+
+/*
+ * markdown 正文。
+ *
+ * 字号比常规正文小一档、行距略紧：备忘卡是"顺带看一眼"的信息，不该比同一行里的
+ * 读数卡更抢眼。所有外边距都压到 6px 以内 —— 卡片正文的留白由卡片自己给，
+ * 沿用浏览器默认的 1em 段落间距会让 164px 里只装得下三行字。
+ *
+ * ⚠️ 这里**没有 `img` 规则**：`markdown.ts` 的 `image()` 覆盖根本不产出 `<img>`（用户要求
+ * 不渲染图片），写规则等于给不存在的元素写样式。
+ */
+.dash-note-md {
+  /* 双击提示：鼠标移入正文变成文本光标 */
+  cursor: text;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ant-color-text);
+  /* 长 URL / 长单词不要顶破卡片 */
+  overflow-wrap: break-word;
+}
+
+/* 首末元素的上下外边距归零：否则正文会整体被顶下来、末尾多出一截空白 */
+.dash-note-md > :first-child {
+  margin-top: 0;
+}
+
+.dash-note-md > :last-child {
+  margin-bottom: 0;
+}
+
+.dash-note-md p {
+  margin: 0 0 6px;
+}
+
+/* 标题只靠字号与字重分层：卡片里放不下"隔一段空行才换级"的排版 */
+.dash-note-md h1,
+.dash-note-md h2,
+.dash-note-md h3,
+.dash-note-md h4,
+.dash-note-md h5,
+.dash-note-md h6 {
+  margin: 8px 0 4px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ant-color-text-heading, var(--ant-color-text));
+}
+
+.dash-note-md h1 {
+  font-size: 15px;
+}
+
+.dash-note-md h2 {
+  font-size: 14px;
+}
+
+.dash-note-md h3 {
+  font-size: 13px;
+}
+
+.dash-note-md h4,
+.dash-note-md h5,
+.dash-note-md h6 {
+  font-size: 12.5px;
+}
+
+.dash-note-md ul,
+.dash-note-md ol {
+  margin: 0 0 6px;
+  padding-inline-start: 18px;
+}
+
+.dash-note-md li + li {
+  margin-top: 2px;
+}
+
+/* 松散列表会把内容包进 <p>，那层不要再撑高度 */
+.dash-note-md li > p {
+  margin: 0;
+}
+
+/* GFM 任务列表：marked 产出 disabled 的 checkbox，这里只把它与文字对齐 */
+.dash-note-md li > input[type='checkbox'] {
+  margin-inline: 0 4px;
+  vertical-align: -1px;
+}
+
+.dash-note-md code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.04));
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+}
+
+.dash-note-md pre {
+  margin: 0 0 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+  /* 代码块自己横向滚动，不要撑宽卡片 */
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.dash-note-md pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.dash-note-md blockquote {
+  margin: 0 0 6px;
+  padding-inline-start: 8px;
+  border-inline-start: 3px solid var(--ant-color-border, #d9d9d9);
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+}
+
+.dash-note-md blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.dash-note-md table {
+  margin: 0 0 6px;
+  border-collapse: collapse;
+  font-size: 11.5px;
+}
+
+.dash-note-md th,
+.dash-note-md td {
+  padding: 2px 6px;
+  border: 1px solid var(--ant-color-border, #d9d9d9);
+}
+
+.dash-note-md th {
+  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+  font-weight: 600;
+}
+
+.dash-note-md a {
+  color: var(--ant-color-primary);
+  text-decoration: none;
+}
+
+/* 触屏的 :hover 会粘住，只在指针设备上下划线 */
+@media (hover: hover) and (pointer: fine) {
+  .dash-note-md a:hover {
+    text-decoration: underline;
+  }
+}
+
+.dash-note-md hr {
+  margin: 8px 0;
+  border: none;
+  border-top: 1px solid var(--ant-color-border, #d9d9d9);
+}
+
+/*
+ * 编辑态的输入框。
+ *
+ * ⚠️ **它是编辑态唯一的滚动容器**（外面不再套 `.dash-note-scroll`），高度写死 164px ——
+ * 与 `.dash-card-fill` 的上限同一个数，改一个要改另一个。
+ *
+ * 为什么不沿用"autoSize 撑高 + 外层滚动"：autoSize 的高度是**测量**出来的，而测量可能发生在
+ * 布局还没定下来的那一刻（实测刚进编辑态时量到 795.6px，而按最终宽度排完要 1402px，差 600 多像素）。
+ * 那时输入框自己就成了第二个滚动容器：滚轮先滚它 —— 文字在动、卡片右边那根滚动条纹丝不动，
+ * 要滚完这一大段才轮到外层。写死高度之后，滚动容器只有一个，行为与文本长短无关，
+ * 进编辑 / 输入 / 滚动都不会跳。
+ * 代价是短文本在编辑时也是这么高（提交后卡片会收回内容高度）。
+ */
+.dash-note--editing {
+  height: 164px;
+}
+
+.dash-note-input {
+  flex: 1 1 auto;
+  /* ⚠️ 必须有：flex 项的自动最小尺寸等于内容尺寸，不归零会被内容撑破上面那个 164px */
+  min-height: 0;
+  resize: none;
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.6;
+  /* 细滚动条：默认那根 15px 宽的会明显吃掉输入框的宽高（与 `.dash-note-scroll` 同一套） */
+  scrollbar-width: thin;
+}
+
+.dash-note-input::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dash-note-input::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dash-note-input::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--ant-color-fill-secondary, rgba(0, 0, 0, 0.06));
+}
+
+.dash-note-input::-webkit-scrollbar-thumb:hover {
+  background: var(--ant-color-fill, rgba(0, 0, 0, 0.15));
+}
+
+/* 空态与待办卡同形，但它是"可双击的格子"，所以光标与提示都跟着正文走 */
+.dash-note-empty {
+  padding: 18px 14px;
+  border: 1px dashed var(--ant-color-border, #d9d9d9);
+  border-radius: 10px;
+  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+  cursor: text;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}
+
+/*
+ * 休息提醒卡（番茄钟）
+ *
+ * 卡面三段：状态胶囊 + 右侧小字 → 环形钟面 → 三个图标按钮。
+ * 高度沿用 `.dash-card-fill` 的 164px：状态行 16 + 环 96 + 按钮 24 + 两个 gap 12 ≈ 148，还留有余量。
+ *
+ * ⚠️ 每秒重渲染**只发生在这个环里**（秒级快照在 `fields.tsx` 的 Countdown 叶子上），
+ * 所以这一段刻意保持轻：不加过渡、不加投影 —— 别给每秒要重画的东西加合成成本。
+ */
+.dash-rest {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* 状态行：左胶囊、右小字，两端对齐 */
+.dash-rest-status {
+  align-self: stretch;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}
+
+/*
+ * 状态文字（历史名叫"胶囊"）：**只有文字色、没有底色**。
+ * 专注 = 主色；休息 / 未开始 / 已暂停 = 次级色（`.is-break` 与基础规则同色）。
+ */
+.dash-rest-phase {
+  flex: none;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
+}
+
+.dash-rest-phase.is-focus {
+  color: var(--ant-color-primary);
+}
+
+.dash-rest-phase.is-break {
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
+}
+
+/* 右侧小字：窄卡里先被省略号吃掉（全文靠 title） */
+.dash-rest-hint {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/*
+ * 环内读数：只写整分钟（`30min`）。
+ *
+ * 秒级的读数留在内部 —— 环形进度每秒走一格，"还剩多久"的精度由它给；
+ * 数字每分钟才跳一次，所以这里给大字号（22px）+ 小号单位，与进度卡的 `%` 同一做法。
+ * 专注上限是 120 分钟，`120min` 实测仍落在 96px 圆的可用宽度里。
+ */
+.dash-rest-readout {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+}
+
+.dash-rest-readout-value {
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  color: var(--ant-color-text);
+}
+
+/* 单位不跟读数抢眼：小一号、压到 55% 不透明度（同进度卡的百分比单位） */
+.dash-rest-readout-unit {
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.55;
+}
+
+/*
+ * 「待开始」：上一段刚结束、下一段还没开始（关掉了自动接续）。
+ * 这时没有可读的倒数，写 `0min` 会被当成"还在跑"，所以换成一个词。
+ */
+.dash-rest-readout-pending {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}
+
+/* 三个图标按钮：紧凑排一行，别把钟面挤下去 */
+.dash-rest-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/*
+ * 统计卡：环形进度 + 环外读数。
+ *
+ * 卡片里不放常驻的按钮与输入框 —— 在安静的卡片墙里那两块控件像贴了两块砖。
+ * 环里只放百分比（环的形状本身就是"占比"），原始读数落到环下方并兼任入口：
+ * 点一下原地变输入框。加减按钮只在指针移入整张卡片时从环的两侧滑出。
+ */
+.dash-stats-ring {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dash-stats-percent {
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+/* 单位跟着父级颜色走（满值时会一起变成功色），只压一点存在感 */
+.dash-stats-percent-unit {
+  margin-left: 1px;
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.55;
+}
+
+/* 环外的读数：平时就是文字，悬停浮出一层极浅的底，暗示"这里可以点" */
+.dash-stats-readout {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 2px 7px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: text;
+  transition: background-color 160ms ease;
+}
+
+.dash-stats-readout:focus-visible {
+  outline: 2px solid var(--ant-color-primary, #1677ff);
+  outline-offset: 1px;
+}
+
+.dash-stats-readout-value {
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-stats-readout-max {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45));
+}
+
+/* 满值时读数跟着环一起转成成功色，一处完成、处处完成 */
+.dash-stats-readout.is-complete .dash-stats-readout-value {
+  color: var(--ant-color-success, #52c41a);
+}
+
+.dash-stats-readout.is-complete .dash-stats-readout-max {
+  color: var(--ant-color-success, #52c41a);
+  opacity: 0.6;
+}
+
+/* 编辑态：把输入框压得和读数一样朴素，不出现边框与底色 */
+.dash-stats-input.ant-input-number {
+  width: 52px;
+  font-weight: 600;
+}
+
+.dash-stats-input .ant-input-number-input {
+  height: 26px;
+  padding: 0;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/*
+ * 加减：默认隐身，且绝对定位 —— 卡片宽度不因为它俩变化。
+ * 落点整个在环**外**：环 96px、按钮 24px，留 4px 间隙，故偏移 -(24+4)。
+ * 显形时再向外挪 3px，读起来像是被拉出来的。
+ */
+.dash-stats-step.ant-btn {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
+  background-color: var(--ant-color-bg-container, #fff);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+  transform: translateY(-50%);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease,
+    color 160ms ease,
+    background-color 160ms ease;
+}
+
+.dash-stats-step--prev {
+  left: -28px;
+}
+
+.dash-stats-step--next {
+  right: -28px;
+}
+
+/*
+ * 显形判定挂在**整张卡片**上，不能挂在圆环上：
+ * 加减号位于环外，判定若跟着环走，鼠标刚移向按钮就已经离开判定面，
+ * 按钮会先缩回去 —— 表现为"看得见、点不到"。卡片没有位移动效，是稳定的判定面。
+ */
+.dash-sortable-item:hover .dash-stats-step.ant-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dash-sortable-item:hover .dash-stats-step--prev.ant-btn {
+  transform: translateY(-50%) translateX(-3px);
+}
+
+.dash-sortable-item:hover .dash-stats-step--next.ant-btn {
+  transform: translateY(-50%) translateX(3px);
+}
+
+/*
+ * 键盘专用：只认 `:focus-visible`。
+ * ⚠️ 不能用 `:focus-within` —— 点过按钮后它会一直持有焦点，
+ * 鼠标移出卡片按钮也不消失（实测踩过）。Tab 到的按钮自己显形即可。
+ */
+.dash-stats-step.ant-btn:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dash-stats-step.ant-btn:not(:disabled):hover {
+  color: var(--ant-color-primary, #1677ff);
+  background-color: var(--ant-color-primary-bg, #e6f4ff);
+}
+
+/* 到顶/到底时 disabled，禁用色已经很淡，再卸掉投影避免抢视线 */
+.dash-stats-step.ant-btn:disabled {
+  box-shadow: none;
+}
+
+/*
+ * 触屏没有 hover：粘住的 :hover 会一直亮着，故给一份半透明常驻。
+ * 同理，读数"可点"的那层浅底只在有真实指针的设备上给。
+ */
+@media (hover: none) {
+  .dash-stats-step.ant-btn {
+    opacity: 0.6;
+    pointer-events: auto;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dash-stats-readout:hover {
+    background-color: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+  }
+}
+/*
+ * 物品价格卡
+ *
+ * NQ / HQ 各占一块浅底圆角块（沿用 PvP 卡的信息块语言），
+ * 每块三行「标签 + 读数」。读数用等宽数字：价格刷新时宽度不跳、整行不抖。
+ * 基准价的比较结论只用颜色表达（高于=红、低于=绿）
+ */
+.dash-market-block {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  /* 卡被撑高时面板跟着长，里面三行读数留在面板中间（靠高度填满，不靠拉开行距） */
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+}
+
+/* 该物品没有 HQ 版本时整个 HQ 块不会渲染，所以这里不需要"压暗"之类的样式 */
+.dash-market-quality {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}
+
+/* 最低价的出处：贴在价格下方并右对齐，落在价格数字正下方 */
+.dash-market-origin {
+  display: block;
+  text-align: right;
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45));
+}
+
+.dash-market-label {
+  flex: none;
+  font-size: 11px;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}
+
+/*
+ * 读数行。
+ *
+ * 窄卡里两个品质块并排时，七位数的价格会和左侧标签抢位置 —— 挤不下时宁可让数字
+ * **换到下一行**（`margin-left: auto` 保证换行后仍右对齐），也不要互相压扁。
+ * 标签 `flex: none` 不参与压缩，所以换行的永远是数字那一侧。
+ */
+.dash-market-row {
+  flex-wrap: wrap;
+  /* 行高压紧：卡里有 5 行这样的文字，行高不压就没法比统计卡矮 */
+  line-height: 1.3;
+}
+
+.dash-market-row .dash-market-value {
+  margin-left: auto;
+}
+
+.dash-market-value {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
+  white-space: nowrap;
+}
+
+/* 无数据时不显示 0，用破折号并把颜色压淡 */
+.dash-market-value.is-blank {
+  font-weight: 400;
+  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45));
+}
+
+/*
+ * 低于基准价（便宜）才上色，用**主题强调色**（跟着主题换色）。
+ */
+.dash-market-value.is-below {
+  color: var(--ant-color-primary);
+}
+
+/*
+ * 房屋售卖卡
+ */
+.dash-house-phase {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--ant-color-split);
+}
+
+.dash-house-phase-name-is-entry {
+  color: var(--ant-color-primary);
+}
+
+.dash-house-phase-note {
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--ant-color-text-tertiary);
+}
+
+/*
+ * 合计块（M / L / S）。
+ *
+ * 三格等宽、数字居中、相邻格之间一条发丝线分隔（两端不留线，否则像表格）。
+ * 外面那层只负责容器：`container-type: inline-size` 必须声明在容器自己身上，
+ * 而下面用 `cqi` 缩放的是里面的数字，所以两层分工不能合并。
+ *
+ * ⚠️ 这一整条链都是 `flex: 1 1 auto`：卡被撑高时，富余高度就由这块（一个浅底面板）吃掉，
+ * 而不是让三段内容上下各空一截。格子里的标签 + 数字靠 `justify-content: center` 居中。
+ */
+.dash-house-totals-wrap {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+}
+
+/* 筛选条件写在合计块上方：不写就不知道这三个数字是按什么算的 */
+.dash-house-totals-caption {
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--ant-color-text-quaternary);
+}
+
+.dash-house-totals {
+  display: flex;
+  align-items: stretch;
+  /* 面板吃掉卡里的富余高度（上限由 `.dash-card-fill` 封住） */
+  flex: 1 1 auto;
+  padding: 8px 0;
+  border-radius: 8px;
+  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+}
+
+.dash-house-total {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* 面板长高后标签 + 数字仍在格的中间，而不是贴顶 */
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* 分隔线只夹在中间两处：两端加线会把浅底块切成一排格子 */
+.dash-house-total + .dash-house-total {
+  border-left: 1px solid var(--ant-color-split);
+}
+
+.dash-house-total-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}
+
+/*
+ * 字号跟着**卡片宽度**缩放（倒数日卡同一套路）：卡宽由分组列数与屏宽共同决定，
+ * 媒体查询问不到。cqi 量的是 `.dash-house-totals-wrap` 的宽度，窄卡自动收小。
+ */
+.dash-house-total-value {
+  font-size: clamp(20px, 9cqi, 30px);
+  font-weight: 600;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  color: var(--ant-color-text);
+}
+
+/*
+ * 「没查到」用破折号并把颜色压淡。
+ * 和 0 必须分得开：0 是"查过了，就是 0 处"，破折号是"这份数据还没到手"。
+ */
+.dash-house-total-value.is-blank {
+  font-weight: 400;
+  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45));
+}
+
+/*
+ * 正文整块可点，跳到 Universalis 首页（公用规则见 `.dash-card-link`）。
+ * 税率卡的链接就是它的内容列（里面直接是标题行与读数区），所以只要补一个 gap。
+ */
+.dash-tax-link {
+  gap: 10px;
+}
+
+/*
+ * 市场税率卡
+ *
+ * **两列 × 四行**：一格一个城市（左名右税率），顺序就是游戏内八个城市的固定顺序 ——
+ * 位置不承载信息，**减税**的城市（税率低于正常值）在税率左边挂一个「减」字。
+ * 不用强调色：颜色留给"真需要抢注意力"的事，减税用一个字说清楚就够了。
+ */
+.dash-tax-rows {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* 列间距明显大于行间距：两列是两组读数，别让人把它们看成一串 */
+  gap: 3px 10px;
+  /*
+   * 卡片被同组更高的卡撑高时，让 2×4 的格子跟着长高（文字在格内垂直居中）——
+   * 否则矮卡会被拉长，读数却挤在中间一条，上下空三大块。
+   *
+   * 但**每格最高 30px**：四行长到顶也就 4×30+3×3 = 129px，卡高约 230px，
+   * 刚好不超过 PvP 地图轮换卡（实测单独一张时 235px，本仓最高的小组件卡）。
+   * 再高的同行兄弟（或视口拉高）不会再把这四行拉散：
+   * `grid-auto-rows` 的上限顶住行高，`align-content: center` 把富余空白均分到上下两侧，
+   * 与卡里其他组件「矮卡拉长后内容居中」的做法一致。
+   */
+  flex: 1 1 auto;
+  grid-auto-rows: minmax(16px, 30px);
+  align-content: center;
+}
+
+.dash-tax-row {
+  display: flex;
+  /* center 而不是 baseline：格子被拉高时整行文字落在格的中间 */
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  /* 网格单元默认 min-width: auto：不置 0 的话长城市名会撑破列宽，而不是走省略号 */
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.dash-tax-city {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* 11px 而不是 12px：两列布局下最长的城市名（旧萨雷安 / 利姆萨·罗敏萨）才放得下 */
+  font-size: 11px;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
+}
+
+/*
+ * 右半边：可选的「减」标记 + 税率。
+ * 两者贴成一组（gap 4px）一起靠右 —— 标记是给这个数字做注解的，
+ * 别让它飘到行中间去。
+ */
+.dash-tax-tail {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/*
+ * 减税标记（正常税率 5%，低于它就标一个「减」）。
+ * 边框中性、**文字用主色**：整张卡只有这一处带颜色，正好把注意力给到"哪几个在打折"，
+ * 而税率数字本身保持常规文字色（那一版"整行染主色"已被否掉）。
+ * 行高 1.4 + 上下 1px 描边 = 16px，刚好不把窄卡里的一行顶高。
+ */
+.dash-tax-cut {
+  padding: 0 3px;
+  border: 1px solid var(--ant-color-border, #d9d9d9);
+  border-radius: 3px;
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--ant-color-primary);
+}
+
+.dash-tax-rate {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
+}
+
+/* 接口没给这个城市的数：破折号 + 压淡。0% 是合法税率（免税），两者必须分得开 */
+.dash-tax-rate.is-blank {
+  font-weight: 400;
+  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45));
+}
+
+/*
+ * 倒数日卡
+ *
+ * 从上到下：事件 → 倒数天数 → 强调短线 → 描述块。
+ * 事件与天数是主视觉（事件半粗、天数跟卡宽缩放）；
+ * 短线是"状态色"的第二个落点 —— 有了它，今天转成功色时整张卡都在变色，
+ * 而不是只有一个数字换了颜色。描述行把「距【事件】还有 X 日」这句原话读出来
+ * 并补上目标日期与周期 —— 它是说明，所以最小最轻。
+ *
+ * `container-type: inline-size` 是为了让字号跟着**卡片宽度**走：一张卡有多宽
+ * 取决于所属分组的列数（1~6）与屏宽，媒体查询根本问不到；换成 cqi 之后窄卡自动收小、
+ * 宽卡顶到上限，字号始终与卡片成比例，不必为每种列数各写一条断点。
+ */
+.dash-countdown {
+  /*
+   * 状态色钩子：数字、强调短线都吃它。
+   * 三种状态（还在数 / 就是今天 / 已经过去）各自只改写这一个变量，
+   * 卡片其余部分不必知道状态 —— 以后再加要跟色的元素，认这一个变量就行。
+   */
+  --cd-accent: var(--ant-color-primary, #1677ff);
+  container-type: inline-size;
+  text-align: center;
+}
+
+/*
+ * 事件：卡片的主角。
+ * 下限 17px 保住窄卡的可读性，上限 22px 让宽卡上的名字不会被超大数字压成小字。
+ * 长名宁可换行也不省略 —— 被截断的事件名等于没写。
+ */
+.dash-countdown-event {
+  font-size: clamp(17px, 7cqi, 22px);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
+  overflow-wrap: anywhere;
+}
+
+/*
+ * 倒数天数：整张卡上最大的东西。
+ * 上下限兜住两端 —— 34px 保证窄卡里放得下五位数，58px 是宽卡的止境。
+ * `tabular-nums` 不只是好看：跨天变化时数字宽度不变，整块卡片不会左右抖一下。
+ * inline-flex + baseline 让数字与其他行内元素共用一条基线，不跟行高算计较劲。
+ */
+.dash-countdown-amount {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.dash-countdown-days {
+  position: relative;
+  z-index: 1;
+  font-size: clamp(34px, 20cqi, 58px);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--cd-accent);
+}
+
+/*
+ * 「日」跟着数字一起缩放，但只到数字的三分之一左右：
+ * 太小会被大数字吞掉、太大又会跟数字抢焦点。
+ * 颜色取状态色再压淡，自动跟着今天/已过去的换色走。
+ *
+ * 注意：当前渲染层**没有**这个元素 —— 单位由描述行「还有 X 日」读出来，
+ * 数字旁边刻意留白。规则留着，是为了哪天想把它加回来时不用重写。
+ */
+.dash-countdown-unit {
+  font-size: clamp(14px, 8cqi, 20px);
+  color: var(--cd-accent);
+  opacity: 0.6;
+}
+
+/*
+ * 事件/数字与说明之间的强调短线。
+ * 上下两块都在讲同一件事，中间需要一口气；它同时把状态色带进卡片下半部分。
+ * 只有 24px 长 —— 分隔要能看见，但不能长到变成一条真的分界线。
+ */
+.dash-countdown-rule {
+  width: 24px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--cd-accent);
+  opacity: 0.3;
+}
+
+/*
+ * 描述块：一句话把数字读出来（「距【事件】还有 X 日」）+ 目标日期与周期。
+ * 两行紧挨着自成一块，字号比事件与天数都小 —— 它是说明，不是主角。
+ * 第二行再轻一档（11px + 四级色）：日期与周期是"说明的说明"。
+ */
+.dash-countdown-caption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+}
+
+.dash-countdown-sentence {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.55));
+  /* 描述里同样带着事件名，长名也要能折行 */
+  overflow-wrap: anywhere;
+}
+
+.dash-countdown-meta {
+  font-size: 11px;
+  line-height: 1.4;
+  /* 日期里有数字：等宽数字让跨天变化时这一行不会左右挪一格 */
+  font-variant-numeric: tabular-nums;
+  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45));
+  /* 窄卡里「目标 2026年12月31日 · 每月」可能一行放不下，允许从任意处折行 */
+  overflow-wrap: anywhere;
+}
+
+/*
+ * 今天：天数归零，整张卡转成成功色（与进度卡满值同一套语言），柔光再亮一点，
+ * 让这一张在一排卡里一眼认出来。
+ */
+.dash-countdown.is-today {
+  --cd-accent: var(--ant-color-success, #52c41a);
+}
+
+.dash-countdown.is-today .dash-countdown-amount::before {
+  opacity: 0.2;
+}
+
+/*
+ * 已经过去：强调色降到三级文字色（事件名保持正文色，信息仍要能读），
+ * 把注意力让给还在倒数的那几张卡。
+ */
+.dash-countdown.is-past {
+  --cd-accent: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}
+
+/*
+ * 还没选日期。
+ * 卡片此刻没有任何主视觉，一行灰字悬在中间读起来像"出错了"；
+ * 换成一块虚线占位：它把这张卡读成"待填的格子"，也顺手把编辑入口说清楚。
+ */
+.dash-countdown-empty {
+  padding: 18px 14px;
+  border: 1px dashed var(--ant-color-border, #d9d9d9);
+  border-radius: 10px;
+  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}

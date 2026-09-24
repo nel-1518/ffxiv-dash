@@ -38,5 +38,5 @@ export const shadowbringersSpec: ThemeSpec = {
     },
   },
   background: { url: '/bg/5-shadowbringers.jpg', brightness: 35, blur: 1 },
-  cards: { alpha: 50, blur: 1 },
+  cards: { alpha: 60, blur: 1 },
 }
