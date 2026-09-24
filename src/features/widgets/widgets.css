@@ -1,4 +1,4 @@
-/* 组件卡（builtins）的卡面样式：todo / memo / rest / stats / market / house / tax / countdown，以及三张读数卡共用的 .dash-card-fill 与 .dash-card-link。 */
+/* 组件卡（builtins）的卡面样式：todo / memo / rest / stats / market / house / tax / countdown / roll，以及三张读数卡共用的 .dash-card-fill 与 .dash-card-link。 */
 /*
  * 「铺满但不越界」的两条公用规则（房屋 / 物品价格 / 市场税率三张读数卡共用）。
  *
@@ -1175,4 +1175,155 @@
   font-size: 12px;
   line-height: 1.5;
   color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}
+
+/*
+ * 掷骰卡（/roll）
+ *
+ * **整张卡面就是掷骰按钮**：从上到下 骰面徽章 → 大号读数 → 结果文案，
+ * 三块同处一颗 button 里 —— 点击区不是数字本身，而是整张卡，
+ * 卡上任何一点（包括四周的空白）按下去都掷。
+ * 骰面徽章放在最顶上：它是"这一局用什么骰子"的说明（用户自定的 XdY），
+ * 先读说明再看结果，顺序才顺；同时它也是改配置后旧读数被清空的视觉解释。
+ */
+.dash-roll {
+  /* button 的排版重置：外观压掉，布局完全自己接管（同 .dash-card-fill 的拉伸规则） */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+  text-align: center;
+  container-type: inline-size;
+}
+
+.dash-roll:focus-visible {
+  outline: 2px solid var(--ant-color-primary, #1677ff);
+  outline-offset: 4px;
+  border-radius: var(--ant-border-radius-lg, 8px);
+}
+
+/* 翻滚中整颗禁用：光标收回，"正在滚"读得出来 */
+.dash-roll:disabled {
+  cursor: default;
+}
+
+/*
+ * 骰面徽章：小胶囊描边样式（同税率卡「减」字的语言），
+ * 比裸文字多一层"这是当前配置"的实体感，也把顶行撑出一点分量。
+ */
+.dash-roll-face {
+  flex: none;
+  padding: 1px 10px;
+  border: 1px solid var(--ant-color-border, #d9d9d9);
+  border-radius: 999px;
+  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+  font-size: 10px;
+  line-height: 1.5;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}
+
+/*
+ * 大号读数：整张卡的主角。
+ * `tabular-nums` 同倒数卡：翻滚时数字宽度不变，卡片不会左右抖；
+ * 轻微位移抖动是"骰子还在滚"的身体语言，落定后立刻撤掉。
+ * pop / 抖动全部走 `transform`：不参与布局，掷骰前后其他元素纹丝不动。
+ */
+.dash-roll-value {
+  flex: none;
+  font-size: clamp(40px, 20cqi, 56px);
+  font-weight: 700;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
+}
+
+/* 悬停浮一点主色：整张卡唯一的"可点"暗示，给在数字上，足够轻不抢戏 */
+.dash-roll:not(:disabled):hover .dash-roll-value {
+  color: var(--ant-color-primary, #1677ff);
+}
+
+/* 按下去数字轻轻一缩，反馈发生在"被点的东西"上 */
+.dash-roll:not(:disabled):active .dash-roll-value {
+  transform: scale(0.97);
+}
+
+/* 翻滚中数字压淡一档，与禁用的卡面同读 */
+.dash-roll:disabled .dash-roll-value {
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
+}
+
+.dash-roll-value.is-rolling {
+  animation: dash-roll-shake 0.12s linear infinite;
+}
+
+@keyframes dash-roll-shake {
+  0% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-1px, 1px);
+  }
+  50% {
+    transform: translate(1px, -1px);
+  }
+  75% {
+    transform: translate(-1px, -1px);
+  }
+  100% {
+    transform: translate(1px, 1px);
+  }
+}
+
+/*
+ * 落定 pop：scale 1.10 → 1 的回弹（渲染层靠换 key 重放，见 fields.tsx）。
+ * 曲线带一点过冲，手感是"砸在桌上"而不是"淡出"。
+ */
+.dash-roll-value.is-settled {
+  animation: dash-roll-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes dash-roll-pop {
+  from {
+    transform: scale(1.10);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/*
+ * 结果行：**常驻一行**（高度恒为 17px），三个阶段只换内容 ——
+ * 未掷时是操作提示、翻滚中是省略号、落定后是结果文案。
+ * 它若按条件渲染，首次掷骰会凭空多出一行，把整个布局顶得跳一下；
+ * 占位之后卡片从上到下三块的几何关系永远不变，数字原地翻滚。
+ * 多颗骰的加法串可能很长，超宽收省略号，不让它把卡片撑高或换行。
+ */
+.dash-roll-result {
+  flex: none;
+  max-width: 100%;
+  height: 17px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
+}
+
+/* 提示与省略号都压淡一档：它们是"待机态"，不该和真正的结果抢存在感 */
+.dash-roll-result.is-idle,
+.dash-roll-result.is-rolling {
+  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45));
 }

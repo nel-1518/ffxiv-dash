@@ -5,6 +5,7 @@ import { marketWidgetSpec } from './market-widget/widget.ts'
 import { memoWidgetSpec } from './memo-widget/widget.ts'
 import { restWidgetSpec } from './pomodoro-widget/widget.ts'
 import { pvpMapWidgetSpec } from './pvp-map-widget/widget.ts'
+import { rollWidgetSpec } from './roll-widget/widget.ts'
 import { statsWidgetSpec } from './stats-widget/widget.ts'
 import { taxWidgetSpec } from './tax-widget/widget.ts'
 import { todoWidgetSpec } from './todo-widget/widget.ts'
@@ -32,6 +33,7 @@ export function installBuiltinWidgets(): void {
   registerWidget(memoWidgetSpec)
   registerWidget(restWidgetSpec)
   registerWidget(countdownWidgetSpec)
+  registerWidget(rollWidgetSpec)
 
   // 把组件配置的归一化能力注入 core/storage，供读取本地数据时使用
   installWidgetConfigNormalizer()
