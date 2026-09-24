@@ -13,9 +13,9 @@ import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { boardActions, readGroup, readGroupIdOfItem, readGroupIds } from '../../state/board-store.ts'
 import { BoardDragOverlay } from './BoardDragOverlay.tsx'
 import { BoardGroupSlot } from './BoardGroupSlot.tsx'
-import { parseDragData } from './drag-types.ts'
 import { groupsPerRow } from './group-types.ts'
 import type { GroupMove, GroupRow } from './group-types.ts'
+import { parseDragData } from '../navigation/drag-types.ts'
 
 export type GroupBoardProps = {
   /**

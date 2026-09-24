@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { DRAG_PLACEHOLDER_OPACITY } from '../groups/drag-types.ts'
+import { DRAG_PLACEHOLDER_OPACITY } from './drag-types.ts'
 
 /**
  * 把 dnd-kit 的 useSortable 结果整理成渲染需要的形状。

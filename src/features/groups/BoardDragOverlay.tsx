@@ -2,7 +2,7 @@ import { memo } from 'react'
 import { DragOverlay, useDndContext } from '@dnd-kit/core'
 import { readItem } from '../../state/board-store.ts'
 import { CardFace } from '../navigation/CardFace.tsx'
-import { DragHandle } from './DragHandle.tsx'
+import { DragHandle } from '../navigation/DragHandle.tsx'
 import type { Item } from '../../core/storage/types.ts'
 
 /**

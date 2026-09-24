@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo } from 'react'
 import { boardActions } from '../../state/board-store.ts'
-import { DragHandle } from '../groups/DragHandle.tsx'
+import { DragHandle } from './DragHandle.tsx'
 import { CardFace } from './CardFace.tsx'
 import { useSortableCard } from './useSortableCard.ts'
 import type { Item } from '../../core/storage/types.ts'
