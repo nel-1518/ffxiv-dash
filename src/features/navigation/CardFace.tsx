@@ -140,7 +140,7 @@ function LinkFace({
   /*
    * 字符回退的底色：按**域名**取，所以同一个站点永远同一个颜色，
    * 刷新 / 重开 / 拖动排序都不会变（见 `core/pastel.ts`）。
-   * 显示图片时不用 pastel，保留主题的中性图标底。
+   * 显示图片时图标占满整个占位区，不再铺底色。
    */
   const showChar = !iconSrc
   const pastel = pastelColorOfLink(item.url, item.name)
@@ -206,8 +206,11 @@ function LinkFace({
             borderRadius: 8,
             display: 'grid',
             placeItems: 'center',
-            // 字符用 pastel 底色；图片保持主题的中性图标底
-            background: showChar ? pastel.bg : 'var(--ant-color-primary-bg)',
+            /*
+             * 有图片图标时不再铺底色（图片本身占满整个图标区域）；
+             * 留空或手填文字时才铺 pastel 底色（见 `core/pastel.ts`）。
+             */
+            background: showChar ? pastel.bg : 'transparent',
             color: showChar ? pastel.fg : 'var(--ant-color-primary)',
             fontWeight: 700,
             flex: '0 0 auto',
@@ -218,10 +221,17 @@ function LinkFace({
             <img
               src={iconSrc}
               alt=""
-              width={18}
-              height={18}
+              width={size}
+              height={size}
               loading="lazy"
               referrerPolicy="no-referrer"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                // 与背景占位同样的尺寸（28px）与圆角（8px）
+                borderRadius: 8,
+              }}
               // 手填图片加载失败就退回"字符 + pastel 底色"（记下失败的那个地址）
               onError={() => setBrokenIcon(manualIcon)}
             />
