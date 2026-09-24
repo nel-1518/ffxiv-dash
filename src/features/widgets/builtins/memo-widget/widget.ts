@@ -11,6 +11,7 @@ export const memoWidgetSpec: WidgetSpec<MemoConfig> = defineWidget<MemoConfig>({
     '*卡片按 Markdown 渲染，双击卡片正文可以直接修改原文；失焦保存，Esc 放弃，Ctrl+Enter 保存。',
   defaultTitle: '便签',
   defaultConfig: MEMO_DEFAULT_CONFIG,
+  maxCount: 20,
   normalizeConfig: normalizeMemoConfig,
   FormFields: MemoFormFields,
   Render: MemoRender,

@@ -42,6 +42,24 @@ export type WidgetSpec<C = Record<string, unknown>> = {
   FormFields: ComponentType
   /** 卡片内容渲染。 */
   Render: ComponentType<WidgetRenderProps<C>>
+  /**
+   * 该类型在**整块看板**上允许的最大实例数（跨所有分组的全局计数）。
+   * 缺省用 `DEFAULT_WIDGET_MAX_COUNT`；设 0 表示禁止添加新实例。
+   * 达到上限时：项目表单的类型选项被禁用，reducer 拒绝落库（见 `board-reducer.ts`）。
+   */
+  maxCount?: number
+}
+
+/**
+ * 实例上限的兜底默认值。
+ * 上限由**每个组件在自己的 spec 里单独声明**（`maxCount`），这里只给未声明者兜底，
+ * 避免新组件忘了写时无限放开。
+ */
+export const DEFAULT_WIDGET_MAX_COUNT = 20
+
+/** 组件类型的实例上限：spec 未声明 `maxCount` 时取默认值。 */
+export function maxCountOf(maxCount: number | undefined): number {
+  return maxCount ?? DEFAULT_WIDGET_MAX_COUNT
 }
 
 /**

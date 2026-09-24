@@ -38,11 +38,6 @@ export function listWidgets(): WidgetSpec[] {
   return [...registry.values()]
 }
 
-/** 供 antd Select / Segmented 使用的选项。 */
-export function listWidgetOptions(): { label: string; value: string }[] {
-  return listWidgets().map((spec) => ({ label: spec.label, value: spec.key }))
-}
-
 /**
  * 把注册表的归一化能力注入 core 层。
  *

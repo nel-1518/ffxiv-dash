@@ -15,6 +15,7 @@ export const restWidgetSpec: WidgetSpec<RestConfig> = defineWidget<RestConfig>({
     '可用于提醒休息的番茄钟，专注与休息交替倒计时。时段结束会使用系统通知提醒。',
   defaultTitle: '休息提醒',
   defaultConfig: REST_DEFAULT_CONFIG,
+  maxCount: 20,
   normalizeConfig: normalizeRestConfig,
   FormFields: RestFormFields,
   Render: RestRender,

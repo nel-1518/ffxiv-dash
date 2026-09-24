@@ -11,6 +11,7 @@ export const todoWidgetSpec: WidgetSpec<TodoConfig> = defineWidget<TodoConfig>({
     '待办清单，可以设置刷新周期与时刻，到点后所有待办自动变回未完成。',
   defaultTitle: '待办',
   defaultConfig: TODO_DEFAULT_CONFIG,
+  maxCount: 20,
   normalizeConfig: normalizeTodoConfig,
   FormFields: TodoFormFields,
   Render: TodoRender,

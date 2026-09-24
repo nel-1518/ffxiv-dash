@@ -2,9 +2,11 @@ import { useEffect, useMemo } from 'react'
 import { Checkbox, Divider, Flex, Form, Input, Select, Typography } from 'antd'
 import type { FormInstance } from 'antd'
 import { createId } from '../../core/ids.ts'
-import { getWidget, listWidgetOptions } from '../widgets/registry.ts'
-import { canPlaceItem } from '../../core/group-rules.ts'
+import { getWidget, listWidgets } from '../widgets/registry.ts'
+import { canPlaceItem, countWidgetInstances } from '../../core/group-rules.ts'
+import { maxCountOf } from '../widgets/types.ts'
 import { allowedItemKinds } from '../groups/group-types.ts'
+import { useBoardDoc } from '../../state/hooks.ts'
 import {
   LINK_ABBREVIATION_PATTERN,
   MAX_LINK_ABBREVIATION_LENGTH,
@@ -49,13 +51,17 @@ export type ItemFormProps = {
   loading?: boolean
 }
 
-function buildInitialValues(item: Item | undefined, defaultKind: ItemKind): ItemFormValues {
+function buildInitialValues(
+  item: Item | undefined,
+  defaultKind: ItemKind,
+  defaultWidgetKey: string,
+): ItemFormValues {
   if (!item) {
-    const spec = getWidget('pvp-map')
+    const spec = getWidget(defaultWidgetKey)
     return {
       kind: defaultKind,
       link: { name: '', icon: '', url: '', desc: '', abbreviation: '' },
-      widget: { key: spec?.key ?? 'pvp-map', title: spec?.defaultTitle ?? '自定义组件' },
+      widget: { key: spec?.key ?? defaultWidgetKey, title: spec?.defaultTitle ?? '自定义组件' },
       config: spec?.defaultConfig ?? {},
     }
   }
@@ -105,10 +111,46 @@ export function ItemForm({
   onAutoFetchChange,
   loading = false,
 }: ItemFormProps): React.ReactNode {
-  const widgetOptions = useMemo(() => listWidgetOptions(), [])
+  const doc = useBoardDoc()
+  /*
+   * 组件类型选项：达到实例上限（整块看板全局计数，缺省 10，见 `widgets/types.ts`）的
+   * 类型禁用并标注，但**当前正在编辑的实例自己的类型**保持可选 ——
+   * 否则已存在的卡片连标题 / 配置都改不了（reducer 只在换类型时才拦）。
+   */
+  const widgetOptions = useMemo(() => {
+    const currentKey = item?.kind === 'widget' ? item.widget : undefined
+    return listWidgets().map((spec) => {
+      const count = countWidgetInstances(doc, spec.key)
+      const max = maxCountOf(spec.maxCount)
+      const disabled = count >= max && spec.key !== currentKey
+      return {
+        label: disabled ? `${spec.label}（已达上限 ${count}/${max}）` : spec.label,
+        value: spec.key,
+        disabled,
+      }
+    })
+  }, [doc, item])
   const kindOptions = useMemo(() => allowedItemKinds(groupType), [groupType])
   const allowedKind = kindOptions[0]?.value ?? 'link'
-  const initialValues = useMemo(() => buildInitialValues(item, allowedKind), [item, allowedKind])
+  /*
+   * 新建时的默认组件类型：偏好 pvp-map，但它（或唯一可选的类型）已达上限时
+   * 退回第一个还可选的类型，避免表单初始值就是一个被禁用的选项、保存时被 reducer 拒掉。
+   */
+  const defaultWidgetKey = useMemo(() => {
+    if (item) {
+      return item.kind === 'widget' ? item.widget : ''
+    }
+    const preferred = getWidget('pvp-map')?.key ?? widgetOptions[0]?.value ?? 'pvp-map'
+    const preferredOption = widgetOptions.find((entry) => entry.value === preferred)
+    if (preferredOption && !preferredOption.disabled) {
+      return preferred
+    }
+    return widgetOptions.find((entry) => !entry.disabled)?.value ?? preferred
+  }, [item, widgetOptions])
+  const initialValues = useMemo(
+    () => buildInitialValues(item, allowedKind, defaultWidgetKey),
+    [item, allowedKind, defaultWidgetKey],
+  )
 
   useEffect(() => {
     form.resetFields()

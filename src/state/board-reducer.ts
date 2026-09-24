@@ -1,7 +1,9 @@
 import { createId } from '../core/ids.ts'
-import { canPlaceItem } from '../core/group-rules.ts'
+import { canPlaceItem, countWidgetInstances } from '../core/group-rules.ts'
 import { clampGroupColumns } from '../core/storage/types.ts'
 import type { BoardDoc, Group, WidgetItem } from '../core/storage/types.ts'
+import { getWidget } from '../features/widgets/registry.ts'
+import { maxCountOf } from '../features/widgets/types.ts'
 import type { BoardAction } from './board-types.ts'
 
 function replaceGroups(doc: BoardDoc, groups: Group[]): BoardDoc {
@@ -32,6 +34,18 @@ function applyOrder<T extends { id: string }>(items: T[], orderedIds: string[]):
     }
   }
   return ordered
+}
+
+/**
+ * 某组件类型是否已达实例上限（整块看板全局计数，见 `core/group-rules.ts`）。
+ * spec 未注册时没有上限信息，按"不设限"处理，避免把未知类型的落库全堵死。
+ */
+function widgetLimitReached(doc: BoardDoc, widgetKey: string): boolean {
+  const spec = getWidget(widgetKey)
+  if (!spec) {
+    return false
+  }
+  return countWidgetInstances(doc, widgetKey) >= maxCountOf(spec.maxCount)
 }
 
 /**
@@ -71,17 +85,38 @@ export function boardReducer(doc: BoardDoc, action: BoardAction): BoardDoc {
     case 'reorderGroups':
       return replaceGroups(doc, applyOrder(doc.groups, action.orderedIds))
 
-    case 'addItem':
+    case 'addItem': {
+      // 组件实例上限：达上限的类型不再落库（界面层已把选项禁用，这里是最后闸门）
+      if (action.item.kind === 'widget' && widgetLimitReached(doc, action.item.widget)) {
+        console.warn(`[ffxiv-dash] 组件 "${action.item.widget}" 已达实例上限，拒绝添加`)
+        return doc
+      }
       return updateGroupById(doc, action.groupId, (group) =>
         canPlaceItem(group.type, action.item.kind) ? { ...group, items: [...group.items, action.item] } : group,
       )
+    }
 
-    case 'updateItem':
+    case 'updateItem': {
+      /*
+       * 编辑已有条目本身不占新名额；但把组件**改成另一种类型**等价于"再放一个新类型的实例"，
+       * 同样要过上限。同类型改标题 / 配置不受限。
+       */
+      const existing = doc.groups
+        .flatMap((group) => group.items)
+        .find((entry) => entry.id === action.item.id)
+      const switchedType =
+        action.item.kind === 'widget' &&
+        (existing?.kind !== 'widget' || existing.widget !== action.item.widget)
+      if (switchedType && widgetLimitReached(doc, action.item.widget)) {
+        console.warn(`[ffxiv-dash] 组件 "${action.item.widget}" 已达实例上限，拒绝修改类型`)
+        return doc
+      }
       return updateGroupById(doc, action.groupId, (group) =>
         canPlaceItem(group.type, action.item.kind)
           ? { ...group, items: group.items.map((item) => (item.id === action.item.id ? action.item : item)) }
           : group,
       )
+    }
 
     case 'updateItemConfig': {
       // 按 id 反查所属分组：组件内部只拿得到自己的 item.id

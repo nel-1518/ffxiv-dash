@@ -1,4 +1,4 @@
-import type { GroupType, ItemKind } from './storage/types.ts'
+import type { BoardDoc, GroupType, ItemKind } from './storage/types.ts'
 
 /**
  * 项目类型注册表 —— 分组类型的**能力规则**，全站唯一的声明处。
@@ -44,4 +44,23 @@ export function canPlaceItem(type: GroupType, kind: ItemKind): boolean {
 /** 一行最多并排几个该类型的项目。 */
 export function groupsPerRow(type: GroupType): number {
   return GROUP_TYPE_META[type].perRow
+}
+
+/**
+ * 某组件类型在**整块看板**上的实例数（跨全部分组的全局口径）。
+ *
+ * 组件实例上限（见 `features/widgets/types.ts` 的 `maxCount`）按看板全局计数，
+ * 而不是按分组：同一类型放几个只取决于"整块板上已有几个"，与放在哪个分组无关。
+ * `state/board-reducer.ts`（落库把关）与项目表单（禁用选项）共用这里的口径。
+ */
+export function countWidgetInstances(doc: BoardDoc, widgetKey: string): number {
+  let count = 0
+  for (const group of doc.groups) {
+    for (const item of group.items) {
+      if (item.kind === 'widget' && item.widget === widgetKey) {
+        count += 1
+      }
+    }
+  }
+  return count
 }
