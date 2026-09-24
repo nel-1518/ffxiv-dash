@@ -12,8 +12,6 @@ pnpm lint       # oxlint
 pnpm preview    # 预览构建产物
 ```
 
-可选：复制 `.env.example` 为 `.env` 配置运行时开关（目前**没有任何运行时开关**，图标底色已改为本地计算）。
-
 ## 技术选型
 
 | 关注点 | 选择 | 说明 |
@@ -29,7 +27,8 @@ pnpm preview    # 预览构建产物
 ```
 src/
   app/                    应用外壳与全局装配
-    AppProviders.tsx        ConfigProvider(中文/主题) → App → BoardPersistence + AutoOpenLinks（无看板 Provider）
+    AppProviders.tsx        ConfigProvider(中文/主题) → App → ErrorBoundary → BoardPersistence + AutoOpenLinks（无看板 Provider）
+    ErrorBoundary.tsx       渲染错误边界：整站崩溃降级为「页面渲染出错」页（组件卡另有单卡边界，见 WidgetRenderer）
     AutoOpenLinks.tsx       「跳转」：每天首次进入页面时自动打开设置里的链接（渲染 null 的启动副作用）
     theme-config.ts         基线主题 + 把主题规格合成 antd ThemeConfig
     AppShell.tsx            布局外壳；将来接路由的挂载点（只负责把视图放进 Layout）

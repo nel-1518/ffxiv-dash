@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { Component, useMemo } from 'react'
 import { Alert, App, Button, Card, Flex, Space, Tooltip, Typography } from 'antd'
 import { DeleteOutlined, EditOutlined, WarningOutlined } from '@ant-design/icons'
 import { getWidget } from './registry.ts'
@@ -137,10 +137,86 @@ export function WidgetRenderer({
       {/*
        * 内容单独拆一层再渲染：归一化要 memo（见下），而 `useMemo` 不能出现在
        * 上面那个提前 return 之后（Hooks 规则）。
+       * 外面再套一层错误边界：单卡抛错降级成警告，不拖垮看板。
        */}
-      <WidgetContent spec={spec} item={item} />
+      <WidgetErrorBoundary item={item}>
+        <WidgetContent spec={spec} item={item} />
+      </WidgetErrorBoundary>
     </WidgetShell>
   )
+}
+
+/**
+ * 单卡错误边界：某张组件卡的正文抛错时，只把这一张卡降级成警告，
+ * 看板其余部分照常（在此之前的任何渲染异常都会白屏整站）。
+ *
+ * 降级 UI 刻意长在 `WidgetShell` 之内：标题、编辑与删除按钮仍在，
+ * 用户可以修配置或删掉坏卡，而不是面对一张动不了的页面。
+ *
+ * 不从 app/ErrorBoundary.tsx 引入通用边界，是为了守住分层方向
+ * （features 不 import app）；这里的逻辑只有十几行，复制一份更划算。
+ */
+type WidgetErrorBoundaryProps = { item: WidgetItem; children: React.ReactNode }
+type WidgetErrorBoundaryState = { error: unknown; prevItem: WidgetItem | undefined }
+
+class WidgetErrorBoundary extends Component<WidgetErrorBoundaryProps, WidgetErrorBoundaryState> {
+  state: WidgetErrorBoundaryState = { error: undefined, prevItem: undefined }
+
+  static getDerivedStateFromError(error: unknown): Partial<WidgetErrorBoundaryState> {
+    return { error }
+  }
+
+  static getDerivedStateFromProps(
+    props: WidgetErrorBoundaryProps,
+    state: WidgetErrorBoundaryState,
+  ): Partial<WidgetErrorBoundaryState> | null {
+    /*
+     * item 换引用（config 被 patch、卡片被编辑）就自动重试一次：
+     * "坏配置修好了"是最常见的恢复路径，不必再让用户点重试。
+     * 同一张卡没变就保留错误态，避免随看板重渲染反复重试。
+     * 在渲染期对齐 prev 值，而不是 `componentDidUpdate` 里 `setState`：
+     * 同样的效果少跑一帧，也不触发 react/no-did-update-set-state。
+     */
+    if (state.prevItem !== props.item) {
+      return { prevItem: props.item, error: undefined }
+    }
+    return null
+  }
+
+  componentDidCatch(error: unknown, info: React.ErrorInfo): void {
+    // widget key 一起打出来：九个内置组件 + 历史数据里的未知 key，日志里先分清是谁
+    console.error('[ffxiv-dash] 组件卡渲染出错', this.props.item.widget, error, info.componentStack)
+  }
+
+  private reset = (): void => {
+    this.setState({ error: undefined })
+  }
+
+  render(): React.ReactNode {
+    if (this.state.error !== undefined) {
+      return (
+        <Alert
+          type="warning"
+          showIcon
+          icon={<WarningOutlined />}
+          title="该组件渲染出错"
+          description={
+            <Flex vertical gap={4}>
+              <Typography.Text type="secondary">
+                重试一次通常能恢复；若反复出现，可以编辑这张卡片的配置，或删除它。
+              </Typography.Text>
+              <div>
+                <Button size="small" onClick={this.reset}>
+                  重试
+                </Button>
+              </div>
+            </Flex>
+          }
+        />
+      )
+    }
+    return this.props.children
+  }
 }
 
 /**

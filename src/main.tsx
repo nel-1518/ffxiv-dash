@@ -20,6 +20,16 @@ import { initAppearanceImage } from './core/appearance/image-store.ts'
  * （见 state/board-store.ts），那一刻需要用注册表归一化各组件的配置，
  * 因此注册表要先装配好。
  */
+/*
+ * 全局兜底：未处理的 Promise 拒绝只记录、不打断。
+ * 各 widget 的请求自己有 catch（失败态呈现在卡面上），这一层接住漏网的
+ * 异步抛错（缓存序列化、IndexedDB 回调等），避免它们无声消失。
+ * 与渲染错误边界（app/ErrorBoundary.tsx）各管一头：那边管渲染期，这边管渲染期之外。
+ */
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('[ffxiv-dash] 未处理的 Promise 拒绝', event.reason)
+})
+
 installBuiltinWidgets()
 
 /**
