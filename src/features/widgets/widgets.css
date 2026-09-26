@@ -570,177 +570,192 @@
 }
 
 /*
- * 统计卡：环形进度 + 环外读数。
+ * 统计卡（阶段式）：分段线性轨道。
  *
- * 卡片里不放常驻的按钮与输入框 —— 在安静的卡片墙里那两块控件像贴了两块砖。
- * 环里只放百分比（环的形状本身就是"占比"），原始读数落到环下方并兼任入口：
- * 点一下原地变输入框。加减按钮只在指针移入整张卡片时从环的两侧滑出。
+ * 视觉主角是当前阶段名（大字居中，两侧幽灵箭头悬停显形），下方一条分段
+ * 轨道 —— 一段就是一个阶段，点任意一段直接跳转。常驻的只有文字与轨道，
+ * 操作控件（箭头/重置）要么悬停显形要么低调到近乎隐形，卡片墙保持安静。
  */
-.dash-stats-ring {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.dash-stats-percent {
-  font-size: 22px;
+/* 事项名称：与卡片标题相互独立，留空时整行不渲染 */
+.dash-stats-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 16px;
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
-  line-height: 1;
-}
-
-/* 单位跟着父级颜色走（满值时会一起变成功色），只压一点存在感 */
-.dash-stats-percent-unit {
-  margin-left: 1px;
-  font-size: 12px;
-  font-weight: 500;
-  opacity: 0.55;
-}
-
-/* 环外的读数：平时就是文字，悬停浮出一层极浅的底，暗示"这里可以点" */
-.dash-stats-readout {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 3px;
-  padding: 2px 7px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  cursor: text;
-  transition: background-color 160ms ease;
-}
-
-.dash-stats-readout:focus-visible {
-  outline: 2px solid var(--ant-color-primary, #1677ff);
-  outline-offset: 1px;
-}
-
-.dash-stats-readout-value {
-  font-size: 16px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.dash-stats-readout-max {
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45));
-}
-
-/* 满值时读数跟着环一起转成成功色，一处完成、处处完成 */
-.dash-stats-readout.is-complete .dash-stats-readout-value {
-  color: var(--ant-color-success, #52c41a);
-}
-
-.dash-stats-readout.is-complete .dash-stats-readout-max {
-  color: var(--ant-color-success, #52c41a);
-  opacity: 0.6;
-}
-
-/* 编辑态：把输入框压得和读数一样朴素，不出现边框与底色 */
-.dash-stats-input.ant-input-number {
-  width: 52px;
-  font-weight: 600;
-}
-
-.dash-stats-input .ant-input-number-input {
-  height: 26px;
-  padding: 0;
-  font-size: 16px;
-  font-weight: 600;
-  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /*
- * 加减：默认隐身，且绝对定位 —— 卡片宽度不因为它俩变化。
- * 落点整个在环**外**：环 96px、按钮 24px，留 4px 间隙，故偏移 -(24+4)。
- * 显形时再向外挪 3px，读起来像是被拉出来的。
+ * 主角行：箭头 + 阶段名。箭头列宽固定（24px），阶段名始终真正居中，
+ * 箭头显隐不会引起文字抖动。stageName 由 `key` 驱动重挂载触发入场动画。
  */
-.dash-stats-step.ant-btn {
-  position: absolute;
-  top: 50%;
-  z-index: 1;
+.dash-stats-hero {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.dash-stats-hero-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dash-stats-stage-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  animation: dash-stats-stage-in 220ms ease;
+}
+
+@keyframes dash-stats-stage-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.dash-stats-counter {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+  transition: color 200ms ease;
+}
+
+/*
+ * 完成态：只有阶段名转强调色；「第 x / n 阶段」计数保持次级文字色，
+ */
+.dash-stats-stage-name.is-complete {
+  color: var(--ant-color-primary, #1677ff);
+}
+
+/*
+ * 上/下一阶段箭头：默认隐身（透明 + 不可点），悬停整张卡片时显形。
+ * 不再绝对定位到环外 —— 内联在主角行里，省掉"看得见点不到"的判定面问题。
+ */
+.dash-stats-nav.ant-btn {
   width: 24px;
-  height: 24px;
   min-width: 24px;
+  height: 24px;
   padding: 0;
   opacity: 0;
   pointer-events: none;
   color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
-  background-color: var(--ant-color-bg-container, #fff);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
-  transform: translateY(-50%);
   transition:
     opacity 160ms ease,
-    transform 160ms ease,
     color 160ms ease,
     background-color 160ms ease;
 }
 
-.dash-stats-step--prev {
-  left: -28px;
-}
-
-.dash-stats-step--next {
-  right: -28px;
-}
-
-/*
- * 显形判定挂在**整张卡片**上，不能挂在圆环上：
- * 加减号位于环外，判定若跟着环走，鼠标刚移向按钮就已经离开判定面，
- * 按钮会先缩回去 —— 表现为"看得见、点不到"。卡片没有位移动效，是稳定的判定面。
- */
-.dash-sortable-item:hover .dash-stats-step.ant-btn {
+.dash-sortable-item:hover .dash-stats-nav.ant-btn,
+.dash-stats-nav.ant-btn:focus-visible {
   opacity: 1;
   pointer-events: auto;
 }
 
-.dash-sortable-item:hover .dash-stats-step--prev.ant-btn {
-  transform: translateY(-50%) translateX(-3px);
-}
-
-.dash-sortable-item:hover .dash-stats-step--next.ant-btn {
-  transform: translateY(-50%) translateX(3px);
-}
-
-/*
- * 键盘专用：只认 `:focus-visible`。
- * ⚠️ 不能用 `:focus-within` —— 点过按钮后它会一直持有焦点，
- * 鼠标移出卡片按钮也不消失（实测踩过）。Tab 到的按钮自己显形即可。
- */
-.dash-stats-step.ant-btn:focus-visible {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.dash-stats-step.ant-btn:not(:disabled):hover {
+.dash-stats-nav.ant-btn:not(:disabled):hover {
   color: var(--ant-color-primary, #1677ff);
   background-color: var(--ant-color-primary-bg, #e6f4ff);
 }
 
-/* 到顶/到底时 disabled，禁用色已经很淡，再卸掉投影避免抢视线 */
-.dash-stats-step.ant-btn:disabled {
-  box-shadow: none;
+/*
+ * 分段轨道：一段 = 一个阶段，flex 均分整行。
+ * 段是 18px 高的透明命中区，6px 的视觉小节由 ::before 绘制 ——
+ * 可点面积与纤细观感两者兼得。hover 时小节长高、变亮，反馈"这段可以点"。
+ */
+.dash-stats-track {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+  padding: 0 2px;
+}
+
+.dash-stats-seg {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 6px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.dash-stats-seg::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background-color: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.06));
+  transform: translateY(-50%);
+  transition:
+    height 160ms ease,
+    background-color 200ms ease;
+  content: '';
+}
+
+/* 走过的段：填实（含当前段），当前段不做额外强调 */
+.dash-stats-seg.is-passed::before {
+  background-color: var(--ant-color-primary, #1677ff);
+}
+
+.dash-stats-seg:not(.is-passed):hover::before {
+  height: 8px;
+  background-color: var(--ant-color-fill, rgba(0, 0, 0, 0.15));
+}
+
+/* 走过的段 hover：保持主色，压一层透明度示意仍可回退 */
+.dash-stats-seg.is-passed:hover::before {
+  background-color: color-mix(in srgb, var(--ant-color-primary, #1677ff) 75%, transparent);
+}
+
+.dash-stats-seg:focus-visible {
+  outline: 2px solid var(--ant-color-primary, #1677ff);
+  outline-offset: 1px;
+}
+
+/* 重置：低调的文字按钮，平时次级文字色近乎隐形，hover 转强调色 */
+.dash-stats-reset.ant-btn {
+  height: 22px;
+  padding: 0 6px;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+  font-size: 12px;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease;
+}
+
+.dash-stats-reset.ant-btn:not(:disabled):hover {
+  color: var(--ant-color-primary, #1677ff);
+  background-color: var(--ant-color-primary-bg, #e6f4ff);
 }
 
 /*
- * 触屏没有 hover：粘住的 :hover 会一直亮着，故给一份半透明常驻。
- * 同理，读数"可点"的那层浅底只在有真实指针的设备上给。
+ * 触屏没有 hover：粘住的 :hover 会一直亮着，箭头给一份半透明常驻。
+ * 轨道段与重置按钮本身常驻可点，不需要参与这份降级。
  */
 @media (hover: none) {
-  .dash-stats-step.ant-btn {
+  .dash-stats-nav.ant-btn {
     opacity: 0.6;
     pointer-events: auto;
-  }
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .dash-stats-readout:hover {
-    background-color: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
   }
 }
 /*

@@ -1,132 +1,151 @@
-import { Button, Flex, Form, InputNumber, Progress } from 'antd'
-import { MinusOutlined, PlusOutlined } from '@ant-design/icons'
-import { useState } from 'react'
+import { Button, Flex, Form, Input, Tooltip } from 'antd'
+import { LeftOutlined, RightOutlined, UndoOutlined } from '@ant-design/icons'
 import { boardActions } from '../../../../state/board-store.ts'
+import { MAX_STATS_NAME_LENGTH } from './config.ts'
 import type { StatsConfig } from './config.ts'
 import type { WidgetRenderProps } from '../../types.ts'
 
 export function StatsFormFields(): React.ReactNode {
   return (
     <>
-      <Form.Item label="当前数值" name={['config', 'value']}>
-        <InputNumber min={0} style={{ width: '100%' }} />
+      <Form.Item label="任务名称" name={['config', 'name']} extra="在卡片内居中显示">
+        <Input maxLength={MAX_STATS_NAME_LENGTH} placeholder="例如：主线任务" />
       </Form.Item>
-      <Form.Item label="数值上限" name={['config', 'max']} extra="进度按「当前数值 / 上限」实时计算">
-        <InputNumber min={1} style={{ width: '100%' }} />
+      {/*
+        阶段用多行文本填写，每行一个。表单值仍是 string[]：
+        `getValueProps` 负责展示（join），`getValueFromEvent` 只按行拆开、
+        **不做 trim 与过滤** —— 输入过程中吞掉空行/行尾空格会破坏敲回车的手感
+        （光标后的换行被拼回去），清洗统一放到保存时的 normalizeStatsConfig。
+      */}
+      <Form.Item
+        label="阶段"
+        name={['config', 'stages']}
+        extra="每行一个阶段，从上到下依次推进"
+        getValueProps={(value: unknown) => ({
+          value: Array.isArray(value) ? value.filter((item) => typeof item === 'string').join('\n') : '',
+        })}
+        getValueFromEvent={(event: { target?: { value?: string } }) => {
+          const text = event?.target?.value ?? ''
+          return text.split('\n')
+        }}
+      >
+        <Input.TextArea
+          autoSize={{ minRows: 3, maxRows: 8 }}
+          placeholder={'未开始\n进行中\n已完成'}
+        />
       </Form.Item>
     </>
   )
 }
 
 /**
- * 统计卡。
+ * 阶段进度卡（分段式线性布局）。
  *
- * 进度不手填，由 `value / max` 实时算出；卡片本身就是操作面板，改动按 `item.id`
- * 直接落库，不经过编辑弹窗。
+ * 视觉主角是当前阶段名：大字居中，两侧是上/下一阶段的幽灵箭头（悬停卡片才
+ * 显形）；下方一条分段轨道，**每段就是一个阶段**——走过的段填实、当前段
+ * 发光、未来的段留浅底，点任意一段可直接跳到那个阶段。
+ * 重置是轨道下方一个低调的文字按钮。
  *
- * 界面上刻意**没有常驻控件**：圆环是主角，圆心放读数（比只显示百分比信息量更足），
- * 读数本身就是按钮 —— 点一下原地变输入框，可直接键入；加减则做成悬停才浮现的
- * 幽灵按钮，滑出到环的两侧。静止时整张卡只剩一个环。
+ * 静止时整张卡只有一行名称、一行阶段读数和一条细轨道。
+ * 所有改动按 `item.id` 直接落库，不经过编辑弹窗。
  */
 export function StatsRender({ config, item }: WidgetRenderProps<StatsConfig>): React.ReactNode {
-  const [draft, setDraft] = useState<string | null>(null)
-  const editing = draft !== null
+  const { name, stages, stageIndex } = config
 
-  const percent = Math.round((config.value / config.max) * 100)
-  const atMin = config.value <= 0
-  const atMax = config.value >= config.max
+  const atFirst = stageIndex <= 0
+  const atLast = stageIndex >= stages.length - 1
+  // 单阶段没有"推进"可言，直接视为完成（整条轨道点亮）
+  const isComplete = atLast
 
-  const setValue = (next: number) => {
-    const clamped = Math.min(config.max, Math.max(0, Math.round(next)))
+  const goTo = (index: number) => {
     // `boardActions` 是模块级常量：这里只是写入，不订阅看板，因此不参与任何重渲染
-    if (clamped !== config.value) boardActions.updateItemConfig(item.id, { value: clamped })
+    if (index !== stageIndex) boardActions.updateItemConfig(item.id, { stageIndex: index })
   }
 
-  const commit = () => {
-    const raw = draft
-    setDraft(null)
-    const next = Number(raw)
-    if (raw !== null && raw.trim() !== '' && Number.isFinite(next)) setValue(next)
-  }
-
-  const step = (delta: -1 | 1) => {
-    const blocked = delta === -1 ? atMin : atMax
-    const label = delta === -1 ? '当前数值 -1' : '当前数值 +1'
+  const nav = (delta: -1 | 1) => {
+    const blocked = delta === -1 ? atFirst : atLast
+    const label = delta === -1 ? '上一阶段' : '下一阶段'
     return (
       <Button
         type="text"
         shape="circle"
         size="small"
-        className={`dash-stats-step dash-stats-step--${delta === -1 ? 'prev' : 'next'}`}
-        icon={delta === -1 ? <MinusOutlined /> : <PlusOutlined />}
+        className="dash-stats-nav"
+        icon={delta === -1 ? <LeftOutlined /> : <RightOutlined />}
         disabled={blocked}
         /*
          * 鼠标按下不让按钮夺走焦点：`mousedown` 的默认行为就是"聚焦"，
          * 而聚焦会让按钮的显形规则（`:focus-visible`）在鼠标移开后仍然成立 ——
-         * 表现为"点过加减号后再移出卡片，按钮不消失"。
+         * 表现为"点过箭头后再移出卡片，按钮不消失"。
          * 键盘走到这里不受影响（Enter/Space 照常触发），且那时本就该显形。
          */
         onMouseDown={(event) => event.preventDefault()}
-        onClick={() => setValue(config.value + delta)}
-        title={blocked ? (atMax ? '已达上限' : '已到下限') : label}
+        onClick={() => goTo(stageIndex + delta)}
+        title={blocked ? (delta === -1 ? '已是第一阶段' : '已是最后阶段') : label}
         aria-label={label}
       />
     )
   }
 
   return (
-    <Flex vertical align="center" gap={4} style={{ minWidth: 0 }}>
-      <div className="dash-stats-ring">
-        {step(-1)}
+    <Flex vertical align="center" gap={8} style={{ minWidth: 0, width: '100%' }}>
+      {/* 事项名称：config 的独立字段，与卡片标题无关；留空则整行不渲染 */}
+      {name !== '' && <div className="dash-stats-name">{name}</div>}
 
-        {/* 环里只放百分比：数字加百分号一个词就读完，环本身也正好是"占比"的形状。满值时 antd 转成成功色 */}
-        <Progress
-          type="circle"
-          percent={percent}
-          size={96}
-          strokeWidth={5}
-          strokeLinecap="round"
-          format={() => (
-            <span className="dash-stats-percent">
-              {percent}
-              <span className="dash-stats-percent-unit">%</span>
-            </span>
-          )}
-        />
-
-        {step(1)}
+      {/*
+        视觉主角：当前阶段名 + 「第几阶段」小字。箭头各占一个固定宽度，
+        阶段名始终真正居中，显隐不引起布局抖动。
+        key 挂 stageIndex：换阶段时让文字重新入场（CSS 动画），给一点"推进感"。
+      */}
+      <div className="dash-stats-hero">
+        {nav(-1)}
+        <div className="dash-stats-hero-text">
+          <div
+            key={stageIndex}
+            className={`dash-stats-stage-name${isComplete ? ' is-complete' : ''}`}
+            title={stages[stageIndex]}
+          >
+            {stages[stageIndex]}
+          </div>
+          <div className="dash-stats-counter">
+            第 {stageIndex + 1} / {stages.length} 阶段
+          </div>
+        </div>
+        {nav(1)}
       </div>
 
       {/*
-        原始读数放在环外，并承担"点一下改数值"的入口。
-        draft 用字符串而不是数字：数字态下清空输入框会立刻退回非编辑态，边删边改时手感很怪；
-        范围也不在输入框里限制，`setValue` 统一夹取。
+        分段轨道：flex 均分整行宽度，一段 = 一个阶段，点击直接跳转。
+        段本身做成 18px 的透明命中区，视觉小节（6px）由 ::before 绘制 ——
+        既保住可点面积，又不让轨道在视觉上变粗。
       */}
-      {editing ? (
-        <InputNumber
-          autoFocus
-          size="small"
-          variant="borderless"
-          controls={false}
-          value={draft}
-          onChange={(next) => setDraft(next === null ? '' : String(next))}
-          onBlur={commit}
-          onPressEnter={commit}
-          className="dash-stats-input"
-          aria-label="当前数值"
-        />
-      ) : (
-        <button
-          type="button"
-          className={`dash-stats-readout${atMax ? ' is-complete' : ''}`}
-          onClick={() => setDraft(String(config.value))}
-          title="点击输入当前数值"
-          aria-label={`当前数值 ${config.value}，点击输入`}
-        >
-          <span className="dash-stats-readout-value">{config.value}</span>
-          <span className="dash-stats-readout-max">/ {config.max}</span>
-        </button>
-      )}
+      <div className="dash-stats-track">
+        {stages.map((stage, index) => (
+          <Tooltip key={index} title={`第 ${index + 1} 阶段：${stage}`}>
+            <button
+              type="button"
+              className={`dash-stats-seg${index <= stageIndex ? ' is-passed' : ''}`}
+              onClick={() => goTo(index)}
+              aria-label={`切换到第 ${index + 1} 阶段：${stage}`}
+              aria-current={index === stageIndex ? 'step' : undefined}
+            />
+          </Tooltip>
+        ))}
+      </div>
+
+      <Button
+        type="text"
+        size="small"
+        className="dash-stats-reset"
+        icon={<UndoOutlined />}
+        disabled={atFirst}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => goTo(0)}
+        title={atFirst ? '已在第一阶段' : '回到第一阶段'}
+        aria-label="重置到第一阶段"
+      >
+        重置
+      </Button>
     </Flex>
   )
 }
