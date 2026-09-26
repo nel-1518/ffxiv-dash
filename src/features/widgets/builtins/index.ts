@@ -1,4 +1,5 @@
 import { installWidgetConfigNormalizer, registerWidget } from '../registry.ts'
+import { auroraWidgetSpec } from './aurora-widget/widget.ts'
 import { countdownWidgetSpec } from './countdown-widget/widget.ts'
 import { houseWidgetSpec } from './house-widget/widget.ts'
 import { marketWidgetSpec } from './market-widget/widget.ts'
@@ -34,6 +35,7 @@ export function installBuiltinWidgets(): void {
   registerWidget(restWidgetSpec)
   registerWidget(countdownWidgetSpec)
   registerWidget(rollWidgetSpec)
+  registerWidget(auroraWidgetSpec)
 
   // 把组件配置的归一化能力注入 core/storage，供读取本地数据时使用
   installWidgetConfigNormalizer()
