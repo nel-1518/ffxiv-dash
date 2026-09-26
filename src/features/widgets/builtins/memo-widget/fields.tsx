@@ -2,7 +2,7 @@
  * 备忘卡的配置字段与渲染。
  *
  * 卡面只有一段正文：默认按 markdown 渲染（`.dash-note-md`），**双击正文**原地换成
- * 编辑原始文本的输入框；失焦或 `Ctrl/Cmd+Enter` 落库，`Esc` 放弃本次改动。
+ * 编辑原始文本的输入框；失焦、`Ctrl/Cmd+Enter` 或 `Esc` 落库。
  * 高度沿用 `.dash-card-fill` 的 164px 上限（与待办卡同一套预算），长文只在卡内滚动，
  * 不会把同行的卡片撑高。
  *
@@ -57,9 +57,9 @@ export function MemoRender({ config, item }: WidgetRenderProps<MemoConfig>): Rea
   /**
    * 本次编辑是否已经收尾（提交或取消过）。
    *
-   * 一个编辑会话里 `commit` 可能被叫两次：`Ctrl+Enter` 提交后输入框随即卸载，
+   * 一个编辑会话里 `commit` 可能被叫两次：`Ctrl+Enter` / `Esc` 提交后输入框随即卸载，
    * 而浏览器有可能再补一次 blur。用它把第二次挡住，保证一次编辑至多写一次盘。
-   * 进入编辑时必须重置 —— 否则上一次的 `Esc` 会让下一次输入静默不保存。
+   * 进入编辑时必须重置 —— 否则上一次的退出会让下一次输入静默不保存。
    */
   const settled = useRef(false)
 
@@ -91,11 +91,6 @@ export function MemoRender({ config, item }: WidgetRenderProps<MemoConfig>): Rea
     }
   }
 
-  const cancel = (): void => {
-    settled.current = true
-    setDraft(null)
-  }
-
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>): void => {
     // 输入法组字中不响应：这时 `Esc` 通常是"取消候选词"，`Enter` 是"上屏"
     if (event.nativeEvent.isComposing) {
@@ -103,7 +98,7 @@ export function MemoRender({ config, item }: WidgetRenderProps<MemoConfig>): Rea
     }
     if (event.key === 'Escape') {
       event.preventDefault()
-      cancel()
+      commit()
       return
     }
     if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
