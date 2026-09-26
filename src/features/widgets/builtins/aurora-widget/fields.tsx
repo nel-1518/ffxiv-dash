@@ -1,17 +1,28 @@
-import { Flex, Typography } from 'antd'
+import { Form, Select, Typography } from 'antd'
 import { useClockAt } from '../../../../core/clock/hooks.ts'
 import { findAuroraWindows } from './forecast.ts'
 import type { AuroraZoneId } from './forecast.ts'
 import type { WidgetRenderProps } from '../../types.ts'
+import { AURORA_ZONE_OPTIONS } from './config.ts'
 import type { AuroraConfig } from './config.ts'
 
-/** 每个区域列出接下来几次极光窗口，2×3 排两行。 */
-export const AURORA_WINDOW_COUNT = 6
+/**
+ * 每个区域列出几次极光窗口（两列排布）：
+ * 「全部」时两地并列、每地 6 次（三行两列）；单选一个地图时 14 次（七行两列）。
+ * ⚠️ 这两个数是**算出来填满卡高**的（见 `fields.tsx` 顶部的常量注释与 CSS 里的 164px 预算）：
+ * 全部模式每块 3 行，两块共 161.6px；单区模式 7 行，靠 `--single` 放宽的行距凑到 159.8px。
+ * 都在 164px 上限之内且不出滚动条。改行高 / 头部高度 / 块间距就要重量，
+ * 否则要么留一大截空白、要么顶破上限出滚动条。
+ */
+const AURORA_WINDOW_COUNT_ALL = 6
+const AURORA_WINDOW_COUNT_SINGLE = 14
 
-/** 两个极光区域各占一块，accent 竖条沿用 PvP 卡的信息块语言。 */
+/**
+ * 两个极光区域的识别色（只用在头部那根 3px 竖条上）。
+ */
 const ZONES: { id: AuroraZoneId; label: string; accent: string }[] = [
-  { id: 'old-sharlayan', label: '旧萨雷安', accent: '#bdbdd7' },
-  { id: 'coerthas-western', label: '库尔札斯西部高地', accent: '#578DC8' },
+  { id: 'old-sharlayan', label: '旧萨雷安', accent: '#bdbdb7' },
+  { id: 'coerthas-western', label: '库尔札斯西部高地', accent: '#578dc8' },
 ]
 
 /*
@@ -50,66 +61,150 @@ function formatLocalParts(ms: number): { date: string; time: string } {
   return { date, time }
 }
 
-/** 编辑弹窗里的「组件配置」区：没有可配置项，写清原因而不是留一块空白。 */
+/** 毫秒时长格式化成「xx分xx秒」（极光窗口一次 700 地球秒 = 11分40秒）。 */
+function formatDuration(ms: number): string {
+  const totalSeconds = Math.round(ms / 1000)
+  return `${Math.floor(totalSeconds / 60)}分${totalSeconds % 60}秒`
+}
+
+/**
+ * 从现在到窗口开始的粗粒度时长：`3小时12分` / `12分`。
+ * 超过一天改用「X天Y小时」——「39小时50分」既长又不直观（时钟是分钟粒度，四舍五入到分）。
+ */
+function formatCountdown(ms: number): string {
+  const totalMinutes = Math.max(0, Math.round(ms / 60_000))
+  if (totalMinutes >= 1440) {
+    const days = Math.floor(totalMinutes / 1440)
+    const hours = Math.floor((totalMinutes % 1440) / 60)
+    return hours === 0 ? `${days}天` : `${days}天${hours}小时`
+  }
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  if (hours === 0) {
+    return `${minutes}分`
+  }
+  return minutes === 0 ? `${hours}小时` : `${hours}小时${minutes}分`
+}
+
+const WEEKDAY_LABELS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+
+/** 本地日期的零点时间戳，用于按「天」比较跨日（避开夏令时导致的整日误差）。 */
+function startOfLocalDay(ms: number): number {
+  const day = new Date(ms)
+  day.setHours(0, 0, 0, 0)
+  return day.getTime()
+}
+
+/**
+ * 相对日期标签：近三天「今天 / 明天 / 后天」，一周内「周X」，再远退回 `MM-DD`。
+ * 极光窗口间隔动辄几小时到一天，相对日期比绝对日期好读得多。
+ */
+function formatDayLabel(ms: number, nowMs: number): string {
+  const days = Math.round((startOfLocalDay(ms) - startOfLocalDay(nowMs)) / 86_400_000)
+  if (days <= 0) {
+    return '今天'
+  }
+  if (days === 1) {
+    return '明天'
+  }
+  if (days === 2) {
+    return '后天'
+  }
+  if (days < 7) {
+    return WEEKDAY_LABELS[new Date(ms).getDay()]
+  }
+  return formatLocalParts(ms).date
+}
+
+/** 编辑弹窗里的「组件配置」区：地图范围单选 + 原有的说明文案。 */
 export function AuroraFormFields(): React.ReactNode {
   return (
-    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-      该组件无需配置，极光窗口由游戏天气规则推算，每次持续约 11 分钟，见 <a href="https://ff14.huijiwiki.com/wiki/天气#罕见天象" target="_blank" rel="noopener noreferrer">
-        WIKI: 罕见天象
-      </a>。
-      <br />
-      艾欧泽亚地理频道每月播报极光时间表，可关注<a href="https://www.xiaohongshu.com/user/profile/610e35e5000000000100a83f" target="_blank" rel="noopener noreferrer">
-        小红书
-      </a>、<a href="https://weibo.com/u/5845500733" target="_blank" rel="noopener noreferrer">
-        微博
-      </a>。
-    </Typography.Text>
+    <>
+      <Form.Item label="地图范围" name={['config', 'zone']}>
+        <Select options={AURORA_ZONE_OPTIONS} />
+      </Form.Item>
+      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+        极光窗口由游戏天气规则推算，见 <a href="https://ff14.huijiwiki.com/wiki/天气#罕见天象" target="_blank" rel="noopener noreferrer">
+          WIKI: 罕见天象
+        </a>。
+        <br />
+        艾欧泽亚地理频道每月播报极光时间表，可关注<a href="https://www.xiaohongshu.com/user/profile/610e35e5000000000100a83f" target="_blank" rel="noopener noreferrer">
+          小红书
+        </a>、<a href="https://weibo.com/u/5845500733" target="_blank" rel="noopener noreferrer">
+          微博
+        </a>。
+      </Typography.Text>
+    </>
   )
 }
 
 /**
  * 极光预报卡片。
  *
- * 上下两块（库尔札斯西部高地 / 旧萨雷安），各自把接下来 6 次极光窗口排成
- * 两行三列；每格一段紧凑文案 `MM-DD HH:mm`（窗口开始的本地时间，极光从
- * 开始到结束约 11 分 40 秒）。正在进行的窗口用文字「进行中」替代时间，
- * 不做特殊配色。
+ * 排的是「区域头部 + 两列读数网格」，与税率卡同一种语言：头部左侧是 accent
+ * 竖条 + 区域名，右侧贴一行最近一次窗口的倒计时；下方窗口排成两列，
+ * 每格左侧相对日期（今天 / 明天 / 后天 / 周X / MM-DD）、右侧开始时刻（本地时间，
+ * 等宽数字、半粗），两端对齐 —— 一列读数的右缘自然对齐，不必再用底色包装。
+ *
+ * 地图范围由配置决定：选「全部」时上下两块各 4 次；选单个地图时只渲染那块，
+ * 排 8 次。正在进行的窗口整格转主色（同税率卡「减」字的位置与克制）。
  *
  * 时钟取「分钟」粒度：列表内容只跟窗口起止（全部落在整 700 秒倍数上，即
- * 整分整秒）有关，本地时间也只显示到分钟 —— 整秒订阅只会白渲染 59 次。
+ * 整分整秒）有关，本地时间与倒计时也只精确到分钟 —— 整秒订阅只会白渲染 59 次。
  */
-export function AuroraRender(_props: WidgetRenderProps<AuroraConfig>): React.ReactNode {
+export function AuroraRender({ config }: WidgetRenderProps<AuroraConfig>): React.ReactNode {
   const now = useClockAt('minute')
+  const nowMs = now.getTime()
+
+  const isAll = config.zone === 'all'
+  const zones = isAll ? ZONES : ZONES.filter((zone) => zone.id === config.zone)
+  const windowCount = isAll ? AURORA_WINDOW_COUNT_ALL : AURORA_WINDOW_COUNT_SINGLE
 
   return (
-    <Flex vertical gap={8} className="dash-aurora" style={{ minWidth: 0 }}>
-      {ZONES.map((zone) => (
-        <Flex key={zone.id} vertical gap={3} className="dash-aurora-block">
-          <Flex align="center" gap={6} className="dash-aurora-head">
-            <span
-              className="dash-aurora-accent"
-              style={{ background: zone.accent }}
-              aria-hidden="true"
-            />
-            <span className="dash-aurora-zone">{zone.label}</span>
-          </Flex>
+    <div className={`dash-aurora${isAll ? '' : ' dash-aurora--single'}`}>
+      {zones.map((zone) => {
+        const windows = findAuroraWindows(zone.id, nowMs, windowCount)
+        const nearest = windows[0] ?? null
 
-          <div className="dash-aurora-grid">
-            {findAuroraWindows(zone.id, now.getTime(), AURORA_WINDOW_COUNT).map((window) => {
-              const { date, time } = formatLocalParts(window.startMs)
-              return (
-                <span
-                  key={window.startMs}
-                  className="dash-aurora-slot"
-                  title={`本地时间 ${date} ${time} 开始${window.ongoing ? ' · 进行中' : ''}`}
-                >
-                  {window.ongoing ? '进行中' : `${date} ${time}`}
+        return (
+          <div
+            key={zone.id}
+            className="dash-aurora-block"
+            style={{ '--aurora-accent': zone.accent } as React.CSSProperties}
+          >
+            <div className="dash-aurora-head">
+              <span className="dash-aurora-accent" aria-hidden="true" />
+              <span className="dash-aurora-zone">{zone.label}</span>
+              {nearest ? (
+                <span className="dash-aurora-next">
+                  {nearest.ongoing ? '进行中' : `还有 ${formatCountdown(nearest.startMs - nowMs)}`}
                 </span>
-              )
-            })}
+              ) : null}
+            </div>
+
+            <div className="dash-aurora-grid">
+              {windows.map((window) => {
+                const { time } = formatLocalParts(window.startMs)
+                const day = formatDayLabel(window.startMs, nowMs)
+                return (
+                  <span
+                    key={window.startMs}
+                    className={`dash-aurora-slot${window.ongoing ? ' is-ongoing' : ''}`}
+                    title={`本地时间 ${day} ${time} 开始，持续 ${formatDuration(
+                      window.endMs - window.startMs,
+                    )}`}
+                  >
+                    <span className="dash-aurora-slot-day">{day}</span>
+                    <span className="dash-aurora-slot-time">
+                      {window.ongoing ? '进行中' : time}
+                    </span>
+                  </span>
+                )
+              })}
+            </div>
           </div>
-        </Flex>
-      ))}
-    </Flex>
+        )
+      })}
+    </div>
   )
 }

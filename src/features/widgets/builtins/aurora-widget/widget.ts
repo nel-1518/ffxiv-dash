@@ -8,7 +8,7 @@ export const auroraWidgetSpec: WidgetSpec<AuroraConfig> = defineWidget<AuroraCon
   key: 'aurora',
   label: '极光预报',
   description:
-    '*预报库尔札斯西部高地与旧萨雷安的极光天气。两地各列出接下来 6 次窗口。',
+    '*预报库尔札斯西部高地与旧萨雷安的极光天气。',
   defaultTitle: '极光预报',
   defaultConfig: AURORA_DEFAULT_CONFIG,
   maxCount: 5,

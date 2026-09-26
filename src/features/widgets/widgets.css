@@ -1346,43 +1346,65 @@
 /*
  * 极光预报卡
  *
- * 上下两块（库尔札斯西部高地 / 旧萨雷安），一块一个浅底圆角面板（同 PvP 卡
- * 的信息块语言：accent 竖条 + 区域名）。面板内极光窗口排成两行两列的网格，
- * 每格一段紧凑文案 `MM-DD HH:mm-HH:mm`（结束跨日才补日期）。
- * 正在进行的窗口在文案末尾标注「进行中」，不做特殊配色 ——
- * 颜色留给"真需要抢注意力"的事，与税率卡的「减」字同一克制。
+ * 与税率卡同一种语言：头部 = 「accent 竖条 + 区域名」+ 右侧一行倒计时，
+ * 下面压一条细分隔线；窗口读数排成两列，一格 = 左相对日期（今天 / 明天 /
+ * 后天 / 周X）+ 右开始时刻（等宽数字、半粗），两端对齐 —— 一列读数的
+ * 右缘自然对齐，不必再用底色包装。
+ *
+ * ⚠️ 内容高度硬顶在 164px（与 PvP 卡同一条预算）：本卡是「并列多行读数」，
+ * 不给它封顶就会把同组卡片一起顶高。但**不能用 `dash-card-fill`** ——
+ * 那个类带 `flex: 1 1 auto`，会把内容拉满卡高、行全挤在顶部；这里只封上限，
+ * 让卡面自己的 `justify-content: center` 把内容垂直居中（同倒数日卡）。
+ * `overflow: auto` 兼作兜底 —— 极端窄卡里格子折行时也不会顶破上限。
  */
 .dash-aurora {
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-width: 0;
+  max-height: 164px;
+  overflow: auto;
+  scrollbar-width: thin;
 }
 
-/* 面板吃掉卡里的富余高度（上限由 `.dash-card-fill` 封住），行留在顶部往下排 */
+.dash-aurora::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dash-aurora::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dash-aurora::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--ant-color-fill-secondary, rgba(0, 0, 0, 0.06));
+}
+
+/* 块：头部 + 窗口网格，留在顶部往下排 */
 .dash-aurora-block {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  flex: 1 1 auto;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+  min-width: 0;
 }
 
+/* 头部 = 小标题：区域名下压一条细分隔线，与下面的窗口网格分开 */
 .dash-aurora-head {
   display: flex;
   align-items: center;
   gap: 6px;
   min-width: 0;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--ant-color-split, rgba(0, 0, 0, 0.06));
 }
 
-/* accent 竖条：区域识别色，不承载信息 */
+/* accent 竖条：区域识别色（颜色由块上的 `--aurora-accent` 下发），不承载信息 */
 .dash-aurora-accent {
   flex: 0 0 auto;
   width: 3px;
-  height: 12px;
+  height: 13px;
   border-radius: 2px;
+  background: var(--aurora-accent, var(--ant-color-primary));
 }
 
 /* 区域名：窄卡里先被省略号吃掉的是它（时间读数永远留着） */
@@ -1391,32 +1413,74 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
+}
+
+/* 头右侧的「还有多久」：贴右缘，等宽数字防止读数变化时左右抖 */
+.dash-aurora-next {
+  margin-left: auto;
+  flex: none;
   font-size: 11px;
-  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
 }
 
 /*
- * 窗口网格：两行三列，6 次窗口正好填满；第 7 个起才开新行（理论上不会出现）。
- * 行距明显小于列距：同列的格子是一串读数，别让人把行列看反。
+ * 窗口网格：固定两列 —— 「全部」时每地 4 次排两行两列，单选时 8 次排四行两列。
+ * 行距明显小于列距：同列的格子读成一串时间轴，别让人把行列看反。
  */
 .dash-aurora-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3px 16px;
   align-content: start;
 }
 
 /*
- * 单个窗口的文案：等宽数字让三列的右缘对得齐，不左右抖。
- * 格子本身不允许换行 —— 超宽收省略号（全文在 title 上）。
+ * 单区模式只有一块，省下了两块之间的间距，行距就跟着放宽一档把高度补回来：
+ * 7 行 × 16.2 + 6 × 4 = 137.4，加头部 22.4 得 159.8，仍压在 164 上限内。
+ */
+.dash-aurora--single .dash-aurora-grid {
+  row-gap: 4px;
+}
+
+/*
+ * 单个窗口 = 一行读数：左相对日期（次级色）+ 右开始时刻（等宽数字、半粗）。
+ * 纯排版、不铺底色：卡里已经有 12~14 行，逐行加底会让这张卡比同组的重一档。
+ * 行高 1.35（不是 1.4）：行数是算出来填满 164px 的，行高多 0.05 就得多去一行。
  */
 .dash-aurora-slot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+/* 相对日期：窄卡里先被省略号吃掉，时刻永远留着 */
+.dash-aurora-slot-day {
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 12px;
-  line-height: 1.4;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}
+
+.dash-aurora-slot-time {
+  flex: none;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
+}
+
+/* 正在进行的窗口：整格转主色，一眼从网格里跳出来 */
+.dash-aurora-slot.is-ongoing .dash-aurora-slot-day,
+.dash-aurora-slot.is-ongoing .dash-aurora-slot-time {
+  color: var(--ant-color-primary);
 }

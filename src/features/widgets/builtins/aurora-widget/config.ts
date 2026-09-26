@@ -1,15 +1,32 @@
 /**
  * 极光预报组件的配置类型、默认值与归一化（纯数据，无组件）。
  *
- * 该组件没有可配置项：极光窗口完全由游戏天气规则推算（区域固定为
- * 库尔札斯西部高地与旧萨雷安两地并列展示），因此配置体是恒定的空对象。
- * 保留这个模块是为了与其他组件的文件结构一致（widget.ts 的 spec 需要这三个导出）。
+ * 唯一的可配置项是「地图范围」：全部（两地并列）或单选一个区域。
+ * 极光窗口本身完全由游戏天气规则推算，这个模块不做任何计算。
  */
-export type AuroraConfig = Record<string, never>
+import type { AuroraZoneId } from './forecast.ts'
 
-export const AURORA_DEFAULT_CONFIG: AuroraConfig = {}
+/** 展示的地图范围：`all` 两地并列，其余为单选区域。 */
+export type AuroraZoneOption = 'all' | AuroraZoneId
 
-/** 无论输入什么都归一化成空配置 —— 没有字段就没有脏数据可言。 */
-export function normalizeAuroraConfig(_raw: unknown): AuroraConfig {
-  return {}
+export type AuroraConfig = {
+  zone: AuroraZoneOption
+}
+
+export const AURORA_DEFAULT_CONFIG: AuroraConfig = { zone: 'all' }
+
+/** 编辑弹窗里的地图范围选项（含「全部」）。 */
+export const AURORA_ZONE_OPTIONS: { value: AuroraZoneOption; label: string }[] = [
+  { value: 'all', label: '全部' },
+  { value: 'old-sharlayan', label: '旧萨雷安' },
+  { value: 'coerthas-western', label: '库尔札斯西部高地' },
+]
+
+const VALID_ZONES: readonly string[] = AURORA_ZONE_OPTIONS.map((option) => option.value)
+
+/** 补默认值并挡掉未知区域；缺失/不认识的一律回落到「全部」。 */
+export function normalizeAuroraConfig(raw: unknown): AuroraConfig {
+  const source = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {}
+  const zone = source.zone
+  return { zone: VALID_ZONES.includes(zone as string) ? (zone as AuroraZoneOption) : 'all' }
 }
