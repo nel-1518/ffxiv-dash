@@ -1,4 +1,4 @@
-/* 组件卡（builtins）的卡面样式：todo / memo / rest / stats / market / house / tax / countdown / roll / aurora，以及三张读数卡共用的 .dash-card-fill 与 .dash-card-link。 */
+/* 组件卡（builtins）的卡面样式：todo / memo / rest / stats / market / house / tax / countdown / roll / aurora / goldtrial，以及三张读数卡共用的 .dash-card-fill 与 .dash-card-link。 */
 /*
  * 「铺满但不越界」的两条公用规则（房屋 / 物品价格 / 市场税率三张读数卡共用）。
  *
@@ -1483,4 +1483,91 @@
 .dash-aurora-slot.is-ongoing .dash-aurora-slot-day,
 .dash-aurora-slot.is-ongoing .dash-aurora-slot-time {
   color: var(--ant-color-primary);
+}
+
+/* ---------------- 黄金的试炼 ---------------- */
+
+/*
+ * 正文整块可点，跳到活动专题页登记（公用规则见 `.dash-card-link`）。
+ * 与税率卡同样只补一个 gap：内部直接是标题行、副本行、读数行与脚注。
+ */
+.dash-goldtrial-link {
+  gap: 10px;
+}
+
+/* 副本行：名字占满剩余宽度（窄卡先省略号吃掉），等级徽标固定靠右 */
+.dash-goldtrial-terri {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dash-goldtrial-terri-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
+}
+
+/* 等级徽标：描边小标签，和税率卡的「减」字同一套写法（不抢正文的注意力） */
+.dash-goldtrial-level {
+  flex: none;
+  padding: 0 3px;
+  border: 1px solid var(--ant-color-border, #d9d9d9);
+  border-radius: 3px;
+  font-size: 11px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
+}
+
+/* 读数行：左标签（次级色）+ 右读数（等宽数字，窄卡里先省略） */
+.dash-goldtrial-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dash-goldtrial-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.dash-goldtrial-label {
+  flex: none;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}
+
+.dash-goldtrial-value {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+  color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
+}
+
+/*
+ * 倒计时是这张卡唯一"会动"的数：给一点重量与主色。
+ * 其余读数保持常规文字色 —— 强调色只留给"正在流逝的截止时间"。
+ */
+.dash-goldtrial-value.is-emphasis {
+  font-weight: 600;
+  color: var(--ant-color-primary, #1677ff);
+}
+
+/* 下期预告：脚注，弱化成一行 11px 的补充信息 */
+.dash-goldtrial-footnote {
+  font-size: 11px;
+  line-height: 1.4;
 }

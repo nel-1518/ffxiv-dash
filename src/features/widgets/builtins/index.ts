@@ -1,6 +1,7 @@
 import { installWidgetConfigNormalizer, registerWidget } from '../registry.ts'
 import { auroraWidgetSpec } from './aurora-widget/widget.ts'
 import { countdownWidgetSpec } from './countdown-widget/widget.ts'
+import { goldTrialWidgetSpec } from './gold-trial-widget/widget.ts'
 import { houseWidgetSpec } from './house-widget/widget.ts'
 import { marketWidgetSpec } from './market-widget/widget.ts'
 import { memoWidgetSpec } from './memo-widget/widget.ts'
@@ -29,6 +30,7 @@ export function installBuiltinWidgets(): void {
   registerWidget(marketWidgetSpec)
   registerWidget(taxWidgetSpec)
   registerWidget(houseWidgetSpec)
+  registerWidget(goldTrialWidgetSpec)
   registerWidget(todoWidgetSpec)
   registerWidget(statsWidgetSpec)
   registerWidget(memoWidgetSpec)
