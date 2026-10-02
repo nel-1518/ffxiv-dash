@@ -1581,41 +1581,24 @@
 .dash-news {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  /* 与房屋售卖 / 物品价格同一档：标题行与列表之间 10px */
+  gap: 10px;
   min-width: 0;
 }
 
-/* 状态行：来源靠左（窄卡里先被省略号吃掉），新鲜度永远留着 */
+/*
+ * 标题行（来源 + 新鲜度）：排版（两端对齐、基线对齐、间距 8px）由 JSX 里的
+ * antd Flex 给，文字样式由 Typography 给（左 13px 加粗 / 右 11px 次级或警示色）——
+ * 与房屋售卖、物品价格、市场税率的标题行同一套写法。这里只补一条"不能压缩"：
+ * ⚠️ 列表一溢出，flex 会把这一行也按比例缩掉。
+ */
 .dash-news-meta {
-  /* ⚠️ 不能压缩：列表一溢出，flex 会把这一行也按比例缩掉 */
   flex: none;
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  /* 与下面的行对齐：行内左缘 = 行内边距 2px + 「顶」标记占位 */
-  padding-inline: 4px;
-  font-size: 11px;
-  line-height: 1.2;
-  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
 }
 
-.dash-news-source {
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* 数据新鲜度：常规次级色；获取失败转警示色（原因悬停看） */
+/* 数据新鲜度：等宽数字（"N 分钟前"跳字时宽度不抖）；颜色由 Typography 的 type 给 */
 .dash-news-status {
-  flex: none;
   font-variant-numeric: tabular-nums;
-  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
-}
-
-.dash-news-status.is-error {
-  color: var(--ant-color-warning, #faad14);
 }
 
 /*
@@ -1659,7 +1642,6 @@
   gap: 4px;
   min-width: 0;
   height: 24px;
-  padding: 0 4px;
   border-radius: 6px;
   font-size: 12px;
   line-height: 1.4;
@@ -1704,7 +1686,7 @@
 
 /* 空列表兜底文案（接口正常时不会出现） */
 .dash-news-empty {
-  padding: 12px 4px;
+  padding: 12px 0;
   font-size: 12px;
   color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
 }

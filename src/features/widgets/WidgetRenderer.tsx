@@ -21,7 +21,12 @@ export type WidgetRendererProps = {
  *
  * 手柄与删除都收进 Card 内部：卡片上方不再单独占一行，同组的小组件因此
  * 能对齐到同一条顶边。删除按钮排在编辑之后，两个操作同处右上角。
- * 手柄与两个操作都只在编辑模式下渲染，浏览时卡片只剩标题与内容。
+ *
+ * **标题栏默认隐藏**：标题（含拖拽手柄）与右上角操作（编辑、删除）都只在
+ * 编辑模式下渲染 —— 浏览时 antd Card 的 title 与 extra 均为 undefined，
+ * 整个 `.ant-card-head` 不渲染，卡片只剩正文内容。正文（children）的
+ * 渲染路径不受影响；拖拽只在编辑模式发生，虚影（DragPreview）也按
+ * editMode=true 绘制，与实体卡片的外观保持一致。
  */
 function WidgetShell({
   item,
@@ -59,10 +64,17 @@ function WidgetShell({
       // 内容区留白固定 16px：antd size="small" 的默认是 12px，组件卡用更松的一档
       styles={{ body: { padding: 16 } }}
       title={
-        <Flex align="center" gap={4} style={{ minWidth: 0 }}>
-          {handle}
-          <Typography.Text strong>{item.title}</Typography.Text>
-        </Flex>
+        /*
+         * 标题栏只在编辑模式渲染：浏览时传 undefined，antd Card 就不会挂
+         * `.ant-card-head`，标题栏整条不占位。手柄也只在这时随标题一起出现
+         * （SortableCard 本来就只在编辑模式注入 handle，两边条件一致）。
+         */
+        editMode ? (
+          <Flex align="center" gap={4} style={{ minWidth: 0 }}>
+            {handle}
+            <Typography.Text strong>{item.title}</Typography.Text>
+          </Flex>
+        ) : undefined
       }
       extra={
         editMode ? (

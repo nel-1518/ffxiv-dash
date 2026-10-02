@@ -174,7 +174,7 @@ export function AuroraRender({ config }: WidgetRenderProps<AuroraConfig>): React
           >
             <div className="dash-aurora-head">
               <span className="dash-aurora-accent" aria-hidden="true" />
-              <span className="dash-aurora-zone">{zone.label}</span>
+              <span className="dash-aurora-zone">{zone.label} 极光</span>
               {nearest ? (
                 <span className="dash-aurora-next">
                   {nearest.ongoing ? '进行中' : `还有 ${formatCountdown(nearest.startMs - nowMs)}`}

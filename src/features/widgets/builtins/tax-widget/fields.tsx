@@ -152,7 +152,7 @@ export function TaxRender({ config }: WidgetRenderProps<TaxConfig>): React.React
     >
       <Flex align="baseline" justify="space-between" gap={8} style={{ minWidth: 0 }}>
         <Typography.Text strong ellipsis style={{ fontSize: 13 }}>
-          {serverName}
+          {serverName} 市场税率
         </Typography.Text>
         {/* 数据新鲜度挤在标题行右侧，不独占一行；获取失败时这里转警示色 */}
         <Typography.Text

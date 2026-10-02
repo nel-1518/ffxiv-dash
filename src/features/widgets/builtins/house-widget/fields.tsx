@@ -217,7 +217,7 @@ export function HouseRender({ config }: WidgetRenderProps<HouseConfig>): React.R
       <Flex vertical gap={10} style={{ minWidth: 0, flex: '1 1 auto' }}>
         <Flex align="baseline" justify="space-between" gap={8} style={{ minWidth: 0 }}>
           <Typography.Text strong ellipsis className={`dash-house-phase-name${phase.kind === 'entry' ? '-is-entry' : ''}`} style={{ fontSize: 13 }}>
-            {HOUSE_PHASE_LABELS[phase.kind]}
+            房屋{HOUSE_PHASE_LABELS[phase.kind]}
           </Typography.Text>
           <Typography.Text
             type={error === null ? 'secondary' : 'warning'}

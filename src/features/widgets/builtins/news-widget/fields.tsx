@@ -1,7 +1,9 @@
 /**
  * 公告活动卡的配置字段与渲染。
  *
- * 卡面两段：状态行（来源 + 数据新鲜度 / 获取失败）→ 公告标题列表。
+ * 卡面两段：标题行（来源 + 数据新鲜度 / 获取失败）→ 公告标题列表。
+ * 标题行与房屋售卖 / 物品价格 / 市场税率同一套写法：左侧加粗的来源名，
+ * 右侧小号次级色的新鲜度读数（获取失败转警示色）。
  * 列表**按接口返回顺序**排，只有命中置顶规则的条目被拎到最前
  * （`highlightNews`，稳定分区，其余条目顺序不动）；置顶行用主色加粗并挂一个「顶」标记。
  * 每行只有标题 —— 卡面不显示日期，点条目到官网看详情。
@@ -11,7 +13,7 @@
  * 「N 分钟前」跟着**分钟粒度**的全局时钟走，跨分钟才重渲染。
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Alert, Button, Flex, Form, InputNumber, Select } from 'antd'
+import { Alert, Button, Flex, Form, InputNumber, Select, Typography } from 'antd'
 import { useClockAt } from '../../../../core/clock/hooks.ts'
 import { formatRelativeTime } from '../../../../core/clock/format.ts'
 import { fetchNews, highlightNews } from './api.ts'
@@ -204,13 +206,24 @@ export function NewsRender({ config }: WidgetRenderProps<NewsConfig>): React.Rea
 
   return (
     <div className="dash-card-fill dash-news">
-      {/* 两端对齐的一行小字：左边来源（窄卡里先被省略号吃掉），右边数据新鲜度 */}
-      <div className="dash-news-meta">
-        <span className="dash-news-source">官网公告</span>
-        <span className={`dash-news-status${error === null ? '' : ' is-error'}`} title={error ?? undefined}>
+      {/*
+        * 标题行：与房屋售卖 / 物品价格 / 市场税率同一套写法 ——
+        * 左侧加粗 13px 的来源名（窄卡里先被省略号吃掉），
+        * 右侧 11px 的数据新鲜度；获取失败时转警示色，原因悬停可看。
+        */}
+      <Flex className="dash-news-meta" align="baseline" justify="space-between" gap={8} style={{ minWidth: 0 }}>
+        <Typography.Text strong ellipsis style={{ fontSize: 13 }}>
+          官网公告
+        </Typography.Text>
+        <Typography.Text
+          type={error === null ? 'secondary' : 'warning'}
+          title={error ?? undefined}
+          className="dash-news-status"
+          style={{ fontSize: 11, flex: 'none' }}
+        >
           {status}
-        </span>
-      </div>
+        </Typography.Text>
+      </Flex>
 
       <div className="dash-news-scroll">
         {pending

@@ -75,5 +75,5 @@ export function formatRemaining(ms: number): string {
 export function formatBoundary(ms: number): string {
   const at = new Date(ms)
   const pad = (value: number): string => String(value).padStart(2, '0')
-  return `${pad(at.getMonth() + 1)}-${pad(at.getDate())} ${pad(at.getHours())}:${pad(at.getMinutes())}`
+  return `${at.getMonth() + 1}/${at.getDate()} ${pad(at.getHours())}:${pad(at.getMinutes())}`
 }

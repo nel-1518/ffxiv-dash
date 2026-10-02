@@ -124,6 +124,12 @@ export function GoldTrialRender(): React.ReactNode {
 
   const title = current !== null && current.name !== '' ? `第 ${current.name} 期` : '黄金的试炼'
   const status = pending ? '正在获取…' : GOLD_TRIAL_PHASE_LABELS[phase.phase]
+  /*
+   * 标题行右侧的读数：有期号时「期号 · 阶段」用间隔点分开
+   * （同房屋售卖的「服务器 · 新鲜度」、物品价格的「区服 · 新鲜度」）；
+   * 期号还没拿到时只剩阶段，不与左侧的加粗标题重复一遍卡名。
+   */
+  const headline = title === '黄金的试炼' ? status : `${title} · ${status}`
   const windowText =
     current?.challengeFrom !== null && current?.challengeTo !== null && current !== null
       ? `${formatDayTime(current.challengeFrom)} ~ ${formatDayTime(current.challengeTo)}`
@@ -138,9 +144,12 @@ export function GoldTrialRender(): React.ReactNode {
     /*
      * 正文整块可点，跳活动专题页（登记入口）。链接只包正文：卡片标题栏在
      * WidgetShell 里，编辑 / 删除按钮不能嵌进交互元素。
+     * `dash-card-fill` 与房屋售卖 / 物品价格 / 市场税率同一套：卡片被同组更高的
+     * 卡撑高时内容跟着长（封顶 164px），标题行钉在卡面顶部 —— 不加它时整块内容
+     * 会被 `.ant-card-body` 的垂直居中推到卡片中间，与其他卡的标题行错开。
      */
     <a
-      className="dash-card-link dash-goldtrial-link"
+      className="dash-card-link dash-card-fill dash-goldtrial-link"
       href={GOLD_TRIAL_SITE_URL}
       target="_blank"
       rel="noopener noreferrer"
@@ -148,11 +157,11 @@ export function GoldTrialRender(): React.ReactNode {
     >
       <Flex align="baseline" justify="space-between" gap={8} style={{ minWidth: 0 }}>
         <Typography.Text strong ellipsis style={{ fontSize: 13 }}>
-          {title}
+          黄金的试炼
         </Typography.Text>
         {/* 阶段状态挤在标题行右侧，不独占一行 */}
         <Typography.Text type="secondary" style={{ fontSize: 11, flex: 'none' }}>
-          {status}
+          {headline}
         </Typography.Text>
       </Flex>
 

@@ -29,7 +29,8 @@ export const MAX_LINK_DESC_INPUT_LENGTH = 120
 export type ItemFormValues = {
   kind: ItemKind
   link?: { name?: string; icon?: string; url?: string; desc?: string; abbreviation?: string }
-  widget?: { key?: string; title?: string }
+  /** 组件已不再支持自定义标题：表单里没有 title 字段，保存时统一取类型的 defaultTitle。 */
+  widget?: { key?: string }
   config?: Record<string, unknown>
 }
 
@@ -61,7 +62,7 @@ function buildInitialValues(
     return {
       kind: defaultKind,
       link: { name: '', icon: '', url: '', desc: '', abbreviation: '' },
-      widget: { key: spec?.key ?? defaultWidgetKey, title: spec?.defaultTitle ?? '自定义组件' },
+      widget: { key: spec?.key ?? defaultWidgetKey },
       config: spec?.defaultConfig ?? {},
     }
   }
@@ -81,7 +82,7 @@ function buildInitialValues(
 
   return {
     kind: 'widget',
-    widget: { key: item.widget, title: item.title },
+    widget: { key: item.widget },
     config: item.config,
   }
 }
@@ -115,7 +116,7 @@ export function ItemForm({
   /*
    * 组件类型选项：达到实例上限（整块看板全局计数，缺省 10，见 `widgets/types.ts`）的
    * 类型禁用并标注，但**当前正在编辑的实例自己的类型**保持可选 ——
-   * 否则已存在的卡片连标题 / 配置都改不了（reducer 只在换类型时才拦）。
+   * 否则已存在的卡片连配置都改不了（reducer 只在换类型时才拦）。
    */
   const widgetOptions = useMemo(() => {
     const currentKey = item?.kind === 'widget' ? item.widget : undefined
@@ -185,7 +186,12 @@ export function ItemForm({
       id: item?.id ?? createId(),
       kind: 'widget',
       widget: key,
-      title: values.widget?.title?.trim() || spec?.defaultTitle || '自定义组件',
+      /*
+       * 标题不再由用户填写（表单里已删掉该字段），统一取组件类型的默认标题：
+       * 编辑旧数据也会被重置成默认标题，不再保留历史自定义值。
+       * 落盘仍保留 title 字段 —— 删除确认、番茄钟通知等还在用它。
+       */
+      title: spec?.defaultTitle || '自定义组件',
       config: config as Record<string, unknown>,
     }
     onFinish(widget)
@@ -335,23 +341,17 @@ function WidgetSection({ widgetOptions }: { widgetOptions: { label: string; valu
           options={widgetOptions}
           onChange={(nextKey: string) => {
             /*
-             * 标题始终与组件类型保持一致：换类型就把标题重置成新类型的默认标题，
-             */
-            const next = getWidget(nextKey)
-            form.setFieldValue(['widget', 'title'], next?.defaultTitle ?? '')
-            /*
-             * 配置也必须跟着换。新建时的 config 来自 `buildInitialValues` 里写死的
+             * 配置必须跟着类型换。新建时的 config 来自 `buildInitialValues` 里写死的
              * 统计卡默认值，不换的话新类型的字段会取到 undefined —— PvP 地图的
              * 「显示下一个地图」开关就显示成关，保存时才被 normalizeConfig 补成开，
              * 界面与实际落库的值对不上。
              * 传整个对象（而不是合并）是为了顺手丢掉上一个类型残留的字段。
+             * （标题字段已删：不再需要随类型重置，保存时统一取 defaultTitle。）
              */
+            const next = getWidget(nextKey)
             form.setFieldValue('config', { ...(next?.defaultConfig ?? {}) })
           }}
         />
-      </Form.Item>
-      <Form.Item label="标题" name={['widget', 'title']}>
-        <Input placeholder="自定义组件" maxLength={60} />
       </Form.Item>
 
       <Divider titlePlacement="start" plain>
