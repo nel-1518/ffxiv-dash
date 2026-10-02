@@ -6,8 +6,9 @@
 [data-dash-theme='dawntrail'] {
   --dash-page-bg: #16140f;
 
+  /* 单色卡片：两端相同，全局模板拼出来的 linear-gradient 就退化成纯色（链接卡共用） */
   --dash-card-rgb: 38 32 24;
-  --dash-card-rgb-2: 26 22 17;
+  --dash-card-rgb-2: 38 32 24;
   --dash-card-radius: 0px;
   --dash-card-radius-sm: 0px;
   --dash-card-border-width: 0;
