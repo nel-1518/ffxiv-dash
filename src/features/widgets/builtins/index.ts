@@ -5,6 +5,7 @@ import { goldTrialWidgetSpec } from './gold-trial-widget/widget.ts'
 import { houseWidgetSpec } from './house-widget/widget.ts'
 import { marketWidgetSpec } from './market-widget/widget.ts'
 import { memoWidgetSpec } from './memo-widget/widget.ts'
+import { newsWidgetSpec } from './news-widget/widget.ts'
 import { restWidgetSpec } from './pomodoro-widget/widget.ts'
 import { pvpMapWidgetSpec } from './pvp-map-widget/widget.ts'
 import { rollWidgetSpec } from './roll-widget/widget.ts'
@@ -30,6 +31,7 @@ export function installBuiltinWidgets(): void {
   registerWidget(marketWidgetSpec)
   registerWidget(taxWidgetSpec)
   registerWidget(houseWidgetSpec)
+  registerWidget(newsWidgetSpec)
   registerWidget(goldTrialWidgetSpec)
   registerWidget(todoWidgetSpec)
   registerWidget(statsWidgetSpec)
