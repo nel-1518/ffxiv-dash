@@ -186,6 +186,7 @@ function LinkFace({
         交给 <a> 自己的 gap，两者取值一致，视觉间距不变。
       */}
       <a
+        className="dash-link-card-link"
         href={item.url}
         target="_blank"
         rel="noopener noreferrer"
@@ -272,7 +273,7 @@ function LinkFace({
       </a>
 
       {editMode ? (
-        <Space size={0}>
+        <Space size={0} className="dash-link-card-actions">
           <Tooltip title="编辑">
             <Button type="text" size="small" icon={<EditOutlined />} aria-label="编辑导航" onClick={onEdit} />
           </Tooltip>
