@@ -1,13 +1,14 @@
 import './settings.css'
 import { useState } from 'react'
 import { Modal } from 'antd'
-import { BgColorsOutlined, DatabaseOutlined, ExportOutlined, HighlightOutlined, ImportOutlined, SearchOutlined } from '@ant-design/icons'
+import { BgColorsOutlined, DatabaseOutlined, ExportOutlined, GithubOutlined, HighlightOutlined, ImportOutlined, InfoCircleOutlined, SearchOutlined } from '@ant-design/icons'
 import { AppearanceSettingsPanel } from './AppearanceSettingsPanel.tsx'
 import { AutoOpenSettingsPanel } from './AutoOpenSettingsPanel.tsx'
 import { DataSettingsPanel } from './DataSettingsPanel.tsx'
 import { ThemeEditorPanel } from './theme/ThemeEditorPanel.tsx'
 import { SearchSettingsPanel } from './SearchSettingsPanel.tsx'
 import { BatchLinksSettingsPanel } from './BatchLinksSettingsPanel.tsx'
+import { AboutSettingsPanel } from './AboutSettingsPanel.tsx'
 
 type SettingsSection = {
   key: string
@@ -30,6 +31,7 @@ const SECTIONS = [
   { key: 'search', label: '搜索', icon: <SearchOutlined />, Panel: SearchSettingsPanel },
   { key: 'auto-open', label: '每日自动跳转', icon: <ExportOutlined />, Panel: AutoOpenSettingsPanel },
   { key: 'data', label: '数据管理', icon: <DatabaseOutlined />, Panel: DataSettingsPanel },
+  { key: 'about', label: '关于', icon: <InfoCircleOutlined />, Panel: AboutSettingsPanel },
 ] as const satisfies readonly SettingsSection[]
 
 /** 分区键由 `SECTIONS` 推导，保证"导航里有、面板分发里没有"这种空档不可能出现。 */
@@ -62,25 +64,38 @@ export function SettingsDialog({ onClose }: SettingsDialogProps): React.ReactNod
       mask={{ closable: true }}
     >
       <div className="dash-settings">
-        <nav className="dash-settings-nav" role="tablist" aria-orientation="vertical" aria-label="设置分组">
-          {SECTIONS.map((section) => (
-            <button
-              key={section.key}
-              type="button"
-              role="tab"
-              id={`dash-settings-tab-${section.key}`}
-              aria-selected={active === section.key}
-              aria-controls={`dash-settings-panel-${section.key}`}
-              className={`dash-settings-nav-item${active === section.key ? ' is-active' : ''}`}
-              onClick={() => setActive(section.key)}
-            >
-              <span className="dash-settings-nav-icon" aria-hidden="true">
-                {section.icon}
-              </span>
-              {section.label}
-            </button>
-          ))}
-        </nav>
+        <div className="dash-settings-nav">
+          <nav className="dash-settings-nav-items" role="tablist" aria-orientation="vertical" aria-label="设置分组">
+            {SECTIONS.map((section) => (
+              <button
+                key={section.key}
+                type="button"
+                role="tab"
+                id={`dash-settings-tab-${section.key}`}
+                aria-selected={active === section.key}
+                aria-controls={`dash-settings-panel-${section.key}`}
+                className={`dash-settings-nav-item${active === section.key ? ' is-active' : ''}`}
+                onClick={() => setActive(section.key)}
+              >
+                <span className="dash-settings-nav-icon" aria-hidden="true">
+                  {section.icon}
+                </span>
+                {section.label}
+              </button>
+            ))}
+          </nav>
+
+          {/*
+           * 仓库入口：点了不切面板，所以刻意留在 tablist **外面**，
+           * 否则会多出一个"能选中却没有对应内容"的 tab。
+           */}
+          <a className="dash-settings-nav-item" href={'https://github.com/nel-1518/ffxiv-dash'} target="_blank" rel="noopener noreferrer">
+            <span className="dash-settings-nav-icon" aria-hidden="true">
+              <GithubOutlined />
+            </span>
+            GitHub
+          </a>
+        </div>
 
         <div
           className="dash-settings-panel"

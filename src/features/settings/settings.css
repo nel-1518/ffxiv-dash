@@ -22,6 +22,16 @@
   border-right: 1px solid var(--ant-color-split);
 }
 
+/*
+ * 导航里的分组标签。与外层的仓库入口（直接是 `.dash-settings-nav` 的子元素）
+ * 分开两层：分组是 `role="tablist"`，外链不在里面，避免混进一个"选中了却没内容"的 tab。
+ */
+.dash-settings-nav-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .dash-settings-nav-item {
   display: flex;
   align-items: center;
@@ -33,6 +43,8 @@
   background: transparent;
   font-size: 13px;
   color: var(--ant-color-text);
+  /* 这一类里既有 <button>（分组标签）也有 <a>（仓库入口）：清掉链接默认的下划线 */
+  text-decoration: none;
   text-align: left;
   cursor: pointer;
   transition:
@@ -194,6 +206,99 @@
   margin-top: 14px;
 }
 
+/*
+ * 「关于」面板：接口清单与参考清单。
+ *
+ * 每一项是一张小卡（与外观选项块同一套描边 / 圆角 / 底色），
+ * 名称 / 说明 / 地址各占一行 —— 地址里全是长 URL，必须能断行，
+ * 否则会把设置弹窗撑宽、把左侧导航挤扁。
+ */
+.dash-about-tags {
+  margin-top: 12px;
+}
+
+/* 项目仓库入口：与上方的技术栈标签隔开一行，图标与文字同色 */
+.dash-about-repo {
+  margin-top: 14px;
+  font-size: 13px;
+}
+
+/*
+ * 技术栈标签：外层 <a> 承担跳转，Tag 只负责外观。
+ *
+ * `text-decoration: none` 是必需的 —— 链接的下划线会传播给行内后代，
+ * 不清掉的话标签里的文字会一直带下划线。
+ * 悬停 / 聚焦时把标签的描边与文字转成主色：antd Tag 自身没有任何反馈，
+ * 光有 hover 光标看不出"整块都能点"。
+ */
+.dash-about-tech {
+  display: inline-flex;
+  color: inherit;
+  text-decoration: none;
+}
+
+.dash-about-tech:hover .ant-tag,
+.dash-about-tech:focus-visible .ant-tag {
+  border-color: var(--ant-color-primary-border);
+  color: var(--ant-color-primary);
+}
+
+
+.dash-about-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dash-about-item {
+  padding: 10px 12px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 10px;
+  background: var(--ant-color-fill-quaternary);
+}
+
+/* 名称 / 说明 / 地址各占一行；Flex 排的那一行名称仍是行内，不受影响 */
+.dash-about-item > .ant-typography {
+  display: block;
+}
+
+.dash-about-note.ant-typography {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.dash-about-endpoint.ant-typography {
+  margin-top: 6px;
+  font-family: var(--ant-font-family-code);
+  font-size: 12px;
+  word-break: break-all;
+}
+
+/*
+ * 链接由数组逐行渲染，容器负责与上一行的间距；条目内部的多个链接
+ * 只隔 2px —— 换行后的地址块之间不该出现卡片之间的那种空档。
+ */
+.dash-about-links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.dash-about-link.ant-typography {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.dash-about-links .dash-about-link.ant-typography {
+  margin-top: 0;
+}
+
 /* 窄屏：两栏竖过来，分组导航变成一排横向标签 */
 @media (max-width: 575px) {
   .dash-settings {
@@ -210,6 +315,16 @@
     border-right: 0;
     border-bottom: 1px solid var(--ant-color-split);
     overflow-x: auto;
+  }
+
+  /*
+   * 容器横排后，内层这层也要跟着横排，仓库入口才与外链项排在同一行；
+   * 横向滚动留给容器 —— 内层不缩，否则标签会被压成两行。
+   */
+  .dash-settings-nav-items {
+    flex: none;
+    flex-direction: row;
+    gap: 6px;
   }
 
   .dash-settings-nav-item {
