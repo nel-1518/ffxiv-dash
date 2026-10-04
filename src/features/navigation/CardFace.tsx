@@ -274,16 +274,16 @@ function LinkFace({
 
       {editMode ? (
         <Space size={0} className="dash-link-card-actions">
-          <Tooltip title="编辑">
-            <Button type="text" size="small" icon={<EditOutlined />} aria-label="编辑导航" onClick={onEdit} />
+          <Tooltip title="编辑链接">
+            <Button type="text" size="small" icon={<EditOutlined />} aria-label="编辑链接" onClick={onEdit} />
           </Tooltip>
-          <Tooltip title="删除">
+          <Tooltip title="删除链接">
             <Button
               type="text"
               size="small"
               danger
               icon={<DeleteOutlined />}
-              aria-label="删除导航"
+              aria-label="删除链接"
               onClick={confirmRemove}
             />
           </Tooltip>

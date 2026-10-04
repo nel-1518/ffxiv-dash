@@ -3,6 +3,50 @@ import { SCHEMA_VERSION } from './schema.ts'
 import type { BoardDoc } from './types.ts'
 
 /**
+ * 默认便签卡，写使用说明：新用户一进来就知道这个看板怎么用。
+ */
+const WELCOME_MEMO_1 = `# 这个网页是做什么的？
+一个适用于 [《最终幻想14》](https://ff.web.sdo.com/) 的导航站。
+可以自定义编辑多项内容：
+- 添加自定义链接
+- 可选的组件
+- 快速搜索
+- 主题设置
+`
+const WELCOME_MEMO_2 = `# 快速上手
+- **编辑看板**：先点顶栏的铅笔图标进入编辑模式，然后点击顶栏「＋」新建分组，再点击分组标题栏的「＋」往组里添加**组件**或**链接**。
+- **拖拽排序**：编辑模式下拖动卡片左上角的手柄即可调整顺序。
+- **全局搜索**：按 \`Tab\` 唤起搜索，输入关键词后回车打开链接。
+- **系统设置**：点击顶栏的齿轮图标可进入设置，进行切换主题、管理搜索、添加链接、导入／导出数据等等。
+`
+
+const WELCOME_MEMO_3 = `# 如何添加组件？
+> **组件**和**链接**需要分别放置在对应的分组中，比如「欢迎使用」是一个**组件分组**，「常用链接」则是一个**链接分组**。
+1. 点击顶栏的铅笔图标进入编辑模式。
+2. 点击编辑模式下顶栏出现的「＋」按钮添加一个**组件分组**（如果已有**组件分组**，则可以跳过此步）。
+3. 点击**组件分组**标题栏的「＋」按钮，选择并添加**组件**。
+`
+
+const WELCOME_MEMO_4 = `# 如何添加自定义链接？
+> **链接**和**组件**需要分别放置在对应的分组中，比如「常用链接」是一个**链接分组**，「欢迎使用」则是一个**组件分组**。
+- **添加单项**：点击顶栏的铅笔图标进入编辑模式，再点击**链接分组**的「＋」按钮添加。
+- **批量添加**：点击顶栏的齿轮图标进入设置，在「批量添加链接」中可一次性输入最多 20 个链接进行批量添加。
+`
+
+const WELCOME_MEMO_5 = `# 如何搜索？
+> 「搜索」可以在已保存的链接中进行快速查找、访问；也可以输入关键词，通过访问搜索引擎进行搜索。
+- **打开搜索**：按 \`Tab\` 键，或点击顶栏搜索框可唤起弹窗。
+- **快速访问**：在页面中，输入任意字符即可唤起搜索弹窗，或是直接 \`Ctrl+V\` 粘贴剪贴板内容。
+- **搜索引擎**：点击顶栏的齿轮图标，在「搜索引擎」中启用或配置。
+`
+
+const WELCOME_MEMO_6 = `# 如何配置主题？
+- 点击顶栏的齿轮图标进入设置，可在「外观」中配置浅色/深色模式，也可以选择跟随系统进行切换。
+- 深色或浅色模式可各选择一套主题，默认使用最简洁的「默认-浅色」和「默认-深色」。
+- 在设置的「主题编辑」中，可对每个主题进行单独配置，修改背景、透明度、模糊等参数。
+`
+
+/**
  * 初始演示数据。
  *
  * 组件配置统一收在各组件的 config 里（chips 是字符串数组，不是斜杠字符串）。
@@ -17,6 +61,80 @@ export function createDefaultBoard(): BoardDoc {
   return {
     version: SCHEMA_VERSION,
     groups: [
+      {
+        id: createId(),
+        title: '欢迎使用',
+        type: 'widget',
+        columns: 3,
+        items: [
+          {
+            id: createId(),
+            kind: 'widget',
+            widget: 'memo',
+            title: '便签',
+            config: { text: WELCOME_MEMO_1 },
+          },
+          {
+            id: createId(),
+            kind: 'widget',
+            widget: 'memo',
+            title: '便签',
+            config: { text: WELCOME_MEMO_2 },
+          },
+          {
+            id: createId(),
+            kind: 'widget',
+            widget: 'memo',
+            title: '便签',
+            config: { text: WELCOME_MEMO_3 },
+          },
+          {
+            id: createId(),
+            kind: 'widget',
+            widget: 'memo',
+            title: '便签',
+            config: { text: WELCOME_MEMO_4 },
+          },
+          {
+            id: createId(),
+            kind: 'widget',
+            widget: 'memo',
+            title: '便签',
+            config: { text: WELCOME_MEMO_5 },
+          },
+          {
+            id: createId(),
+            kind: 'widget',
+            widget: 'memo',
+            title: '便签',
+            config: { text: WELCOME_MEMO_6 },
+          },
+          {
+            id: createId(),
+            kind: 'widget',
+            widget: 'pvp-map',
+            title: 'PvP 地图轮换',
+            config: { showNextMap: true },
+          },
+          {
+            id: createId(),
+            kind: 'widget',
+            widget: 'todo',
+            title: '待办',
+            config: { 
+              cycle: 'tue', time: '16:00', 
+              items: '天书\n幻巧战\n黄金的试炼\n神典石\n时尚品鉴\n每周六仙人彩\n老主顾\n无人岛\n深宫挑战笔记'
+             },
+          },
+          {
+            id: createId(),
+            kind: 'widget',
+            widget: 'aurora',
+            title: '极光预报',
+            config: { zone: 'all' },
+          },
+        ],
+      },
       {
         id: createId(),
         title: '常用链接',

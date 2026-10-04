@@ -42,8 +42,8 @@ export function DashboardPage(): React.ReactNode {
   const confirmRemoveGroup = useCallback(
     (groupId: string) => {
       modal.confirm({
-        title: `删除项目「${readGroupTitle(groupId)}」？`,
-        content: '该项目下的所有内容都会一并删除，此操作不可撤销。',
+        title: `删除分组「${readGroupTitle(groupId)}」？`,
+        content: '该分组下的所有内容都会一并删除，此操作不可撤销。',
         okText: '删除',
         okButtonProps: { danger: true },
         cancelText: '取消',

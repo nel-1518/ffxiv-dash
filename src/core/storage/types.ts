@@ -1,7 +1,7 @@
-/** 项目类型；类型决定项目允许的内容和布局。 */
+/** 分组类型；类型决定分组允许的内容和布局。 */
 export type GroupType = 'link' | 'widget'
 
-/** 分组内项目的种类。 */
+/** 分组内卡片的种类。 */
 export type ItemKind = 'link' | 'widget'
 
 export type LinkItem = {
@@ -76,7 +76,7 @@ export const DEFAULT_GROUP_COLUMNS: Record<GroupType, number> = {
   widget: 4,
 }
 
-/** 把任意输入收敛成合法列数：非法或缺失时按项目类型取默认值。 */
+/** 把任意输入收敛成合法列数：非法或缺失时按分组类型取默认值。 */
 export function clampGroupColumns(value: unknown, type: GroupType): number {
   const fallback = DEFAULT_GROUP_COLUMNS[type] ?? DEFAULT_GROUP_COLUMNS.widget
   if (typeof value !== 'number' || !Number.isFinite(value)) {

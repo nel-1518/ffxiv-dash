@@ -9,7 +9,7 @@
 .dash-item-grid {
   display: grid;
   grid-template-columns: repeat(var(--dash-grid-columns, 4), minmax(0, 1fr));
-  /* 网页导航是一行多个的紧凑单行卡，间距小一档；小组件分组的 12px 见 .dash-item-grid--widget */
+  /* 网页导航是一行多个的紧凑单行卡，间距小一档；组件分组的 12px 见 .dash-item-grid--widget */
   gap: 8px;
   align-items: start;
 }
@@ -45,12 +45,12 @@
 }
 
 /*
- * 小组件分组：统一卡片高度。
+ * 组件分组：统一卡片高度。
  *
  * 手柄与删除都收进了卡片内部，卡片上方不再有独立的一行，
  * 高度差就只剩内容多少这一个来源。`grid-auto-rows: 1fr` 让每一行都取
  * 「最高那一行」的高度（auto 高度下 1fr 会解析到最大行的 max-content），
- * 卡片再撑满整格，同组的小组件便落在同一条顶边与底边上。
+ * 卡片再撑满整格，同组的组件便落在同一条顶边与底边上。
  * 网页导航是紧凑单行卡，不套用这条规则。
  */
 .dash-item-grid--widget {

@@ -17,12 +17,23 @@ export function groupTypeLabel(type: GroupType): string {
   return GROUP_TYPE_META[type].label
 }
 
-/** 当前项目类型允许的内容种类。 */
+/** 当前分组类型允许的内容种类。 */
 export function allowedItemKinds(type: GroupType): { label: string; value: ItemKind }[] {
   return GROUP_TYPE_META[type].allowedKinds.map((kind) => ({
     value: kind,
-    label: kind === 'widget' ? '小组件' : '网页链接',
+    label: kind === 'widget' ? '组件' : '网页链接',
   }))
+}
+
+/**
+ * 分组标题栏「＋」按钮的文案：按分组类型区分成「添加组件」或「添加链接」。
+ *
+ * 分组类型创建后不可修改，因此往里添加的是什么由类型唯一决定
+ * （`GROUP_TYPE_META` 的 `allowedKinds`：组件分组只能放组件，链接分组只能放链接），
+ * 一个类型对应一个文案，不需要运行时再判内容种类。
+ */
+export function addItemLabel(type: GroupType): string {
+  return type === 'widget' ? '添加组件' : '添加链接'
 }
 
 export function showsColumns(type: GroupType): boolean {
@@ -30,7 +41,7 @@ export function showsColumns(type: GroupType): boolean {
 }
 
 /**
- * 项目（分组）的位置调整方式。
+ * 分组的位置调整方式。
  *
  * 四种方式共用一条链路（`GroupBoard` 的 `moveGroup`）：相邻换位是 `up` / `down`，
  * 直接跳到首尾是 `top` / `bottom`。表头的四个按钮因此只需要一个回调。

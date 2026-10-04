@@ -12,7 +12,7 @@ import {
 
 export type GroupPanelProps = {
   /**
-   * 表头要的三样东西收的是**原始值**，不是整个 `Group` 对象。
+   * 表头要的几样东西收的都是**原始值**，不是整个 `Group` 对象。
    *
    * 配合下面的 `memo`，效果是：分组里某张卡片改了配置（标题、类型、项数都没变）时，
    * 表头这一整块 antd Card 根本不重渲染 —— 只有那张卡片自己重渲染。
@@ -20,6 +20,8 @@ export type GroupPanelProps = {
    */
   title: string
   typeLabel: string
+  /** 「＋」按钮的文案：由分组类型决定「添加组件」还是「添加链接」。 */
+  addItemLabel: string
   itemCount: number
   /** 是否处于编辑模式：关闭时表头右侧的位置组与内容组全部隐藏。 */
   editMode: boolean
@@ -36,7 +38,7 @@ export type GroupPanelProps = {
   onMoveUp: () => void
   onMoveDown: () => void
   onMoveToBottom: () => void
-  /** 内容组：往这一组里添加卡片 / 改名称与列数。 */
+  /** 内容组：往这一组里添加组件 / 链接，或改名称与列数。 */
   onAddItem: () => void
   onEdit: () => void
   /**
@@ -82,21 +84,22 @@ function HeadAction({
  * 分组面板：Card 外壳 + 单行表头（标题、类型与计数、操作组）。
  *
  * 表头的操作分成**两组**，中间一条竖线断开（编辑模式才出现）：
- * - 位置组：置顶 / 上移 / 下移 / 置底 —— 只改「这一块项目放在页面的哪个位置」；
+ * - 位置组：置顶 / 上移 / 下移 / 置底 —— 只改「这一块分组放在页面的哪个位置」；
  *   首尾两个是"一步到位"的，中间两个是"挪一格"的，需要精细调整时仍用得上。
- * - 内容组：添加项目（＋）、编辑项目（✎）—— 改「这一组里有什么 / 它叫什么」。
- *   项目名称与列数、以及删除，都收在编辑弹窗里。
+ * - 内容组：添加组件 / 添加链接（＋，按分组类型区分）、编辑分组（✎）—— 改「这一组里有什么 / 它叫什么」。
+ *   分组名称与列数、以及删除，都收在编辑弹窗里。
  *
  * 分成两组是为了少误点：六颗图标按钮排成一行时，"删掉/改掉"这类动作和
  * "挪个位置"混在一起很容易点错，隔开之后"左边管位置、右边管内容"一眼可辨。
  *
- * ⚠️ 六颗按钮在窄面板里会跟项目名抢宽度（4 个并排的网页导航分组就是这样），
+ * ⚠️ 六颗按钮在窄面板里会跟分组名抢宽度（4 个并排的网页导航分组就是这样），
  * 装不下时由 CSS 把**整组按钮换到第二行**，并把「类型 · 项数」交给省略号（见 global.css 的表头一节）。
  * 这两处规则都挂在类名上（`.dash-group-actions` / `.dash-group-meta`），改按钮数量时要一起复核。
  */
 export const GroupPanel = memo(function GroupPanel({
   title,
   typeLabel,
+  addItemLabel,
   itemCount,
   editMode,
   canMoveUp,
@@ -124,9 +127,9 @@ export const GroupPanel = memo(function GroupPanel({
           <Typography.Text strong>{title}</Typography.Text>
           {/*
             类型标签与项数是"元信息"，只在编辑模式露出：
-            浏览时表头只留用户自定义的项目名，卡片网格自己说明内容。
+            浏览时表头只留用户自定义的分组名，卡片网格自己说明内容。
             ⚠️ 它是表头里**第一个可以被牺牲**的东西：面板不够宽时由容器查询收起它，
-            否则六颗按钮会把项目名本身挤成省略号。
+            否则六颗按钮会把分组名本身挤成省略号。
           */}
           {editMode ? (
             <Typography.Text className="dash-group-meta" type="secondary" style={{ fontSize: 12 }}>
@@ -141,20 +144,20 @@ export const GroupPanel = memo(function GroupPanel({
             {/* 位置组：从左到右 = 从"一步到顶"到"一步到底" */}
             <Space size={0}>
               <HeadAction
-                label="置顶项目"
+                label="置顶分组"
                 icon={<VerticalAlignTopOutlined />}
                 disabled={!canMoveUp}
                 onClick={onMoveToTop}
               />
-              <HeadAction label="上移项目" icon={<ArrowUpOutlined />} disabled={!canMoveUp} onClick={onMoveUp} />
+              <HeadAction label="上移分组" icon={<ArrowUpOutlined />} disabled={!canMoveUp} onClick={onMoveUp} />
               <HeadAction
-                label="下移项目"
+                label="下移分组"
                 icon={<ArrowDownOutlined />}
                 disabled={!canMoveDown}
                 onClick={onMoveDown}
               />
               <HeadAction
-                label="置底项目"
+                label="置底分组"
                 icon={<VerticalAlignBottomOutlined />}
                 disabled={!canMoveDown}
                 onClick={onMoveToBottom}
@@ -163,8 +166,8 @@ export const GroupPanel = memo(function GroupPanel({
             {/* 竖线：左边只动位置，右边只动内容（antd 6 用 orientation 表示方向，type 已废弃） */}
             <Divider orientation="vertical" className="dash-group-actions-split" style={{ margin: 0 }} />
             <Space size={0}>
-              <HeadAction label="添加项目" icon={<PlusOutlined />} onClick={onAddItem} />
-              <HeadAction label="编辑项目" icon={<EditOutlined />} onClick={onEdit} />
+              <HeadAction label={addItemLabel} icon={<PlusOutlined />} onClick={onAddItem} />
+              <HeadAction label="编辑分组" icon={<EditOutlined />} onClick={onEdit} />
             </Space>
           </Flex>
         ) : undefined

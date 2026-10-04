@@ -118,7 +118,7 @@ function sanitizeGroup(value: unknown, normalize: WidgetConfigNormalizer): Group
 
   return {
     id: asId(value.id),
-    title: asString(value.title, '未命名项目').trim() || '未命名项目',
+    title: asString(value.title, '未命名分组').trim() || '未命名分组',
     type,
     // 列数是后加的字段：老数据缺省时补齐为该类型的默认值，越界值收敛到 1-6
     columns: clampGroupColumns(value.columns, type),

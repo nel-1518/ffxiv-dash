@@ -88,11 +88,11 @@ function buildInitialValues(
 }
 
 /**
- * 项目编辑表单。
+ * 卡片编辑表单。
  *
  * 关键点：
  * - 组件类型下拉与"组件专属字段"都由注册表驱动 —— 新增一个组件只需注册，这里不用改代码。
- * - 项目类型只允许其注册表声明的内容种类。
+ * - 分组类型只允许其注册表声明的内容种类。
  * - ⚠️ **不要给这个 Form 加 `preserve={false}`**（GroupForm 有，这里不能有）：
  *   切换组件类型时新类型的 `FormFields` 是全新挂载的，StrictMode 在 dev 下会把新挂载
  *   组件的 effect 跑两遍（挂载→清理→再挂载）；清理时 rc-field-form 发现 preserve 为

@@ -201,7 +201,7 @@ function notifyImportResult(
   if (importedCount > 0 && failures.length === 0 && risks.length === 0) {
     notification.success({ title: '批量导入完成', description })
   } else if (importedCount > 0) {
-    notification.warning({ title: '批量导入完成，但有部分项目需要注意', description, duration: 0 })
+    notification.warning({ title: '批量导入完成，但有部分条目需要注意', description, duration: 0 })
   } else {
     notification.error({ title: '没有成功导入链接', description, duration: 0 })
   }

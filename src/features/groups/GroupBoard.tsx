@@ -57,7 +57,7 @@ const sameKindCollision: CollisionDetection = (args) => {
 }
 
 /**
- * 项目（分组）的位置调整：置顶 / 上移 / 下移 / 置底。
+ * 分组的位置调整：置顶 / 上移 / 下移 / 置底。
  *
  * 做成**模块级函数**（而不是组件内的闭包）：它的引用因此永远不变，可以直接喂给
  * `memo(BoardGroupSlot)` 的比较，不需要再套一层 `useCallback`。
@@ -174,7 +174,7 @@ export function GroupBoard({
       <Empty
         image={Empty.PRESENTED_IMAGE_SIMPLE}
         description={
-          editMode ? '还没有任何项目，点击右上角“新建项目”开始' : '还没有任何项目，点击右上角的编辑按钮开始'
+          editMode ? '还没有任何分组，点击右上角“新建分组”开始' : '还没有任何分组，点击右上角的编辑按钮开始'
         }
       />
     )

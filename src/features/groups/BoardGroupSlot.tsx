@@ -2,7 +2,7 @@ import { memo, useCallback, useMemo } from 'react'
 import { useBoardGroup } from '../../state/hooks.ts'
 import { ItemGrid } from '../navigation/ItemGrid.tsx'
 import { SortableGroup } from './SortableGroup.tsx'
-import { groupTypeLabel } from './group-types.ts'
+import { addItemLabel, groupTypeLabel } from './group-types.ts'
 import type { GroupMove } from './group-types.ts'
 
 export type BoardGroupSlotProps = {
@@ -11,7 +11,7 @@ export type BoardGroupSlotProps = {
   editMode: boolean
   canMoveUp: boolean
   canMoveDown: boolean
-  /** 项目位置调整（置顶 / 上移 / 下移 / 置底）。调用方传的是模块级函数，引用恒定。 */
+  /** 分组位置调整（置顶 / 上移 / 下移 / 置底）。调用方传的是模块级函数，引用恒定。 */
   onMove: (groupId: string, move: GroupMove) => void
   onAddItem: (groupId: string) => void
   onEditGroup: (groupId: string) => void
@@ -28,7 +28,7 @@ export type BoardGroupSlotProps = {
  * - 本组件订的是**表头**需要的东西（标题、类型、项数），供 `SortableGroup` 用；
  * - 卡片数据交给下面的 `GroupItems` 自己订阅。
  *
- * 分开的意义：改某张卡片的配置时，表头那三样都没变，加上 `grid` 元素引用也稳住了，
+ * 分开的意义：改某张卡片的配置时，表头那几样都没变，加上 `grid` 元素引用也稳住了，
  * 于是 `memo(SortableGroup)` / `memo(GroupPanel)` 直接跳过整块 antd Card 表头 ——
  * 真正重渲染的只有那张卡片。
  */
@@ -79,6 +79,7 @@ export const BoardGroupSlot = memo(function BoardGroupSlot({
     <SortableGroup
       title={group.title}
       typeLabel={groupTypeLabel(group.type)}
+      addItemLabel={addItemLabel(group.type)}
       itemCount={group.items.length}
       editMode={editMode}
       canMoveUp={canMoveUp}

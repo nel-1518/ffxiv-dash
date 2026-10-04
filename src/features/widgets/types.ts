@@ -31,7 +31,7 @@ export type WidgetSpec<C = Record<string, unknown>> = {
   description: string
   /** 新建时的默认标题。 */
   defaultTitle: string
-  /** 新建项目时的默认配置。 */
+  /** 新建卡片时的默认配置。 */
   defaultConfig: C
   /** 校验并归一化配置：补默认值、修正类型、兼容旧数据。 */
   normalizeConfig: (raw: unknown) => C
@@ -45,7 +45,7 @@ export type WidgetSpec<C = Record<string, unknown>> = {
   /**
    * 该类型在**整块看板**上允许的最大实例数（跨所有分组的全局计数）。
    * 缺省用 `DEFAULT_WIDGET_MAX_COUNT`；设 0 表示禁止添加新实例。
-   * 达到上限时：项目表单的类型选项被禁用，reducer 拒绝落库（见 `board-reducer.ts`）。
+   * 达到上限时：卡片表单的类型选项被禁用，reducer 拒绝落库（见 `board-reducer.ts`）。
    */
   maxCount?: number
 }

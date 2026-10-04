@@ -1,6 +1,6 @@
 import './dashboard.css'
 import { useEffect, useRef } from 'react'
-import { Button, Flex, Input } from 'antd'
+import { Button, Flex, Input, Tooltip } from 'antd'
 import { CheckOutlined, EditOutlined, PlusOutlined, SearchOutlined, SettingOutlined } from '@ant-design/icons'
 import { TopbarClock } from './TopbarClock.tsx'
 import type { InputRef } from 'antd'
@@ -12,7 +12,7 @@ export type TopbarProps = {
   onOpenSearch: () => void
   /** 开始打字：打开弹窗，但光标留在末尾。 */
   onStartTyping: () => void
-  /** 是否处于编辑模式：决定「新建项目」与编辑开关的外观。 */
+  /** 是否处于编辑模式：决定「新建分组」与编辑开关的外观。 */
   editMode: boolean
   onToggleEditMode: () => void
   onCreateGroup: () => void
@@ -118,39 +118,49 @@ export function Topbar({
           />
         </div>
 
-        {/*
-          编辑开关：浏览时是普通图标按钮，进入编辑模式后变成主色实心圆并按成"完成"。
-          排在新项目与设置之间，设置仍是最右（沿用既有约定）。
-        */}
-        <Button
-          type={editMode ? 'primary' : 'text'}
-          className={editMode ? 'dash-topbar-primary' : 'dash-topbar-icon'}
-          icon={editMode ? <CheckOutlined /> : <EditOutlined />}
-          onClick={onToggleEditMode}
-          title={editMode ? '完成编辑' : '编辑'}
-          aria-label={editMode ? '完成编辑' : '编辑'}
-          aria-pressed={editMode}
-        />
+        {editMode ? (
+          <Tooltip key="done" title="完成编辑">
+            <Button
+              type="primary"
+              className="dash-topbar-primary"
+              icon={<CheckOutlined />}
+              onClick={onToggleEditMode}
+              aria-label="完成编辑"
+            />
+          </Tooltip>
+        ) : (
+          <Tooltip key="edit" title="编辑">
+            <Button
+              type="text"
+              className="dash-topbar-icon"
+              icon={<EditOutlined />}
+              onClick={onToggleEditMode}
+              aria-label="编辑"
+            />
+          </Tooltip>
+        )}
 
         {editMode ? (
-          <Button
-            type="primary"
-            className="dash-topbar-primary"
-            icon={<PlusOutlined />}
-            onClick={onCreateGroup}
-            title="新建项目"
-            aria-label="新建项目"
-          />
+          <Tooltip title="新建分组">
+            <Button
+              type="primary"
+              className="dash-topbar-primary"
+              icon={<PlusOutlined />}
+              onClick={onCreateGroup}
+              aria-label="新建分组"
+            />
+          </Tooltip>
         ) : null}
 
-        <Button
-          type="text"
-          className="dash-topbar-icon"
-          icon={<SettingOutlined />}
-          onClick={onOpenSettings}
-          title="设置"
-          aria-label="设置"
-        />
+        <Tooltip title="设置">
+          <Button
+            type="text"
+            className="dash-topbar-icon"
+            icon={<SettingOutlined />}
+            onClick={onOpenSettings}
+            aria-label="设置"
+          />
+        </Tooltip>
       </Flex>
     </Flex>
   )

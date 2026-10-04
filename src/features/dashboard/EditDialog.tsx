@@ -4,6 +4,7 @@ import { Alert, Button, Flex, Form, Modal, Space } from 'antd'
 import { DeleteOutlined } from '@ant-design/icons'
 import { useBoardGroup } from '../../state/hooks.ts'
 import { GroupForm } from '../groups/GroupForm.tsx'
+import { addItemLabel } from '../groups/group-types.ts'
 import { ItemForm, MAX_LINK_DESC_INPUT_LENGTH } from './ItemForm.tsx'
 import { DEFAULT_GROUP_COLUMNS } from '../../core/storage/types.ts'
 import { LinkMetadataError, fetchLinkMetadata, linkFieldsFromMetadata, normalizeLinkUrl } from '../../core/link-metadata.ts'
@@ -21,7 +22,7 @@ export type EditDialogProps = {
   onClose: () => void
   onSaveGroup: (groupId: string | null, values: GroupFormValues) => void
   onSaveItem: (groupId: string, itemId: string | null, item: Item) => void
-  /** 删除项目；项目表头已经不放删除按钮了，入口统一在编辑弹窗里。 */
+  /** 删除分组；分组表头已经不放删除按钮了，入口统一在编辑弹窗里。 */
   onRemoveGroup: (groupId: string) => void
 }
 
@@ -151,15 +152,15 @@ function EditDialogSession({ state, onClose, onSaveGroup, onSaveItem, onRemoveGr
 
   const title = isGroupMode
     ? isEditing
-      ? '编辑项目'
-      : '新建项目'
+      ? '编辑分组'
+      : '新建分组'
     : isEditing
       ? item?.kind === 'widget'
-        ? '编辑小组件'
-        : '编辑网页链接'
-      : `添加项目 · ${group?.title ?? ''}`
+        ? '编辑组件'
+        : '编辑链接'
+      : `${addItemLabel(group?.type ?? 'widget')} · ${group?.title ?? ''}`
 
-  // 项目表头不再放删除按钮，删除入口收进弹窗左下角（新建时没有可删的东西，不显示）
+  // 分组表头不再放删除按钮，删除入口收进弹窗左下角（新建时没有可删的东西，不显示）
   const deletableGroupId = isGroupMode && isEditing ? state.groupId : null
 
   return (
@@ -176,7 +177,7 @@ function EditDialogSession({ state, onClose, onSaveGroup, onSaveItem, onRemoveGr
           <div>
             {deletableGroupId ? (
               <Button danger icon={<DeleteOutlined />} onClick={() => onRemoveGroup(deletableGroupId)}>
-                删除项目
+                删除分组
               </Button>
             ) : null}
           </div>

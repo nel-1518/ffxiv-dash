@@ -28,7 +28,7 @@ const SECTIONS = [
   { key: 'appearance', label: '外观', icon: <BgColorsOutlined />, Panel: AppearanceSettingsPanel },
   { key: 'theme', label: '主题编辑', icon: <HighlightOutlined />, Panel: ThemeEditorPanel },
   { key: 'batch-links', label: '批量添加链接', icon: <ImportOutlined />, Panel: BatchLinksSettingsPanel },
-  { key: 'search', label: '搜索', icon: <SearchOutlined />, Panel: SearchSettingsPanel },
+  { key: 'search', label: '搜索引擎', icon: <SearchOutlined />, Panel: SearchSettingsPanel },
   { key: 'auto-open', label: '每日自动跳转', icon: <ExportOutlined />, Panel: AutoOpenSettingsPanel },
   { key: 'data', label: '数据管理', icon: <DatabaseOutlined />, Panel: DataSettingsPanel },
   { key: 'about', label: '关于', icon: <InfoCircleOutlined />, Panel: AboutSettingsPanel },
