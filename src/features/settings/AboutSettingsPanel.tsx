@@ -47,6 +47,13 @@ const API_ENDPOINTS: readonly EndpointEntry[] = [
     usage: '「房屋售卖」组件显示各房区的在售房屋数量。',
     site: 'https://house.ffxiv.cyou/#/about',
   },
+  {
+    name: '货币汇率',
+    provider: 'Frankfurter',
+    endpoint: 'https://api.frankfurter.dev/v2/rates?base={基准货币}&quotes={目标货币}',
+    usage: '「汇率」组件用于获取常用货币的参考汇率。',
+    site: 'https://frankfurter.dev/',
+  },
 ]
 
 /** 参考的开源项目、官方文档与资料。 */

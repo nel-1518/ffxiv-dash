@@ -1,4 +1,4 @@
-/* 组件卡（builtins）的卡面样式：todo / memo / rest / stats / market / house / tax / countdown / roll / aurora / goldtrial / news，以及三张读数卡共用的 .dash-card-fill 与 .dash-card-link。 */
+/* 组件卡（builtins）的卡面样式：todo / memo / rest / stats / market / house / tax / countdown / roll / aurora / goldtrial / news / exchange，以及三张读数卡共用的 .dash-card-fill 与 .dash-card-link。 */
 /*
  * 「铺满但不越界」的两条公用规则（房屋 / 物品价格 / 市场税率三张读数卡共用）。
  *
@@ -1689,4 +1689,104 @@
   padding: 12px 0;
   font-size: 12px;
   color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}
+
+/* ---------------- 汇率 ---------------- */
+
+/*
+ * 汇率卡
+ *
+ * 与市场税率卡同一种语言：标题行（货币对 + 数据新鲜度）在上，
+ * 下面一块浅底面板吃掉富余高度（上限由 `.dash-card-fill` 封住），
+ * 面板里居中排：主读数 → 反向汇率 → 数据日期。
+ *
+ * ⚠️ 正文**不可点**（没有 `.dash-card-link`），所以那一层的 flex 规则要在这里自己给。
+ */
+.dash-exchange {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  /* 标题行与读数面板之间 10px（同税率卡的 gap） */
+  gap: 10px;
+}
+
+/*
+ * 读数面板：浅底圆角块（同物品价格卡的 NQ/HQ 块），
+ * `container-type: inline-size` 让主读数的字号跟着**卡片宽度**缩放（同倒数日卡）——
+ * 卡宽由分组列数与屏宽共同决定，媒体查询问不到。
+ */
+.dash-exchange-panel {
+  container-type: inline-size;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+}
+
+/* 主读数行：`1 CNY =` / 大号汇率 / `JPY`，基线对齐成一串 */
+.dash-exchange-amount {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 「1 CNY =」是说明，小一号、次级色 */
+.dash-exchange-each {
+  flex: none;
+  font-size: 12px;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
+}
+
+/*
+ * 汇率数字：整张卡的主角。
+ * 上下限兜住两端 —— 24px 保住窄卡的可读性（六位数印尼盾也放得下），40px 是宽卡的止境。
+ * `tabular-nums`：换货币对 / 刷新时数字宽度不跳，整块卡片不会左右抖。
+ */
+.dash-exchange-value {
+  min-width: 0;
+  font-size: clamp(24px, 13cqi, 40px);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
+}
+
+/* 目标货币代码：跟着主角但小两档，半粗把「23.561 JPY」读成一句话 */
+.dash-exchange-quote-unit {
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
+}
+
+/* 还没拿到数据：破折号 + 压淡（面板高度由 flex 撑住，数据回来时不会跳） */
+.dash-exchange-value.is-blank {
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45));
+}
+
+/* 反向汇率：一行小字读出「1 JPY ≈ 0.0424 CNY」，等宽数字防抖 */
+.dash-exchange-reverse {
+  font-size: 12px;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
+}
+
+/* 数据日期与来源：最轻的一行（参考汇率一天一更，日期是这份数据唯一的「版本号」） */
+.dash-exchange-date {
+  font-size: 10.5px;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45));
 }
