@@ -65,8 +65,11 @@ export function parseTaxRates(
  *
  * 刻意**在渲染期现算**，而不是解析时就写进结果：数据要在缓存里躺 8 小时，
  * 存进去的判断会在阈值改了之后一直用旧值，现算则永远跟着当前阈值。
+ *
+ * 返回类型是谓词（`row is TaxRow & { rate: number }`）：减税的城市税率必然读得到，
+ * `filter(isDiscounted)` 之后 `row.rate` 可以直接当数字用。
  */
-export function isDiscounted(row: TaxRow): boolean {
+export function isDiscounted(row: TaxRow): row is TaxRow & { rate: number } {
   return row.rate !== null && row.rate < TAX_NORMAL_RATE
 }
 

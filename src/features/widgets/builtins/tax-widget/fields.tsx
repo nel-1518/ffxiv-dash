@@ -1,21 +1,27 @@
 /**
  * 市场税率卡的配置字段与渲染。
  *
- * 卡面两段：标题行（服务器 + 数据新鲜度）→ 2×4 的城市税率格。
- * 城市按 `TAX_CITIES` 的固定顺序排（**不排序**：位置不承载信息），
- * 减税的城市在税率左边挂一个「减」字 —— 一眼看出哪几个在打折。
+ * 卡面三段：标题行（服务器 + 数据新鲜度）→ 减税市场（一行列出）→ 金额输入框 + 含税估算。
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Alert, Flex, Form, Select, Typography } from 'antd'
+import { Alert, Flex, Form, Input, Select, Typography } from 'antd'
 import { useClockAt } from '../../../../core/clock/hooks.ts'
 import { formatRelativeTime } from '../../../../core/clock/format.ts'
 import { findWorldByName, worldOptions } from '../../../../core/world.ts'
-import { TAX_CITIES, TAX_SITE_URL } from './constants.ts'
+import { TAX_NORMAL_RATE, TAX_SITE_URL } from './constants.ts'
 import { isFresh, readTaxCache, writeTaxCache } from './cache.ts'
 import { fetchTaxRates, isDiscounted } from './rates.ts'
-import type { TaxRow, TaxRates } from './rates.ts'
+import type { TaxRates } from './rates.ts'
 import type { TaxConfig } from './config.ts'
 import type { WidgetRenderProps } from '../../types.ts'
+
+/** 金额输入最多 9 位数字（上限 999,999,999）。 */
+const AMOUNT_MAX_DIGITS = 9
+
+/** 整数金额的千分位格式化。 */
+function formatGil(value: number): string {
+  return value.toLocaleString('en-US')
+}
 
 export function TaxFormFields(): React.ReactNode {
   return (
@@ -23,7 +29,7 @@ export function TaxFormFields(): React.ReactNode {
       label="服务器"
       name={['config', 'server']}
       rules={[{ required: true, message: '请选择一个服务器' }]}
-      extra="查询指定服务器的市场税率。"
+      extra="查询指定服务器的市场税率，只显示正在减税的城市。"
     >
       <Select
         showSearch
@@ -57,9 +63,6 @@ export function TaxRender({ config }: WidgetRenderProps<TaxConfig>): React.React
 
   /*
    * 渲染期读缓存（纯读、无副作用）：页面打开时命中缓存就立刻有数据可显示。
-   *
-   * 这张卡只有"服务器"一个参数，直接 memo 在它上面即可 —— 不需要房屋卡那种
-   * "连 requestKey 一起 memo"的写法（那是为了躲开多参数下的死锁）。
    */
   const cached = useMemo(() => (serverId === undefined ? null : readTaxCache(serverId)), [serverId])
 
@@ -67,6 +70,19 @@ export function TaxRender({ config }: WidgetRenderProps<TaxConfig>): React.React
   const error = failure?.key === requestKey ? failure.message : null
   // 没有数据也没有错误 = 还在等第一次结果，不需要单独维护一个 loading 状态
   const pending = serverId !== undefined && data === null && error === null
+
+  /*
+   * 金额输入：存**格式化后的文本**（千分位随输入即时生效），计算时再去掉逗号。
+   * 只保留数字、最多 9 位 —— 前导零顺手被 Number 归一掉（"00100" → "100"）。
+   */
+  const [amountText, setAmountText] = useState('')
+  const amount = amountText === '' ? 0 : Number(amountText.replace(/,/g, ''))
+  const hasAmount = amount > 0
+
+  const handleAmountChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    const digits = event.target.value.replace(/[^0-9]/g, '').slice(0, AMOUNT_MAX_DIGITS)
+    setAmountText(digits === '' ? '' : formatGil(Number(digits)))
+  }
 
   /*
    * 拉取 + 落盘 + 记账。
@@ -119,12 +135,57 @@ export function TaxRender({ config }: WidgetRenderProps<TaxConfig>): React.React
     )
   }
 
+  // 只保留正在减税的城市（`isDiscounted` 是类型谓词，filter 之后 `rate` 必为数字）
+  const rows = data === null ? [] : data.rates.filter(isDiscounted)
+
   /*
-   * 拿到数据前先摆出八个城市（读数显示破折号）：卡高稳定，数据回来时不会跳。
-   * 行序就是 `TAX_CITIES` 的顺序，有数据 / 没数据走的都是同一条路。
+   * 减税地点按税率分组：税率只有 5% / 3% 两档，一组一行列出城市（顿号分隔、超宽自动折行），
+   * 比逐城一行省下大半版面。分组顺序沿用 `TAX_CITIES` 的顺序（Map 保持插入顺序）。
    */
-  const skeleton: TaxRow[] = TAX_CITIES.map((city) => ({ ...city, rate: null }))
-  const rows = data?.rates ?? skeleton
+  const groups = new Map<number, string[]>()
+  for (const row of rows) {
+    const labels = groups.get(row.rate)
+    if (labels === undefined) {
+      groups.set(row.rate, [row.label])
+    } else {
+      labels.push(row.label)
+    }
+  }
+
+  /*
+   * 含税估算只算三档：卖出 5%（正常税）→ 卖出各减税档（如 3%）→ 买入 5%。
+   * **税额一律向下取整**，卖出 = 金额 − 税额，买入 = 金额 + 税额。
+   * 金额未填时读数为 null（显示破折号）：格子常驻，版面高度不随输入跳变。
+   */
+  const discountedRates = Array.from(new Set(rows.map((row) => row.rate))).sort((a, b) => a - b)
+
+  /**
+   * 金额 `amount` 在税率 `rate`（百分比）下的税额，向下取整。
+   * ⚠️ 先乘整数再除 100（而不是乘 `rate / 100`）：后者在 0.05 / 0.03 这类
+   * 二进制表示不精确的浮点数上会漂出 1 分（如 3333 × 0.05 = 166.64999999999998）。
+   */
+  const taxOf = (rate: number): number => Math.floor((amount * rate) / 100)
+
+  const estimates: { key: string; label: string; value: number | null; emphasis: boolean }[] = [
+    {
+      key: 'sell-normal',
+      label: `卖出 ${String(TAX_NORMAL_RATE)}%`,
+      value: hasAmount ? amount - taxOf(TAX_NORMAL_RATE) : null,
+      emphasis: false,
+    },
+    ...discountedRates.map((rate) => ({
+      key: `sell-${String(rate)}`,
+      label: `卖出 ${String(rate)}%`,
+      value: hasAmount ? amount - taxOf(rate) : null,
+      emphasis: true,
+    })),
+    {
+      key: 'buy-normal',
+      label: `买入 ${String(TAX_NORMAL_RATE)}%`,
+      value: hasAmount ? amount + taxOf(TAX_NORMAL_RATE) : null,
+      emphasis: false,
+    },
+  ]
 
   // 失败优先于其他状态：标题行只显示「获取失败」，原因悬停可看，细节在控制台
   const status =
@@ -138,21 +199,13 @@ export function TaxRender({ config }: WidgetRenderProps<TaxConfig>): React.React
 
   return (
     /*
-     * 正文整块可点，跳到 Universalis（数据来源）。
-     * 链接只包住读数区：**卡片标题栏**里有编辑/删除按钮，交互元素不能互相嵌套。
-     * 这一层同时是卡内的纵向 flex 容器（原来是里面那层 Flex）——
-     * 它撑满卡面正文区，好把富余高度传给下面的读数区（上限见 global.css 的 `.dash-tax-link`）。
+     * 正文不可点，纯读数 + 一个输入框（不套 `.dash-card-link`，flex 规则自己给，同汇率卡）。
+     * 这一层撑满卡面正文区，好把富余高度交给中间的减税地点区（上限 `.dash-card-fill` 的 164px）。
      */
-    <a
-      className="dash-card-link dash-tax-link dash-card-fill"
-      href={TAX_SITE_URL}
-      target="_blank"
-      rel="noopener noreferrer"
-      title="打开 Universalis 查看"
-    >
+    <div className="dash-card-fill dash-tax">
       <Flex align="baseline" justify="space-between" gap={8} style={{ minWidth: 0 }}>
         <Typography.Text strong ellipsis style={{ fontSize: 13 }}>
-          {serverName} 市场税率
+          {serverName}
         </Typography.Text>
         {/* 数据新鲜度挤在标题行右侧，不独占一行；获取失败时这里转警示色 */}
         <Typography.Text
@@ -164,23 +217,71 @@ export function TaxRender({ config }: WidgetRenderProps<TaxConfig>): React.React
         </Typography.Text>
       </Flex>
 
-      <div className="dash-tax-rows">
-        {rows.map((row) => (
-          <div key={row.key} className="dash-tax-row">
-            {/* 窄卡里把城市名截断（hover 看全名），不让税率数字被挤走 */}
-            <span className="dash-tax-city" title={row.label}>
-              {row.label}
-            </span>
-            {/* 「减」标记与税率贴成一组一起靠右：标记是给这个数字做注解的 */}
-            <span className="dash-tax-tail">
-              {isDiscounted(row) ? <span className="dash-tax-cut">减</span> : null}
-              <span className={`dash-tax-rate${row.rate === null ? ' is-blank' : ''}`}>
-                {row.rate === null ? '—' : `${String(row.rate)}%`}
+      {groups.size > 0 ? (
+        /*
+         * 整块可点，跳到 Universalis（数据来源）。
+         * 链接就是这块滚动容器本身，样式由 `.dash-tax-places` 给（无悬停动画，见 CSS）。
+         */
+        <a
+          className="dash-tax-places"
+          href={TAX_SITE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="打开 Universalis 查看"
+        >
+          {Array.from(groups.entries()).map(([rate, labels]) => (
+            <div key={rate} className="dash-tax-place">
+              <span className="dash-tax-place-cities">{labels.join('、')}</span>{' '}
+              <span className="dash-tax-place-names">
+                正在实施减税{TAX_NORMAL_RATE - rate}%的活动。税金为成交价格的{rate}%。
               </span>
-            </span>
-          </div>
-        ))}
+            </div>
+          ))}
+        </a>
+      ) : (
+        <div className="dash-tax-empty">
+          {pending ? '正在获取…' : error !== null ? '获取失败' : '当前没有正在减税的市场'}
+        </div>
+      )}
+
+      {/*
+       * 计算器：输入框 + 含税估算，包成一组 —— 内部间距收紧到 6px，
+       * 与卡里其他区块（10px）拉开层次，读作「一个功能的两个部分」。
+       */}
+      <div className="dash-tax-calc">
+        <Input
+          className="dash-tax-input"
+          size="small"
+          placeholder="输入金额计算含税价"
+          value={amountText}
+          onChange={handleAmountChange}
+          inputMode="numeric"
+          allowClear
+        />
+
+        {/*
+         * 含税估算：浅底网格一列一档（同房屋合计块的排版语言），标签在上、读数在下。
+         * 列数随档位数走（没有减税时只有两列），写在 inline style 里。
+         */}
+        <div
+          className="dash-tax-results"
+          style={{ gridTemplateColumns: `repeat(${String(estimates.length)}, minmax(0, 1fr))` }}
+        >
+          {estimates.map((estimate) => (
+            <div key={estimate.key} className="dash-tax-cell">
+              <span className="dash-tax-cell-label">{estimate.label}</span>
+              <span
+                className={`dash-tax-cell-value${estimate.value === null ? ' is-blank' : ''}${
+                  estimate.emphasis ? ' is-emphasis' : ''
+                }`}
+                title={estimate.value === null ? undefined : formatGil(estimate.value)}
+              >
+                {estimate.value === null ? '—' : formatGil(estimate.value)}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
-    </a>
+    </div>
   )
 }
