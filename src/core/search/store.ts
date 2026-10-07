@@ -64,7 +64,12 @@ let state: SearchEngineConfig[] = [...DEFAULT_SEARCH_ENGINES]
 let loaded = false
 const listeners = new Set<() => void>()
 
-function normalize(raw: unknown): SearchEngineConfig[] {
+/**
+ * 归一化一份搜索引擎设置。
+ *
+ * 读盘与备份导入共用：非数组一律回落到默认清单，数组里认不出来的项直接丢掉
+ */
+export function normalizeSearchEngines(raw: unknown): SearchEngineConfig[] {
   if (!Array.isArray(raw)) {
     return [...DEFAULT_SEARCH_ENGINES]
   }
@@ -96,7 +101,7 @@ function load(): SearchEngineConfig[] {
   loaded = true
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    state = normalize(raw === null ? null : JSON.parse(raw))
+    state = normalizeSearchEngines(raw === null ? null : JSON.parse(raw))
   } catch (error) {
     console.warn('[ffxiv-dash] 无法读取搜索引擎设置，使用默认值', error)
     state = [...DEFAULT_SEARCH_ENGINES]

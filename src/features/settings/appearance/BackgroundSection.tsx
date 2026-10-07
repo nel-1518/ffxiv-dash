@@ -180,8 +180,7 @@ function UploadEditor(): React.ReactNode {
         )}
       </Flex>
       <Typography.Text type="secondary" className="dash-settings-hint is-inline">
-        图片不超过 {MAX_UPLOAD_BYTES / MB} MB，保存在本机浏览器里（IndexedDB），
-        不会写进导出的看板数据。每套主题互不影响。
+        图片不超过 {MAX_UPLOAD_BYTES / MB} MB，保存在本机浏览器里（IndexedDB），每套主题互不影响。
       </Typography.Text>
     </Flex>
   )

@@ -2,7 +2,10 @@ import { App, Button, Flex, Typography, Upload } from 'antd'
 import { DownloadOutlined, UploadOutlined } from '@ant-design/icons'
 import { boardActions } from '../../state/board-store.ts'
 import { useBoardDoc } from '../../state/hooks.ts'
-import { parseBoardDoc, serializeBoardDoc } from '../../core/storage/persistent.ts'
+import { parseBackup, serializeBackup } from '../../core/storage/backup.ts'
+import { importAppearance } from '../../core/appearance/store.ts'
+import { setAutoOpenLinks } from '../../core/auto-open/store.ts'
+import { setSearchEngines } from '../../core/search/store.ts'
 
 /** 导出文件名里的时间戳：本地时间、到分钟，够用来区分多次导出。 */
 function timestampForFileName(now: Date): string {
@@ -32,10 +35,14 @@ function downloadText(text: string, fileName: string): void {
 }
 
 /**
- * 数据管理：把看板整体导出为 JSON，或从 JSON 导入覆盖。
+ * 数据管理：把看板 + 三项设置（跳转 / 搜索引擎 / 外观）整体导出为一份 JSON，或导入覆盖。
  *
- * 导入走 `parseBoardDoc`，与启动时读 localStorage 是同一套校验与迁移逻辑，
- * 因此导出文件、更老版本的导出文件都能吃下；解析不出来的文件直接拒绝，不动现有数据。
+ * 文件形状见 `core/storage/backup.ts`：看板那一段走 `parseBoardDocValue`，
+ * 与启动时读 localStorage 是同一套校验，因此解析不出来的文件直接拒绝、不动现有数据。
+ *
+ * ⚠️ 导入**不是**一律覆盖：外观的粒度更细 —— 只有色调、槽位与各主题的模糊 / 亮度 /
+ * 卡片参数会跟过来，每个主题的背景来源与本机图片保持不变（见 `importAppearance`）。
+ * 确认弹窗里把这条说清楚，别让用户以为自己的背景图会被别人的备份冲掉。
  */
 export function DataSettingsPanel(): React.ReactNode {
   // 面板只在设置弹窗打开时挂载，且要展示"当前有几个分组/几项内容"，所以直接订整份文档
@@ -46,30 +53,36 @@ export function DataSettingsPanel(): React.ReactNode {
 
   const handleExport = () => {
     downloadText(
-      serializeBoardDoc(doc),
-      `ffxiv-dash-board-${timestampForFileName(new Date())}.json`,
+      serializeBackup(doc),
+      `ffxiv-dash-backup-${timestampForFileName(new Date())}.json`,
     )
-    message.success('已导出看板数据')
+    message.success('已导出看板与设置')
   }
 
   const handleImport = (file: File) => {
     void file
       .text()
       .then((text) => {
-        const next = parseBoardDoc(text)
-        if (!next) {
-          message.error('这个文件不是可识别的看板数据')
+        const backup = parseBackup(text)
+        if (!backup) {
+          message.error('这个文件不是可识别的备份数据')
           return
         }
-        const nextItemCount = next.groups.reduce((total, group) => total + group.items.length, 0)
+        const nextItemCount = backup.board.groups.reduce(
+          (total, group) => total + group.items.length,
+          0,
+        )
         modal.confirm({
-          title: '导入会覆盖当前看板',
-          content: `文件里有 ${next.groups.length} 个分组、${nextItemCount} 项内容。导入后当前的分组与卡片会被整体替换，此操作不可撤销。`,
+          title: '导入会覆盖当前看板与设置',
+          content: `文件里有 ${backup.board.groups.length} 个分组、${nextItemCount} 项内容，以及设置中的各项内容。导入后每个主题的背景保持为本机图片不变。此操作不可撤销。`,
           okText: '覆盖导入',
           okButtonProps: { danger: true },
           cancelText: '取消',
           onOk: () => {
-            boardActions.replaceDoc(next)
+            boardActions.replaceDoc(backup.board)
+            setAutoOpenLinks(backup.autoOpen.links)
+            setSearchEngines(backup.searchEngines)
+            importAppearance(backup.appearance)
             message.success('导入完成')
           },
         })
@@ -90,13 +103,12 @@ export function DataSettingsPanel(): React.ReactNode {
           数据
         </Typography.Title>
         <Typography.Text type="secondary" className="dash-settings-hint is-inline">
-          当前看板有 {doc.groups.length} 个分组、{itemCount} 项内容，全部保存在本机浏览器里。
-          「外观」与「主题编辑」的偏好不在导出范围内，导入别人的看板也不会覆盖它们。
+          当前有 {doc.groups.length} 个分组、{itemCount} 项内容，全部保存在本机浏览器里。
         </Typography.Text>
 
         <Flex className="dash-settings-actions" gap={12} wrap>
           <Button icon={<UploadOutlined />} onClick={handleExport}>
-            导出为 JSON
+            导出
           </Button>
           <Upload
             accept=".json,application/json"
@@ -104,7 +116,7 @@ export function DataSettingsPanel(): React.ReactNode {
             showUploadList={false}
             maxCount={1}
           >
-            <Button icon={<DownloadOutlined />}>从 JSON 导入</Button>
+            <Button icon={<DownloadOutlined />}>导入</Button>
           </Upload>
         </Flex>
       </section>

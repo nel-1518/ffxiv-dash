@@ -2,7 +2,7 @@
  * 「跳转」设置：每天首次进入页面时自动打开的一批链接（纯逻辑 + 一个 localStorage 键，无 React）。
  *
  * 它既不进看板数据、也不进外观偏好，因此独立落一个键 ——
- * 看板导出（`serializeBoardDoc`）天然不会带上它。
+ * 备份文件（`core/storage/backup.ts`）把它单列一段，且只带走用户填写的链接原文。
  *
  * 以**本地 0 点**为界（日历日，用 `core/clock/format.ts` 的 `formatDateKey`）：
  * 一天只跳一次，同一天里刷新、重开标签页都不再跳。判断只在页面启动时做一次，
@@ -45,6 +45,16 @@ function normalize(raw: unknown): AutoOpenState {
     links: typeof raw.links === 'string' ? raw.links : '',
     lastOpenedOn: DATE_KEY_PATTERN.test(lastOpenedOn) ? lastOpenedOn : '',
   }
+}
+
+/**
+ * 备份导入用：把外部数据里的一段「跳转」设置归一化成链接原文（认不出来就是空）。
+ *
+ * 只取 `links`：`lastOpenedOn` 是"今天跳过没有"的当日记账，跟着备份走会让
+ * 导入方当天少跳一次（见文件头的说明），一律不导出也不导入。
+ */
+export function normalizeAutoOpenLinks(raw: unknown): string {
+  return normalize(raw).links
 }
 
 /** 惰性读盘：重复调用只读一次存储（与 `core/appearance/store.ts` 同一形状）。 */

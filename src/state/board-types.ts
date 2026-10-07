@@ -32,7 +32,7 @@ export type BoardAction =
    * 整体替换看板。
    *
    * 目前只有一个调用方：设置里的「导入」。传入的 doc 必须已经过
-   * `parseBoardDoc` 校验，reducer 不再重复校验（它是纯函数，不做 IO 也不抛错）。
+   * `parseBoardDocValue` 校验，reducer 不再重复校验（它是纯函数，不做 IO 也不抛错）。
    */
   | { type: 'replaceDoc'; doc: BoardDoc }
 

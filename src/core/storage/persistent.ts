@@ -71,24 +71,14 @@ export function saveDoc(doc: BoardDoc): SaveResult {
 }
 
 /**
- * 导出用：产出与落盘完全相同的 BoardDoc 结构。
- */
-export function serializeBoardDoc(doc: BoardDoc): string {
-  return JSON.stringify(doc, null, 2)
-}
-
-/**
- * 导入用：把外部 JSON 文本解析成看板文档。
+ * 导入用：把**已经 `JSON.parse` 过的值**校验成看板文档。
  *
- * 走的是与 `loadDoc` 相同的校验与迁移路径。
+ * 走的是与 `loadDoc` 相同的校验与迁移路径（连带复用注入的组件配置归一化器）。
  * 返回 `null` 表示结构无法识别（不是对象、没有 groups、版本号对不上等）。
+ *
+ * ⚠️ 收的是值而不是 JSON 文本：看板现在只是备份文件（`core/storage/backup.ts`）
+ * 里的一段，文本层的解析由那一层统一做一次 —— 这里再解一遍文本反而要来回序列化。
  */
-export function parseBoardDoc(text: string): BoardDoc | null {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(text)
-  } catch {
-    return null
-  }
-  return sanitizeBoardDoc(parsed, normalizeWidgetConfig).doc
+export function parseBoardDocValue(raw: unknown): BoardDoc | null {
+  return sanitizeBoardDoc(raw, normalizeWidgetConfig).doc
 }

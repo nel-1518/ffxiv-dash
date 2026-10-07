@@ -11,8 +11,10 @@ import type { ColorMode, ColorScheme, ThemeKey } from '../theme-preference.ts'
 /**
  * 外观偏好（纯逻辑，无 React）：**色调模式 + 浅/深两个槽位 + 每套主题一份档案**。
  *
- * 它**不属于看板数据**：独立落一个 localStorage 键，因此 `serializeBoardDoc`
- * 导出时天然不会带上它，导入别人的看板也不会把自己的外观冲掉。
+ * 它**不属于看板数据**：独立落一个 localStorage 键，读写看板的那条路径完全不碰它。
+ * 备份文件（`core/storage/backup.ts`）把它单列一段：导出带走整份档案，而导入是**细粒度**的 ——
+ * 色调与两个槽位照搬，逐主题只吃"怎么显示"的几个数值，背景来源与本机图片一律不动
+ * （见 `importAppearance`）。
  *
  * 数据模型（键 `ffxiv-dash:appearance:v3`）：
  * - `colorMode`：浅色 / 深色 / 跟随系统。选「浅色」就用 `lightTheme` 那套、
@@ -330,6 +332,82 @@ function commit(next: AppearanceState): void {
   state = next
   persist(next)
   notify()
+}
+
+/**
+ * 备份导入时**照搬**的逐主题字段（白名单，默认不搬）。
+ *
+ * 这四个都是"怎么显示"的参数：模糊 / 亮度作用于背景图，卡片两项作用于卡片底色 ——
+ * 它们跟在**本机那张图 / 那个色**上才有意义，所以不涉及"本机用哪张图"。
+ * 白名单而不是黑名单：将来档案加字段时，默认是"不导入"，不会静默跟着备份跑。
+ */
+const IMPORTED_PROFILE_FIELDS = [
+  'blur',
+  'brightness',
+  'cardAlpha',
+  'cardBlur',
+] as const satisfies readonly (keyof ThemeProfile)[]
+
+/**
+ * 从备份里的一份档案里挑出照搬的那几项。
+ *
+ * ⚠️ 没写过的字段**不出现**在结果里：档案里"键不存在"的语义是"这项没改过"，
+ * 若补上默认值就等于替用户把本机的值改成了主题出厂值（见 `normalizeThemePatch`）。
+ */
+function pickImportedTunings(patch: ThemeProfilePatch | undefined): ThemeProfilePatch {
+  const picked: ThemeProfilePatch = {}
+  if (!patch) {
+    return picked
+  }
+  for (const field of IMPORTED_PROFILE_FIELDS) {
+    const value = patch[field]
+    if (value !== undefined) {
+      picked[field] = value
+    }
+  }
+  return picked
+}
+
+/**
+ * 导入备份里的外观偏好（备份恢复用）。粒度刻意分两半：
+ *
+ * - `colorMode` / `lightTheme` / `darkTheme`：**整份照搬**备份 —— "用哪套主题"是纯偏好，
+ *   与导入方的本机资源无关；
+ * - 逐主题档案：只搬"怎么显示"的四个数值（`IMPORTED_PROFILE_FIELDS`），
+ *   背景来源（无 / 纯色 / 图片链接 / 上传）与上传图信息**一律保持本机现状** ——
+ *   别人的备份里那套图 / 色搬过来没有意义，把本机的背景换掉只会让"导入看板"变得危险。
+ *
+ * 因此这里**不能**逐主题复用 `setThemeProfile`：它是"局部改动"语义，且合并结果为空时
+ * 会把整份档案删掉。这里改成先拼好整份 `profiles`、再一次性交给 `commit` 落盘。
+ *
+ * ⚠️ **不碰 IndexedDB**：上传图既不搬进来，也不改动本机已有的那张（图片本体见 ./image-store.ts）。
+ */
+export function importAppearance(raw: unknown): void {
+  // 先确保读盘走完（本机旧档案与系统色调就位）：正常流程里启动时已经调过，
+  // 这里兜的是"导入早于首帧"这种极端顺序 —— 幂等，重复调用不会重读存储
+  loadAppearance()
+
+  // 归一化一次性把两半都拿到：全局三字段照搬，档案按白名单挑（手改坏的值在这里就被挡掉）
+  const { colorMode, lightTheme, darkTheme, profiles: imported } = normalizeAppearance(raw)
+
+  const profiles = { ...state.profiles }
+  for (const key of THEME_KEYS) {
+    const tunings = pickImportedTunings(imported[key])
+    if (Object.keys(tunings).length === 0) {
+      // 备份里这套主题没调过显示参数：本机档案一点不动
+      continue
+    }
+    // 与本机档案合并后重新归一化一遍，保证落盘的一定是合法值
+    const next = normalizeThemePatch({ ...profiles[key], ...tunings })
+    if (Object.keys(next).length === 0) {
+      // 理论上到不了（`tunings` 非空且已被校验过）；防御性丢掉空壳，别在 profiles 里留
+      delete profiles[key]
+      continue
+    }
+    profiles[key] = next
+  }
+
+  commit({ colorMode, lightTheme, darkTheme, profiles })
 }
 
 /** 读取外观偏好；幂等，重复调用只读一次存储。应用启动时先调它。 */

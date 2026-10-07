@@ -178,7 +178,7 @@ export function boardReducer(doc: BoardDoc, action: BoardAction): BoardDoc {
     }
 
     case 'replaceDoc':
-      // 导入已经过 parseBoardDoc 校验；这里直接换引用，store 会广播变更并由落盘闸门写盘
+      // 导入已经过 parseBoardDocValue 校验；这里直接换引用，store 会广播变更并由落盘闸门写盘
       return action.doc
 
     default: {
