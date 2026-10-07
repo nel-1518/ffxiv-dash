@@ -1,6 +1,5 @@
 /**
  * 艾欧泽亚时间转换工具
- * 参考了 https://github.com/violarulan/EorzeaTimeConvert
  */
 
 
