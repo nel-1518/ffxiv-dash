@@ -3,6 +3,7 @@ import { memo, useState } from 'react'
 import { App, Button, Flex, Space, Tooltip, Typography } from 'antd'
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
 import { WidgetRenderer } from '../widgets/WidgetRenderer.tsx'
+import { normalizeLinkUrl } from '../../core/link-metadata.ts'
 import { pastelColorOfLink } from '../../core/pastel.ts'
 import type { LinkItem, WidgetItem } from '../../core/storage/types.ts'
 
@@ -19,6 +20,15 @@ export type CardFaceProps = {
   onEdit: () => void
   onRemove: () => void
 }
+
+/**
+ * 两种卡片外观共有的 props：`item` 各自收窄成具体类型，其余完全一致。
+ *
+ * 从 `CardFaceProps` 派生，而不是把五个字段各抄一份 —— 以后给它加字段
+ * （⚠️ 加之前先确认是原始值或稳定引用，见下面的 `memo` 说明），
+ * `LinkFace` / `WidgetFace` 会一起跟着变，不会漏掉其中一个。
+ */
+type FaceCommonProps = Omit<CardFaceProps, 'item'>
 
 /**
  * 卡片外观（纯展示，不含任何拖拽逻辑）。
@@ -58,8 +68,11 @@ export const CardFace = memo(function CardFace({
  * 两种形态：图片地址 → 显示图片；其他非空文字 → 显示这段文字。
  * 留空 → 显示名称首字 + `core/pastel.ts` 给的 pastel 底色。
  * 只认协议头，不去猜扩展名：`example.com/a.png` 这种没写协议的仍按文字处理。
+ * ⚠️ 协议头之后必须**还有内容**（`\S`）：`//` / `https://` / `data:image/` 这种
+ * 光秃秃的半截地址不算图片 —— 否则会渲染出 `<img src="//">`，浏览器真去发一次
+ * 无意义的请求、再由 `onError` 回退，白搭一次网络与一次闪动。
  */
-const IMAGE_URL_PATTERN = /^(?:https?:\/\/|data:image\/|\/\/)/i
+const IMAGE_URL_PATTERN = /^(?:https?:\/\/|data:image\/|\/\/)\S/i
 
 type LinkIconKind = 'image' | 'text' | 'auto'
 
@@ -93,19 +106,25 @@ function firstChar(text: string): string {
   return Array.from(text)[0] ?? ''
 }
 
+/**
+ * 名称首字：先按字素簇取首字，**大写化之后再取一次**。
+ *
+ * `toUpperCase()` 不是"一个字符进、一个字符出"：`ß` → `SS`、`ﬁ` → `FI`，
+ * 一些希腊语字母还会散成"基字母 + 组合符"两个码点。不补这一步，28px 的图标格里
+ * 会挤出两个字符（`overflow: hidden` 再把后一个裁掉一半）——
+ * 而这里承诺的是"图标上只显示一个字符"。
+ */
+function upperInitial(text: string): string {
+  return firstChar(firstChar(text).toUpperCase())
+}
+
 function LinkFace({
   item,
   editMode,
   handle,
   onEdit,
   onRemove,
-}: {
-  item: LinkItem
-  editMode: boolean
-  handle?: React.ReactNode
-  onEdit: () => void
-  onRemove: () => void
-}): React.ReactNode {
+}: FaceCommonProps & { item: LinkItem }): React.ReactNode {
   const { modal } = App.useApp()
   /**
    * 手填图片地址加载失败的那一个值。
@@ -133,17 +152,25 @@ function LinkFace({
    * 图标上只显示**一个**字符（中英文一视同仁）：
    * 「名称首字」沿用原有的大写化，「手填文字」保持用户原样（只是截到一个字）。
    */
-  const initials = firstChar(item.name).toUpperCase() || '?'
+  const initials = upperInitial(item.name) || '?'
   // 只有手填的图片地址会渲染 <img>；文字或留空都走"字符 + pastel 底色"
   const iconSrc = iconKind === 'image' && brokenIcon !== manualIcon ? manualIcon : undefined
   const iconFallback = iconKind === 'text' ? firstChar(manualIcon) : initials
+  const showChar = !iconSrc
   /*
    * 字符回退的底色：按**域名**取，所以同一个站点永远同一个颜色，
    * 刷新 / 重开 / 拖动排序都不会变（见 `core/pastel.ts`）。
-   * 显示图片时图标占满整个占位区，不再铺底色。
+   * 显示图片时图标占满整个占位区、不铺底色，此时**不去解析域名**（算了也没人用）。
    */
-  const showChar = !iconSrc
-  const pastel = pastelColorOfLink(item.url, item.name)
+  const pastel = showChar ? pastelColorOfLink(item.url, item.name) : null
+  /*
+   * ⚠️ `item.url` 不能直接当 `href`：它来自 localStorage 与**导入的 JSON**，
+   * 而 storage 层只做长度/类型收敛、不校验协议 —— 一条 `javascript:` 地址
+   * 被点一下就会在本站 origin 执行脚本。统一走 `normalizeLinkUrl`
+   * （没写协议头补 `https://`、只放行 http(s)）；认不出来就**不挂 href**：
+   * 卡片照常显示，只是点不动（鼠标悬停仍能看到那条原始地址，好去改）。
+   */
+  const href = normalizeLinkUrl(item.url)
 
   return (
     <Flex
@@ -187,10 +214,13 @@ function LinkFace({
       */}
       <a
         className="dash-link-card-link"
-        href={item.url}
+        // 地址不合法（非 http(s)）时为 undefined：<a> 没有 href 就不是链接，点击不跳转
+        href={href ?? undefined}
         target="_blank"
+        // ⚠️ 这里**没有** `loading` —— 那是 <img> / <iframe> 的属性，挂在 <a> 上
+        // 只会产出一条无效 DOM 属性（懒加载的是下面的图标图，见 <img loading="lazy">）
         rel="noopener noreferrer"
-        title={item.url}
+        title={href ?? item.url}
         style={{
           flex: 1,
           minWidth: 0,
@@ -209,10 +239,11 @@ function LinkFace({
             placeItems: 'center',
             /*
              * 有图片图标时不再铺底色（图片本身占满整个图标区域）；
-             * 留空或手填文字时才铺 pastel 底色（见 `core/pastel.ts`）。
+             * 留空或手填文字时才铺 pastel 底色（见 `core/pastel.ts`）——
+             * 那时 `pastel` 才有值。
              */
-            background: showChar ? pastel.bg : 'transparent',
-            color: showChar ? pastel.fg : 'var(--ant-color-primary)',
+            background: pastel ? pastel.bg : 'transparent',
+            color: pastel ? pastel.fg : 'var(--ant-color-primary)',
             fontWeight: 700,
             flex: '0 0 auto',
             overflow: 'hidden',
@@ -299,12 +330,6 @@ function WidgetFace({
   handle,
   onEdit,
   onRemove,
-}: {
-  item: WidgetItem
-  editMode: boolean
-  handle?: React.ReactNode
-  onEdit: () => void
-  onRemove: () => void
-}): React.ReactNode {
+}: FaceCommonProps & { item: WidgetItem }): React.ReactNode {
   return <WidgetRenderer item={item} editMode={editMode} handle={handle} onEdit={onEdit} onRemove={onRemove} />
 }
