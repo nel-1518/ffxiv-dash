@@ -246,10 +246,6 @@ function defaultAppearance(): AppearanceState {
 }
 
 /** 校验并归一化：非法值一律回落到默认，保证界面上永远拿得到可用的状态。
- *
- * ⚠️ **不做任何旧版本的兼容**（用户 2026-09 明确：这次改动不用兼容旧版）：
- * 早期那个"只有一个 `theme` 字段"的形状与改造过程中的中间形状都**丢弃**，按默认值起。
- * 键名里的 `v3` 只是把这个形状标记出来，让不认识的旧值不会撞进来。
  */
 export function normalizeAppearance(raw: unknown): AppearanceState {
   const source = asObject(raw)
@@ -262,10 +258,6 @@ export function normalizeAppearance(raw: unknown): AppearanceState {
   }
 }
 
-/**
- * 键名带版本号：v3 的形状是"色调 + 双槽位 + 逐主题档案"，与早先"只有一个 `theme` 字段"那版
- * 结构完全不同 —— 换个键、**不读旧键**（本次改动不做兼容，旧数据直接弃掉走默认值）。
- */
 const STORAGE_KEY = 'ffxiv-dash:appearance:v3'
 
 function persist(next: AppearanceState): void {
@@ -408,6 +400,18 @@ export function importAppearance(raw: unknown): void {
   }
 
   commit({ colorMode, lightTheme, darkTheme, profiles })
+}
+
+/**
+ * 恢复**导入前快照**里的外观（整体替换）。
+ *
+ * 与 `importAppearance` 的细粒度刻意不同：快照来自本机、就在覆盖前一刻存下，
+ * 档案里引用的也是本机 IndexedDB 里的同一批图 —— 整份搬回来就是恢复原状，
+ * 既不需要白名单、也不需要核对本机有没有那张图。
+ */
+export function restoreAppearance(raw: unknown): void {
+  loadAppearance()
+  commit(normalizeAppearance(raw))
 }
 
 /** 读取外观偏好；幂等，重复调用只读一次存储。应用启动时先调它。 */

@@ -2,8 +2,15 @@ import { App, Button, Flex, Typography, Upload } from 'antd'
 import { DownloadOutlined, UploadOutlined } from '@ant-design/icons'
 import { boardActions } from '../../state/board-store.ts'
 import { useBoardDoc } from '../../state/hooks.ts'
-import { parseBackup, serializeBackup } from '../../core/storage/backup.ts'
-import { importAppearance } from '../../core/appearance/store.ts'
+import {
+  clearImportUndo,
+  loadImportUndo,
+  parseBackup,
+  saveImportUndo,
+  serializeBackup,
+} from '../../core/storage/backup.ts'
+import type { ImportUndo } from '../../core/storage/backup.ts'
+import { importAppearance, restoreAppearance } from '../../core/appearance/store.ts'
 import { setAutoOpenLinks } from '../../core/auto-open/store.ts'
 import { setSearchEngines } from '../../core/search/store.ts'
 
@@ -18,6 +25,16 @@ function timestampForFileName(now: Date): string {
     pad(now.getHours()),
     pad(now.getMinutes()),
   ].join('')
+}
+
+/** 导入前快照的时间戳转展示文本（`10-07 14:30`）。 */
+function formatUndoTime(savedAt: number): string {
+  if (!Number.isFinite(savedAt) || savedAt <= 0) {
+    return '时间未知'
+  }
+  const date = new Date(savedAt)
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
 /** 把文本存成文件下载。 */
@@ -50,6 +67,28 @@ export function DataSettingsPanel(): React.ReactNode {
   const { message, modal } = App.useApp()
 
   const itemCount = doc.groups.reduce((total, group) => total + group.items.length, 0)
+  // 有快照才亮「恢复」按钮。导入 / 恢复都会换掉整份看板 → 面板重渲染 → 这里自然跟着刷新
+  const undo = loadImportUndo()
+
+  const handleRestore = (snapshot: ImportUndo) => {
+    modal.confirm({
+      title: '恢复导入前的数据',
+      content: `将把看板与设置整体恢复到导入前（${formatUndoTime(snapshot.savedAt)}）的样子，导入之后的全部改动会被覆盖，此操作不可撤销。`,
+      okText: '恢复',
+      okButtonProps: { danger: true },
+      cancelText: '取消',
+      onOk: () => {
+        boardActions.replaceDoc(snapshot.file.board)
+        setAutoOpenLinks(snapshot.file.autoOpen.links)
+        setSearchEngines(snapshot.file.searchEngines)
+        // 外观走整体替换：快照来自本机，档案里引用的就是本机那批图，整份搬回即恢复原状
+        restoreAppearance(snapshot.file.appearance)
+        // 快照一次性：恢复完就清掉，不提供"撤销的撤销"
+        clearImportUndo()
+        message.success('已恢复导入前的数据')
+      },
+    })
+  }
 
   const handleExport = () => {
     downloadText(
@@ -79,11 +118,17 @@ export function DataSettingsPanel(): React.ReactNode {
           okButtonProps: { danger: true },
           cancelText: '取消',
           onOk: () => {
+            // 覆盖前先把"导入前"存成一份快照；存不进去也只是少了撤销这一步，不拦导入
+            const undoSaved = saveImportUndo(doc)
             boardActions.replaceDoc(backup.board)
             setAutoOpenLinks(backup.autoOpen.links)
             setSearchEngines(backup.searchEngines)
             importAppearance(backup.appearance)
-            message.success('导入完成')
+            if (undoSaved) {
+              message.success('导入完成，导入前的数据已备份，可随时在下方恢复')
+            } else {
+              message.warning('导入完成，但没能保存导入前的备份（本地存储不可用），无法恢复')
+            }
           },
         })
       })
@@ -119,6 +164,15 @@ export function DataSettingsPanel(): React.ReactNode {
             <Button icon={<DownloadOutlined />}>导入</Button>
           </Upload>
         </Flex>
+
+        {undo ? (
+          <Flex align="center" gap={12} wrap>
+            <Button onClick={() => handleRestore(undo)}>恢复导入前的数据</Button>
+            <Typography.Text type="secondary" className="dash-settings-hint is-inline">
+              导入前备份（{formatUndoTime(undo.savedAt)}）：恢复会覆盖导入后的全部改动。
+            </Typography.Text>
+          </Flex>
+        ) : null}
       </section>
     </Flex>
   )
