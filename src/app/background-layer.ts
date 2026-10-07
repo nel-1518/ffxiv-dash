@@ -16,7 +16,7 @@ import type { ThemeBackground } from './themes/types.ts'
  * 铺法固定「铺满裁切」（`background-size: cover` 等写在 `.dash-bg-image` 里），
  * 所以这里只算两件事：图片地址与 filter。
  *
- * ⚠️ 地址必须过一遍 `assetUrl`：主题预设与用户填的都可能长成 `/bg/x.webp`
+ * ⚠️ 地址必须过一遍 `assetUrl`：主题预设与用户填的都可能长成 `/bg/x.jpg`
  * （`public/` 下的根相对路径，Vite 不会改写写在 TS 里的字符串），
  * 这里是背景图唯一的出口，补基础路径只做在这一处。
  */

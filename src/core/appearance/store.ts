@@ -113,10 +113,10 @@ const BRIGHTNESS_MIN = 20
 const BRIGHTNESS_MAX = 150
 
 /**
- * 图片地址：协议头（`http(s)://` / `data:image/`）或**根相对路径**（`/bg/x.webp`）。
+ * 图片地址：协议头（`http(s)://` / `data:image/`）或**根相对路径**（`/bg/x.jpg`）。
  *
  * ⚠️ 比 CardFace 的 `linkIconKind` 多认一种「根相对路径」：主题自带的背景图就是
- * `public/bg/` 下的文件，写出来是 `/bg/8-evercold.webp` —— 出厂档案会把它填进「图片链接」，
+ * `public/bg/` 下的文件，写出来是 `/bg/8-evercold.jpg` —— 出厂档案会把它填进「图片链接」，
  * 而那个输入框用的就是这个校验。不用绝对地址（`location.origin + …`）是因为它会随部署
  * 地址变化、也没法离线打开。链接卡片那边（图标字段）保持原样，不动它。
  *

@@ -114,7 +114,7 @@ export function ItemForm({
 }: ItemFormProps): React.ReactNode {
   const doc = useBoardDoc()
   /*
-   * 组件类型选项：达到实例上限（整块看板全局计数，缺省 10，见 `widgets/types.ts`）的
+   * 组件类型选项：达到实例上限（整块看板全局计数，缺省 20，见 `widgets/types.ts`）的
    * 类型禁用并标注，但**当前正在编辑的实例自己的类型**保持可选 ——
    * 否则已存在的卡片连配置都改不了（reducer 只在换类型时才拦）。
    */

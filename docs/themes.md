@@ -14,7 +14,7 @@ src/app/themes/
   <key>/theme.css      该主题的 `--dash-*` 变量（按需）
 ```
 
-主题键 = 资料片英文名（默认两套除外），与 `public/bg/<n>-<key>.webp` 一一对应。
+主题键 = 资料片英文名（默认两套除外），与 `public/bg/<n>-<key>.jpg` 一一对应（默认两套不带背景图）。
 
 ## 新增 / 删除一套主题
 
@@ -136,7 +136,7 @@ src/app/themes/
 | 默认-深色 | `default-dark` | `#0A0A0A` | `#1e1e1e` | 沿用正文 | 6 |
 | 苍穹 | `heavensward` | `#0f1117` | `#1f2633` | `#e5f4ff` | 0 |
 | 红莲 | `stormblood` | `#6f1111` | 三色红渐变 | `#e5d473` | 6 / 8 |
-| 暗影 | `shadowbringers` | `#0d0b12` | `#1a1926` | `#a99fff`、链接卡 `#ffffff` | 10 / 14 |
+| 暗影 | `shadowbringers` | `#0d0b12` | `#1a1926` | `#a99fff`、导航卡 `#ffffff` | 10 / 14 |
 | 晓月 | `endwalker` | `#14161c` | `#F5F5FA` | `#4a5580` | 8 / 12 |
 | 金曦 | `dawntrail` | `#16140f` | `#262018` | `#e8cc70` | 0 |
 | 银海 | `evercold` | `#10161d` | 白玻璃 | `#586b93` | 12/4、16/6 |

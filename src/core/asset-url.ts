@@ -13,10 +13,10 @@
  * 输入形态与结果：
  * - `''`             → `''`（调用方自己决定"没填"怎么处理）
  * - 完整链接         → 原样：`http(s):` / `data:` / `blob:` / `//host/path`
- * - 已带 base 的路径 → 原样：`/ffxiv-dash/bg/x.webp`
- * - 根相对路径       → 补 base：`/bg/x.webp` → `/ffxiv-dash/bg/x.webp`
+ * - 已带 base 的路径 → 原样：`/ffxiv-dash/bg/x.jpg`
+ * - 根相对路径       → 补 base：`/bg/x.jpg` → `/ffxiv-dash/bg/x.jpg`
  *
- * ⚠️ 没有"裸相对路径"（`bg/x.webp`）这一档，也不做容错：它不是合法输入。
+ * ⚠️ 没有"裸相对路径"（`bg/x.jpg`）这一档，也不做容错：它不是合法输入。
  * 这条前置条件由两个入口共同保证 —— 我们自己的路径用 `PublicPath`（`/` 开头，与
  * `core/appearance/store.ts` 的 `isImageUrl` 认的根相对路径是同一套写法），
  * 用户填的「图片链接」要过 `isImageUrl`（只认 `http(s)://` / `data:image/` / `/` 开头，

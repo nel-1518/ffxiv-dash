@@ -94,7 +94,7 @@ function ColorEditor(): React.ReactNode {
 
 /**
  * 图片链接。校验规则沿用链接卡片那套（只认协议头，不猜扩展名）+ **根相对路径**
- * （主题自带的背景图是 `/bg/x.webp`，出厂档案会把它填到这里）。
+ * （主题自带的背景图是 `/bg/x.jpg`，出厂档案会把它填到这里）。
  */
 function UrlEditor(): React.ReactNode {
   const { profile, set } = useThemeProfile()

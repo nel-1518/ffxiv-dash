@@ -14,7 +14,7 @@ import type { ThemeKey } from '../../core/theme-preference.ts'
 /** 主题自带的背景预设（用户没自己选背景时用它）。固定“铺满裁切”（cover），不提供铺法选项。 */
 export type ThemeBackground = {
   /**
-   * `public/` 下的根相对路径（`PublicPath` 保证写法），例如 `/bg/8-evercold.webp`。
+   * `public/` 下的根相对路径（`PublicPath` 保证写法），例如 `/bg/8-evercold.jpg`。
    * 存的是部署无关的路径：补上部署基础路径发生在渲染时（`app/background-layer.ts` 的 `assetUrl`）。
    */
   url: PublicPath
