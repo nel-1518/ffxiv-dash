@@ -1,9 +1,7 @@
 /*
- * 银海（Evercold）—— antd 令牌管不到的那部分。
- * 色值取自官方专题站的计算样式。
- *
- * 卡片是"深色页面 + 浅色玻璃"：白 → 淡蓝的磨砂渐变、一圈纯白外发光、不对称圆角。
- * ⚠️ 发光/圆角都是按**我们的卡片尺寸与密度**折算过的，不能照搬站点的 32px / 24px。
+ * 银海（Evercold）—— antd 令牌管不到的那部分（取色来源见 index.ts）。
+ * 卡片是"深色页面 + 浅色玻璃"：白 → 淡蓝的磨砂渐变、纯白外发光、不对称圆角。
+ * ⚠️ 发光/圆角按我们的卡片尺寸与密度折算过，不能照搬站点的 32px / 24px。
  */
 
 [data-dash-theme='evercold'] {
@@ -22,13 +20,9 @@
 }
 
 /*
- * 卡片是亮色玻璃，卡内 antd 组件要整体换成深色文字，否则白字压白卡。
- * 原理与维护要点见 docs/themes.md。
- *
- * ⚠️ 连 `*` 一起选是必须的：antd 6 给每个组件自身的根元素再挂一份 `css-var-*`
- * 作用域，只写在卡片根上会被卡里的组件盖回去。
- * ⚠️ 顶栏排除在外（`:not(.dash-topbar)`）：它也挂 `dash-card-surface` 以共用毛玻璃，
- * 但底色是暗的，卷进来会变成"深字压暗底"。
+ * 卡片是亮色玻璃，卡内 antd 组件要整体换成深色文字，否则白字压白卡（原理见 docs/themes.md）。
+ * ⚠️ 连 `*` 一起选：antd 6 给每个组件根元素再挂一份 `css-var-*` 作用域，只写卡片根会被盖回去。
+ * ⚠️ 顶栏排除在外（`:not(.dash-topbar)`）：它也挂 `dash-card-surface` 共用毛玻璃，但底色是暗的。
  */
 [data-dash-theme='evercold'] .dash-card-surface:not(.dash-topbar),
 [data-dash-theme='evercold'] .dash-card-surface:not(.dash-topbar) * {
@@ -107,8 +101,8 @@
 }
 
 /*
- * 顶栏：半透明白玻璃 + 白字。
- * 与卡片刻意分层 —— 25% 的白透出来是压暗后的画面，上面那套深字在这儿读不了，这里另给一套白字。
+ * 顶栏：半透明白玻璃 + 白字。25% 的白透出来的是压暗后的画面，卡片那套深字在这儿读不了，
+ * 这里另给一套白字。
  */
 [data-dash-theme='evercold'] .dash-topbar,
 [data-dash-theme='evercold'] .dash-topbar * {

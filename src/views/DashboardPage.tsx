@@ -14,13 +14,9 @@ import type { Item } from '../core/storage/types.ts'
 /**
  * 仪表盘页面：组装顶栏、分组看板与编辑弹窗。
  *
- * ⚠️ 这一层**刻意不订阅任何看板数据**。
- *
- * 看板数据的订阅全部下沉：看板结构在 `BoardSurface`，卡片在各自的槽位与卡片上，
- * 弹窗在 `EditDialog` 自己身上。这里只剩下「本地界面状态」与「稳定的回调」——
- * 否则任何一次卡片改动（比如点一下进度卡的 +1）都会让顶栏、搜索框、设置入口一起重渲染。
- *
- * 删除确认要在**点击那一刻**才去 store 读分组名，不能提前闭包捕获一份 doc。
+ * ⚠️ 这一层刻意不订阅任何看板数据：订阅全部下沉（结构在 `BoardSurface`，卡片在各自槽位，
+ * 弹窗在 `EditDialog` 自身），这里只留本地界面状态与稳定回调 —— 否则任何一次卡片改动
+ * 都会让顶栏、搜索框、设置入口一起重渲染。
  */
 export function DashboardPage(): React.ReactNode {
   const { modal } = App.useApp()
@@ -34,10 +30,8 @@ export function DashboardPage(): React.ReactNode {
   const search = useLinkSearch({ suspended: modalState !== null || settingsOpen })
 
   /*
-   * 下面这批回调全部是**引用稳定**的：它们要么只依赖 setState，要么依赖模块级常量
-   * （`boardActions` / `readGroupTitle`）。这是本次重构能成立的前提之一 ——
-   * 它们会被一路透传到 `memo(BoardGroupSlot)` / `memo(SortableCard)` 的比较里，
-   * 每次渲染新建闭包会让那些 memo 全部失效。
+   * 这批回调全部引用稳定（只依赖 setState 或模块级常量）：它们会被透传到
+   * `memo(BoardGroupSlot)` / `memo(SortableCard)` 的 props 比较里，每次渲染新建闭包会让 memo 失效。
    */
   const confirmRemoveGroup = useCallback(
     (groupId: string) => {
@@ -94,7 +88,7 @@ export function DashboardPage(): React.ReactNode {
 
   return (
     <Flex vertical gap={20}>
-      {/* 顶栏在内容列之外：它自己就是页面顶端那条全宽元素 */}
+      {/* 顶栏在内容列之外：它是页面顶端的全宽元素 */}
       <Topbar
         keyword={search.keyword}
         onKeywordChange={search.handleKeywordChange}
@@ -107,9 +101,8 @@ export function DashboardPage(): React.ReactNode {
       />
 
       {/*
-       * 看板整块交给 `BoardSurface`：它自己订阅分组结构，因此看板数据的任何变化
-       * 都到不了这一层。顶栏不在里面 —— 它是页面顶端的一整条元素，要铺满视口宽度
-       * （`.dash-container` 的居中限宽由 BoardSurface 负责）。
+       * 看板整块交给 `BoardSurface`：它自己订阅分组结构，看板数据的变化到不了这一层。
+       * 顶栏不在里面 —— 它要铺满视口宽度（`.dash-container` 的居中限宽由 BoardSurface 负责）。
        */}
       <BoardSurface
         editMode={editMode}

@@ -9,26 +9,21 @@ import { useTheme } from '../core/appearance/hooks.ts'
 import type { ReactNode } from 'react'
 
 /**
- * 全局 Provider 装配。
+ * 全局 Provider 装配，顺序有意义：
+ * ConfigProvider 在 App 之上（App 才能消费 Design Token）；BoardPersistence / AutoOpenLinks /
+ * ErrorBoundary 在 App 之内（要用 App.useApp() 的提示）。ErrorBoundary 包住整个子树，
+ * 渲染错误降级为错误页而非白屏（数据在 localStorage，见 app/ErrorBoundary.tsx）。
  *
- * 顺序很重要：ConfigProvider 必须在 App 之上，App 才能消费 Design Token；
- * BoardPersistence 与 AutoOpenLinks 在 App 之内，它们要用 App.useApp() 的提示；
- * ErrorBoundary 在 App 之内、包住整个应用子树 —— 渲染错误的最坏结果是一张
- * 降级页而不是白屏（数据在 localStorage，与渲染无关，见 app/ErrorBoundary.tsx）。
- *
- * 看板状态住在 `state/board-store.ts` 这个模块级 store 里，消费侧各自按需订阅
- * （见 `state/hooks.ts`），不需要 Provider 包着。
- * 留在树里的 `BoardPersistence` 只负责落盘、`AutoOpenLinks` 只负责页面启动时的「跳转」，
- * 两者都不向下传任何数据。
+ * 看板状态在模块级 store（state/board-store.ts），消费侧按需订阅，不需要 Provider；
+ * BoardPersistence 只负责落盘、AutoOpenLinks 只负责启动跳转，都不向下传数据。
  */
 export function AppProviders({ children }: { children: ReactNode }): ReactNode {
   const themeKey = useTheme()
 
   /*
-   * 主题的 CSS 变量按 `[data-dash-theme='<key>']` 定义在样式表里，属性要挂在
-   * `<html>` 上 —— 这样 `html/body` 与 portal 到 body 的弹窗都能命中
-   * （`.dash-shell` 之外的元素拿不到挂在壳子上的变量）。
-   * `main.tsx` 已在渲染前设过一次（避免刷新时闪一下默认配色），这里负责后续切换。
+   * 主题 CSS 变量定义在 `[data-dash-theme='<key>']` 上，属性必须挂到 <html>：
+   * 这样 html/body 与 portal 弹窗都能命中。main.tsx 已在渲染前设过一次（避免闪默认配色），
+   * 这里负责后续切换。
    */
   useEffect(() => {
     document.documentElement.dataset.dashTheme = themeKey
@@ -46,13 +41,10 @@ export function AppProviders({ children }: { children: ReactNode }): ReactNode {
       }}
     >
       <App message={{ maxCount: 3, duration: 2 }}>
-        {/*
-         * 错误边界包住「落盘 + 跳转 + 应用子树」整棵：任何一层抛错都有降级页兜底。
-         * 不给 resetKey —— 整站崩溃没有"改完自动重试"的单一信号，重试交给按钮。
-         */}
+        {/* 不给 resetKey：整站崩溃没有"改完自动重试"的单一信号，重试交给按钮 */}
         <ErrorBoundary>
           <BoardPersistence>{children}</BoardPersistence>
-          {/* 「跳转」：每天首次进入页面时自动打开设置里填的链接（渲染 null，纯副作用） */}
+          {/* 每天首次进入页面自动打开设置里的链接（渲染 null，纯副作用） */}
           <AutoOpenLinks />
         </ErrorBoundary>
       </App>

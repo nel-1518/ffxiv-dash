@@ -1,13 +1,11 @@
 /**
- * 主题键的**类型与清单** —— 只有"有哪些可选"与"两个槽位的默认值"，没有存储。
+ * 主题键的类型与清单 —— 只有"有哪些可选"与"两个槽位的默认值"，没有存储。
  *
- * 用户实际选了哪几套存在 `core/appearance/store.ts` 的 `AppearanceState` 里：
- * `lightTheme` / `darkTheme` 两个槽位各存一个主题键，再加一个色调模式（浅色 / 深色 / 跟随系统）。
- * 每套主题自己的背景与卡片则存在 `AppearanceState.profiles`（逐主题一份档案）。
+ * 用户实际选了哪几套存在 `core/appearance/store.ts`：`lightTheme` / `darkTheme` 两个槽位 +
+ * 一个色调模式；每套主题的背景与卡片存在 `AppearanceState.profiles`（逐主题一份）。
  *
- * ⚠️ 本模块是**唯一**的主题键清单（`app/themes/index.ts` 用
- * `Record<ThemeKey, ThemeSpec>` 对齐它，少一套主题会直接编译报错）；
- * 展示顺序就是 `THEME_KEYS` 的顺序。
+ * ⚠️ 本模块是唯一的主题键清单（`app/themes/index.ts` 用 `Record<ThemeKey, ThemeSpec>` 对齐它，
+ * 少一套主题会直接编译报错）；展示顺序即 `THEME_KEYS` 的顺序。
  */
 export type ThemeKey =
   | 'default-light'

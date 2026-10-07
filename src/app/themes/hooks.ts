@@ -5,11 +5,11 @@ import type { ThemeProfile } from '../../core/appearance/store.ts'
 import type { ThemeKey } from '../../core/theme-preference.ts'
 
 /**
- * 某套主题**实际生效**的档案（出厂档案 + 用户改动）。
+ * 某套主题实际生效的档案（出厂档案 + 用户改动）。
  *
- * ⚠️ `useMemo` 的依赖是 `useThemePatch` 返回的**那个对象本身**（引用稳定：store 只替换
- * 被改的那个键）。因此改别的主题不会让这里算出新对象 —— `AppShell` 拿它算背景层与
- * 卡片变量，引用一变整棵树都会重渲染，这条稳定性是"改非生效主题时页面不动"的一部分。
+ * ⚠️ `useMemo` 依赖 `useThemePatch` 返回的对象本身（引用稳定：store 只替换被改的键），
+ * 改别的主题不会算出新对象。`AppShell` 拿它算背景层与卡片变量，这条稳定性是
+ * "改非生效主题时页面不动"的前提。
  */
 export function useThemeProfile(key: ThemeKey): ThemeProfile {
   const patch = useThemePatch(key)

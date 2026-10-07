@@ -1,26 +1,23 @@
 /**
- * 备份文件：导出 / 导入的**唯一形状**（纯逻辑，无 React、无 DOM）。
+ * 备份文件：导出 / 导入的唯一形状（纯逻辑，无 React、无 DOM）。
  *
- * 为什么单独一层：看板数据、跳转设置、搜索引擎、外观偏好各自住在自己的 localStorage 键里
- * （后三者还各自带归一化逻辑），而"一份文件带走全部、一份文件恢复全部"这件事不属于
- * 其中任何一个 store —— 于是把它收在这里。位置落在 core：四段数据都在 core 层，
- * 不反向依赖 feature。
+ * 为什么单独一层：看板数据、跳转设置、搜索引擎、外观偏好各自住在自己的 localStorage 键里，
+ * "一份文件带走全部、一份文件恢复全部"不属于其中任何一个 store，收在这里（core 层，
+ * 不反向依赖 feature）。
  *
  * 文件形状（四段）：
  * - `board`      看板文档，走与读盘同一套校验（`parseBoardDocValue`）；
  * - `autoOpen`   自动跳转的链接原文（`lastOpenedOn` 是当日记账，不进文件）；
  * - `searchEngines` 搜索引擎清单；
- * - `appearance` 外观偏好（色调模式 / 两个槽位 / 逐主题档案）。导出是**全量**的（连上传图的
- *   文件名与大小也写进去；图片本体在 IndexedDB、永远不进文件），但**导入只吃一部分** ——
- *   色调与两个槽位照搬，逐主题只搬模糊 / 亮度 / 卡片参数，背景来源与本机图片保持导入方现状
- *   （见 `core/appearance/store.ts` 的 `importAppearance`）。
+ * - `appearance` 外观偏好。导出是全量（连上传图的文件名与大小；图片本体在 IndexedDB、
+ *   永远不进文件），导入只取一部分：色调与槽位照搬，逐主题只搬模糊 / 亮度 / 卡片参数，
+ *   背景来源与本机图片保持导入方现状（见 `importAppearance`）。
  *
- * ⚠️ **不兼容旧导出文件**（本次改动明确不考虑兼容）：早期导出的"裸 BoardDoc"
- * 没有 `board` 这一段，`parseBackup` 一律拒掉。
+ * ⚠️ 不兼容早期导出的"裸 BoardDoc"文件：没有 `board` 这一段，`parseBackup` 一律拒掉。
  *
- * 同一份形状还兼职「**导入前快照**」：导入覆盖前先把当时的四段数据原样存一份
- * （`saveImportUndo`），设置里据此亮出「恢复导入前的数据」按钮，点了就整份搬回。
- * 快照是一次性的：恢复或再次导入都会重写它，没有"撤销的撤销"。
+ * 同一份形状还兼职「导入前快照」：导入覆盖前先把当时的四段数据原样存一份
+ * （`saveImportUndo`），设置里据此亮出「恢复导入前的数据」按钮。
+ * 快照是一次性的：恢复或再次导入都会重写它。
  */
 import { getAppearance, normalizeAppearance } from '../appearance/store.ts'
 import type { AppearanceState } from '../appearance/store.ts'
@@ -46,8 +43,7 @@ export type BackupFile = {
 /**
  * 把四段数据拼成一份备份文件对象。
  *
- * ⚠️ 外观**逐字段取**而不是直接把快照塞进去：快照里还挂着 `systemScheme`（系统色调）
- * 与 `imageUrls`（上传图的 object URL）两个运行期字段 —— 它们跟着机器走，
+ * ⚠️ 外观逐字段取而不是直接塞快照：快照里挂着 `systemScheme` 与 `imageUrls` 两个运行期字段，
  * 写进文件只会在导入方留下垃圾字段。导出与「导入前快照」共用这一份。
  */
 function buildBackup(doc: BoardDoc): BackupFile {
@@ -67,13 +63,10 @@ export function serializeBackup(doc: BoardDoc): string {
 }
 
 /**
- * 导入：把备份文件的文本解析成四段数据。
- *
- * 校验分两档，与"解析不出来就不动现有数据"的约定一致：
- * - **整体拒绝**（返回 `null`）：不是合法 JSON，或者看板那一段认不出来 ——
- *   文件坏了、或者压根不是我们的备份文件时，一点现有数据都不该动；
- * - **逐段回落默认**：三个设置段各自走对应 store 的归一化，缺失 / 手改坏的部分
- *   按默认值处理。设置是锦上添花，不该因为其中一段坏掉就拒绝整份备份。
+ * 导入：把备份文件的文本解析成四段数据。校验分两档：
+ * - 整体拒绝（返回 `null`）：不是合法 JSON，或看板段认不出来 —— 一点现有数据都不动；
+ * - 逐段回落默认：三个设置段各自走对应 store 的归一化，缺失 / 手改坏的部分按默认值处理，
+ *   不该因为其中一段坏掉就拒绝整份备份。
  */
 export function parseBackup(text: string): BackupFile | null {
   let parsed: unknown
@@ -87,10 +80,8 @@ export function parseBackup(text: string): BackupFile | null {
 }
 
 /**
- * `parseBackup` 的**按值**版本（把已经 `JSON.parse` 过的值校验成备份文件）。
- *
- * 单独抽出来是因为「导入前快照」也要走同一套校验 —— 快照存在 localStorage 里、
- * 与导出文件一样可能被手改坏，恢复前必须过一遍同样的关卡。
+ * `parseBackup` 的按值版本。「导入前快照」也走同一套校验：
+ * 快照存在 localStorage 里、同样可能被手改坏，恢复前必须过同样的关卡。
  */
 function parseBackupValue(raw: unknown): BackupFile | null {
   if (!isRecord(raw)) {
@@ -142,9 +133,7 @@ export function saveImportUndo(doc: BoardDoc): boolean {
 
 /**
  * 读取导入前快照；没有、或被手改坏了都返回 `null`。
- *
- * 坏数据顺手清掉：别让「恢复」按钮亮着、点了却恢复不出来。每次渲染调用也无所谓 ——
- * 这份 JSON 只有几 KB，而且只有设置面板打开时才会有人调它。
+ * 坏数据顺手清掉：别让「恢复」按钮亮着却恢复不出来。
  */
 export function loadImportUndo(): ImportUndo | null {
   let raw: string | null

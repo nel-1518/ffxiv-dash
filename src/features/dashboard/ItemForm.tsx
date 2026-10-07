@@ -17,8 +17,8 @@ import type { GroupType, Item, ItemKind, LinkItem, WidgetItem } from '../../core
  * 链接字段的三种排版。
  *
  * - `url-only`：新建链接的第一步 —— 只有网址，右侧带「自动获取数据」开关；
- * - `url-first`：自动获取成功后 —— 网址仍在最上，名称 / 图标 / 描述出现在它下方；
- * - `default`：编辑已有链接 —— 保持历史顺序（名称在最上）。
+ * - `url-first`：自动获取成功后 —— 网址在最上，名称 / 图标 / 描述在其下方；
+ * - `default`：编辑已有链接（当前与 `url-first` 同序）。
  */
 export type LinkFormLayout = 'url-only' | 'url-first' | 'default'
 
@@ -90,16 +90,12 @@ function buildInitialValues(
 /**
  * 卡片编辑表单。
  *
- * 关键点：
- * - 组件类型下拉与"组件专属字段"都由注册表驱动 —— 新增一个组件只需注册，这里不用改代码。
- * - 分组类型只允许其注册表声明的内容种类。
- * - ⚠️ **不要给这个 Form 加 `preserve={false}`**（GroupForm 有，这里不能有）：
- *   切换组件类型时新类型的 `FormFields` 是全新挂载的，StrictMode 在 dev 下会把新挂载
- *   组件的 effect 跑两遍（挂载→清理→再挂载）；清理时 rc-field-form 发现 preserve 为
- *   false，就会把该字段的值从 store 里删掉 —— 判据是 `getInitialValue(namePath)`，
- *   而它读的是 Form 的 `initialValues`（这里始终是统计卡的默认配置），于是刚写进去的
- *   新类型默认值会被当成脏值清掉（PvP 的「显示下一个地图」就这么被清成了未勾选）。
- *   表单的"干净"由 `clearOnDestroy` + Modal 的 `destroyOnHidden` 保证，不靠这个属性。
+ * - 组件类型下拉与"组件专属字段"都由注册表驱动 —— 新增一个组件只需注册，这里不用改。
+ * - ⚠️ 不要给这个 Form 加 `preserve={false}`（GroupForm 有，这里不能有）：
+ *   切换组件类型时新类型的 `FormFields` 全新挂载，StrictMode 在 dev 下会把新挂载组件的
+ *   effect 跑两遍；清理时 rc-field-form 发现 preserve 为 false，会按 `getInitialValue(namePath)`
+ *   （读的是 Form 的 `initialValues`，即新建时的默认配置）把刚写进字段的新类型默认值
+ *   当成脏值清掉。表单的"干净"由 `clearOnDestroy` + Modal 的 `destroyOnHidden` 保证。
  */
 export function ItemForm({
   form,
@@ -114,9 +110,8 @@ export function ItemForm({
 }: ItemFormProps): React.ReactNode {
   const doc = useBoardDoc()
   /*
-   * 组件类型选项：达到实例上限（整块看板全局计数，缺省 20，见 `widgets/types.ts`）的
-   * 类型禁用并标注，但**当前正在编辑的实例自己的类型**保持可选 ——
-   * 否则已存在的卡片连配置都改不了（reducer 只在换类型时才拦）。
+   * 组件类型选项：达到实例上限（全局计数，缺省 20，见 `widgets/types.ts`）的类型禁用并标注，
+   * 但当前正在编辑的实例自己的类型保持可选 —— 否则已存在的卡片连配置都改不了。
    */
   const widgetOptions = useMemo(() => {
     const currentKey = item?.kind === 'widget' ? item.widget : undefined
@@ -134,8 +129,8 @@ export function ItemForm({
   const kindOptions = useMemo(() => allowedItemKinds(groupType), [groupType])
   const allowedKind = kindOptions[0]?.value ?? 'link'
   /*
-   * 新建时的默认组件类型：偏好 pvp-map，但它（或唯一可选的类型）已达上限时
-   * 退回第一个还可选的类型，避免表单初始值就是一个被禁用的选项、保存时被 reducer 拒掉。
+   * 新建时的默认组件类型：偏好 pvp-map，但它已达上限时退回第一个还可选的类型，
+   * 避免表单初始值就是被禁用的选项、保存时被 reducer 拒掉。
    */
   const defaultWidgetKey = useMemo(() => {
     if (item) {
@@ -187,9 +182,8 @@ export function ItemForm({
       kind: 'widget',
       widget: key,
       /*
-       * 标题不再由用户填写（表单里已删掉该字段），统一取组件类型的默认标题：
-       * 编辑旧数据也会被重置成默认标题，不再保留历史自定义值。
-       * 落盘仍保留 title 字段 —— 删除确认、番茄钟通知等还在用它。
+       * 标题不由用户填写，统一取组件类型的默认标题（落盘仍保留 title 字段：
+       * 删除确认、番茄钟通知等还在用它）。
        */
       title: spec?.defaultTitle || '自定义组件',
       config: config as Record<string, unknown>,
@@ -207,9 +201,9 @@ export function ItemForm({
       clearOnDestroy
     >
       {/*
-        `kind` 的初始值由上面 Form 的 `initialValues` 给（`buildInitialValues` 一定会写 `kind`）。
-        ⚠️ 这里**不要**写 `initialValue`：与 Form 的 `initialValues` 同路径冲突时，antd 会报
-        "Form already set 'initialValues' ... Field can not overwrite it."，且字段级的那个值会被丢弃。
+        `kind` 的初始值由 Form 的 `initialValues` 给（`buildInitialValues` 一定写 `kind`）。
+        ⚠️ 不要再写字段级 `initialValue`：与同路径的 Form `initialValues` 冲突时 antd 会告警，
+        且字段级的值会被丢弃。
       */}
       <Form.Item name="kind" hidden>
         <Input />
@@ -341,12 +335,9 @@ function WidgetSection({ widgetOptions }: { widgetOptions: { label: string; valu
           options={widgetOptions}
           onChange={(nextKey: string) => {
             /*
-             * 配置必须跟着类型换。新建时的 config 来自 `buildInitialValues` 里写死的
-             * 统计卡默认值，不换的话新类型的字段会取到 undefined —— PvP 地图的
-             * 「显示下一个地图」开关就显示成关，保存时才被 normalizeConfig 补成开，
-             * 界面与实际落库的值对不上。
+             * 配置必须跟着类型换：不换的话新类型的字段会取到 undefined，界面显示的值
+             * 与保存时 normalizeConfig 补出来的值对不上。
              * 传整个对象（而不是合并）是为了顺手丢掉上一个类型残留的字段。
-             * （标题字段已删：不再需要随类型重置，保存时统一取 defaultTitle。）
              */
             const next = getWidget(nextKey)
             form.setFieldValue('config', { ...(next?.defaultConfig ?? {}) })

@@ -4,9 +4,8 @@ import type { BoardDoc, GroupType, Item } from '../core/storage/types.ts'
 export type BoardAction =
   | { type: 'addGroup'; title: string; groupType: GroupType; columns: number }
   /**
-   * 改分组只改名称与列数：类型在创建时就定下来。
-   * 这里刻意不接受 groupType，让"创建后不能改类型"成为数据层的硬约束，
-   * 而不只是界面上的禁用。
+   * 改分组只改名称与列数：刻意不接受 groupType，让"创建后不能改类型"
+   * 成为数据层的硬约束，而不只是界面上的禁用。
    */
   | { type: 'updateGroup'; groupId: string; title: string; columns: number }
   | { type: 'removeGroup'; groupId: string }
@@ -29,10 +28,8 @@ export type BoardAction =
       overItemId?: string
     }
   /**
-   * 整体替换看板。
-   *
-   * 目前只有一个调用方：设置里的「导入」。传入的 doc 必须已经过
-   * `parseBoardDocValue` 校验，reducer 不再重复校验（它是纯函数，不做 IO 也不抛错）。
+   * 整体替换看板。目前唯一的调用方是设置里的「导入」；传入的 doc 必须已经过
+   * `parseBoardDocValue` 校验（reducer 是纯函数，不做 IO 也不抛错）。
    */
   | { type: 'replaceDoc'; doc: BoardDoc }
 

@@ -49,8 +49,7 @@ function widgetLimitReached(doc: BoardDoc, widgetKey: string): boolean {
 }
 
 /**
- * 仪表盘状态 reducer —— 纯函数，全部不可变更新。
- * 不改动入参，便于后续直接写单测。
+ * 仪表盘状态 reducer —— 纯函数，全部不可变更新，不改动入参。
  */
 export function boardReducer(doc: BoardDoc, action: BoardAction): BoardDoc {
   switch (action.type) {
@@ -62,9 +61,7 @@ export function boardReducer(doc: BoardDoc, action: BoardAction): BoardDoc {
         columns: clampGroupColumns(action.columns, action.groupType),
         items: [],
       }
-      // 新建的分组放在**最顶层**：刚建好的分组立刻出现在眼前，
-      // 不必再点一串「上移分组」把它挪上来。
-      // 需要换位置时表头有 置顶 / 上移 / 下移 / 置底 四个按钮。
+      // 新建的分组放最顶层，立刻出现在眼前；换位置用表头的 置顶 / 上移 / 下移 / 置底
       return replaceGroups(doc, [group, ...doc.groups])
     }
 
@@ -98,10 +95,10 @@ export function boardReducer(doc: BoardDoc, action: BoardAction): BoardDoc {
 
     case 'updateItem': {
       /*
-       * 编辑已有条目本身不占新名额；但把组件**改成另一种类型**等价于"再放一个新类型的实例"，
+       * 编辑已有条目不占新名额；但把组件改成另一种类型等价于"再放一个该类型的实例"，
        * 同样要过上限。同类型改标题 / 配置不受限。
-       * ⚠️ 条目先提取成局部 const：判别收窄（kind === 'widget'）只在别名条件
-       * 引用 const 局部量时才能延续到后面的 if，直接写 action.item 会收窄失败。
+       * ⚠️ 条目先提取成局部 const：判别收窄（kind === 'widget'）只在别名引用 const 局部量时
+       * 才能延续到后面的 if，直接写 action.item 会收窄失败。
        */
       const { item: nextItem } = action
       const existing = doc.groups

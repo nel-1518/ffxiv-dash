@@ -7,9 +7,8 @@ import type { BoardDoc, WidgetConfigNormalizer } from './types.ts'
 const STORAGE_KEY = 'ffxiv-dash:board:v1'
 
 /**
- * 组件配置归一化器由 widgets 层注入。
- * core 层不能在模块顶层依赖 feature 层（会产生循环依赖），
- * 因此改为运行时装一次。
+ * 组件配置归一化器由 widgets 层注入：
+ * core 不能在模块顶层依赖 feature 层（会循环依赖），改为运行时装一次。
  */
 let normalizeWidgetConfig: WidgetConfigNormalizer = () => null
 
@@ -71,13 +70,12 @@ export function saveDoc(doc: BoardDoc): SaveResult {
 }
 
 /**
- * 导入用：把**已经 `JSON.parse` 过的值**校验成看板文档。
- *
- * 走的是与 `loadDoc` 相同的校验与迁移路径（连带复用注入的组件配置归一化器）。
+ * 导入用：把已经 `JSON.parse` 过的值校验成看板文档。
+ * 与 `loadDoc` 走同一套校验（连带复用注入的归一化器）；
  * 返回 `null` 表示结构无法识别（不是对象、没有 groups、版本号对不上等）。
  *
- * ⚠️ 收的是值而不是 JSON 文本：看板现在只是备份文件（`core/storage/backup.ts`）
- * 里的一段，文本层的解析由那一层统一做一次 —— 这里再解一遍文本反而要来回序列化。
+ * ⚠️ 收的是值而不是 JSON 文本：看板只是备份文件（`core/storage/backup.ts`）里的一段，
+ * 文本解析由那一层统一做一次。
  */
 export function parseBoardDocValue(raw: unknown): BoardDoc | null {
   return sanitizeBoardDoc(raw, normalizeWidgetConfig).doc

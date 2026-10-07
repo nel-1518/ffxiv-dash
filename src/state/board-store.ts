@@ -8,13 +8,12 @@ import type { GroupRow } from './group-rows.ts'
 /**
  * 看板状态的**唯一来源**（纯逻辑，无 React）。
  *
- * 用模块级 store 而不是 context，是因为 context 的订阅粒度是整个 value：`doc` 一换引用，
- * 所有消费者都要重渲染（"改一张卡片的进度"会牵动整页）。store 让每个组件各自订阅自己
- * 那一小片数据，`useSyncExternalStore` 按 `Object.is` 比快照，互不牵连。
+ * 用模块级 store 而不是 context：context 的订阅粒度是整个 value，`doc` 一换引用所有消费者
+ * 都要重渲染；store 让每个组件各自订阅自己那一小片，`useSyncExternalStore` 按 `Object.is`
+ * 比快照，互不牵连。
  *
- * 与 `core/clock/store.ts`、`core/appearance/store.ts` 是同一套形状：
- * 模块级变量 + `Set<Listener>` + `subscribe` + 快照读取函数，消费侧走 `useSyncExternalStore`，
- * 因此全站不需要任何 Provider。
+ * 与 `core/clock/store.ts`、`core/appearance/store.ts` 同一套形状：
+ * 模块级变量 + `Set<Listener>` + `subscribe` + 快照读取，消费侧走 `useSyncExternalStore`。
  */
 
 type Listener = () => void
@@ -22,11 +21,11 @@ type Listener = () => void
 const listeners = new Set<Listener>()
 
 /**
- * ⚠️ 必须**惰性**初始化，不能在模块顶层直接读盘。
+ * ⚠️ 必须惰性初始化，不能在模块顶层直接读盘。
  *
- * `main.tsx` 里 `installBuiltinWidgets()` 是**语句**，而 ESM 的 import 会先全部求值完
- * 才执行语句 —— 模块顶层读盘时组件注册表还是空的，各组件 config 不会被归一化。
- * 因此首次读盘只能发生在首次渲染（那时注册表已装配好）。
+ * `main.tsx` 里 `installBuiltinWidgets()` 是语句，而 ESM 的 import 先全部求值完才执行语句 ——
+ * 模块顶层读盘时组件注册表还是空的，各组件 config 不会被归一化。
+ * 首次读盘只能发生在首次渲染（那时注册表已装配好）。
  */
 let doc: BoardDoc | undefined
 
@@ -42,16 +41,14 @@ let cachedGroupIds: string[] = []
 let cachedGroupRows: GroupRow[] = []
 
 /**
- * 维护两份「结构快照」：分组 id 序列、以及按行切开的分组结构。
+ * 维护两份「结构快照」：分组 id 序列、按行切开的分组结构。
  *
- * ⚠️ 这里是细粒度订阅的性能命门：**结构没变就必须复用原来的数组引用**。
- * `useSyncExternalStore` 靠 `Object.is` 比快照来决定要不要重渲染，每次都返回
- * `groups.map(...)` 的新数组就等于告诉 React"变了"，细粒度订阅会全部失效 ——
- * 而且症状是"功能完全正常、只是仍然整页刷新"，没有任何报错。
+ * ⚠️ 细粒度订阅的性能命门：结构没变就必须复用原来的数组引用。
+ * `useSyncExternalStore` 靠 `Object.is` 比快照决定要不要重渲染，每次返回新数组就等于
+ * 告诉 React"变了"，细粒度订阅全部失效 —— 且症状只是"仍然整页刷新"，没有任何报错。
  *
- * 判定只比 id 序列是**安全**的：行结构只由「id 顺序 + 各分组类型」决定，
- * 而类型在创建后就不可修改（`board-reducer` 的 `updateGroup` 刻意不收 groupType）。
- * 卡片增删改、配置变更都不会影响行结构。
+ * 只比 id 序列是安全的：行结构只由「id 顺序 + 各分组类型」决定，
+ * 而类型创建后不可修改（`board-reducer` 的 `updateGroup` 刻意不收 groupType）。
  */
 function rebuildStructure(): void {
   const groups = getDoc().groups
@@ -126,9 +123,8 @@ export function readGroupTitle(groupId: string): string {
 
 /**
  * 派发一个操作。
- *
  * `boardReducer` 未命中目标时返回原引用（例如 patch 的 itemId 不存在），
- * 这时直接返回、不通知订阅者 —— 否则会白白跑一遍所有组件的快照比较。
+ * 这时直接返回、不通知订阅者 —— 否则会白跑一遍所有组件的快照比较。
  */
 export function dispatchBoard(action: BoardAction): void {
   const current = getDoc()
@@ -144,10 +140,8 @@ export function dispatchBoard(action: BoardAction): void {
 
 /**
  * 语义化操作集合 —— 模块级常量，引用永远不变。
- *
- * 只派发、不订阅的组件靠它彻底避开重渲染：事件处理器直接 import 它即可，
- * 既不需要 context，也不需要 hook，更不会像闭包那样捕获到过期的 doc
- * （所有读取都发生在调用那一刻，见上面各个 `read*`）。
+ * 只派发、不订阅的组件靠它彻底避开重渲染：事件处理器直接 import 即可，
+ * 所有读取都发生在调用那一刻（见上面各个 `read*`），不会捕获到过期的 doc。
  */
 export const boardActions: BoardActions = {
   addGroup: (title, groupType, columns) => dispatchBoard({ type: 'addGroup', title, groupType, columns }),

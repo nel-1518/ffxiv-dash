@@ -5,12 +5,9 @@ import { ConvertToEorzeaTimeString } from './EorzeaTimeConvert.ts'
 /**
  * 顶栏左半边：问候语 + 两个时间读数。
  *
- * 单独成组件就是为了把秒级时钟关在这一块里：这三个读数都要跟着全局时钟走，写在
- * `Topbar` 里的话，时钟每秒一跳就会把整条顶栏（搜索框、编辑 / 新建 / 设置按钮）
- * 一起重渲染一次。
- *
- * 三个读数各自订阅、且都用 `useClockValue` 取**粗粒度快照**，所以渲染次数等于
- * 文字真正变化的次数：问候语一天 24 次、本地时间每分钟一次、艾欧泽亚读数约 2.9 秒一次。
+ * 单独成组件是为了把秒级时钟关在这一块里：写在 `Topbar` 里的话，时钟每秒一跳会把
+ * 整条顶栏（搜索框、各按钮）一起重渲染。三个读数各自用 `useClockValue` 取粗粒度快照，
+ * 渲染次数等于文字真正变化的次数。
  */
 
 function greetingForHour(hour: number): string {
@@ -39,9 +36,8 @@ function createLocalTimeFormatter(): Intl.DateTimeFormat | null {
 }
 
 /*
- * ⚠️ 实例建一次复用：`useClockValue` 每秒都会调用一次 `formatLocalTime`，
- * 而 `Intl.DateTimeFormat` 贵在**构造**（格式化本身很便宜）。
- * 构造不出来（缺 Intl 数据）就退回 `toLocaleTimeString`。
+ * ⚠️ 实例建一次复用：`useClockValue` 每秒都会调 `formatLocalTime`，
+ * 而 `Intl.DateTimeFormat` 贵在构造（格式化本身很便宜）。构造不出来就退回 `toLocaleTimeString`。
  */
 const localTimeFormatter = createLocalTimeFormatter()
 
@@ -94,8 +90,8 @@ function EorzeaTimeChip(): React.ReactNode {
 /**
  * 顶栏的「问候语 + 发丝竖线 + 时间读数」。
  *
- * ⚠️ 这一层**自己不订阅时钟**：它一旦跟着时钟渲染，下面三个读数就没有意义了
- * （父级渲染会连带子级一起渲染）。时钟只落在最里层那几个叶子上。
+ * ⚠️ 这一层自己不订阅时钟：父级渲染会连带子级，它跟着时钟渲染的话，
+ * 下面三个读数的细粒度订阅就没有意义了。
  */
 export function TopbarClock(): React.ReactNode {
   return (

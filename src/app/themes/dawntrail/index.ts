@@ -6,11 +6,9 @@ import './theme.css'
  * 金曦（Dawntrail）。
  *
  * 色值取自官方专题站 <https://na.finalfantasyxiv.com/dawntrail/> 的计算样式：
- * 暖黑底 `#1a1918` + 亮金 `#ffd966` + 古金 `#d9bf57` + 橙 `#e57e17`，
- * 分区靠一条淡金发丝边划界而不是实线。
+ * 暖黑底 `#1a1918` + 亮金 `#ffd966` + 古金 `#d9bf57` + 橙 `#e57e17`。
  *
- * ⚠️ 站点上出现最多的那个蓝 `#73bfe6` 是官网模板 / Lodestone 公共站的色，不是本主题的 ——
- * 取色时都要先做这层甄别（见 `docs/themes.md`）。
+ * ⚠️ 站点上最多的蓝 `#73bfe6` 是官网模板公共色，不属于本主题（取色甄别见 `docs/themes.md`）。
  */
 export const dawntrailSpec: ThemeSpec = {
   key: 'dawntrail',

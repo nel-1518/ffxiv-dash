@@ -9,42 +9,34 @@ import {
 import type { ColorMode, ColorScheme, ThemeKey } from '../theme-preference.ts'
 
 /**
- * 外观偏好（纯逻辑，无 React）：**色调模式 + 浅/深两个槽位 + 每套主题一份档案**。
+ * 外观偏好（纯逻辑，无 React）：色调模式 + 浅/深两个槽位 + 每套主题一份档案。
  *
- * 它**不属于看板数据**：独立落一个 localStorage 键，读写看板的那条路径完全不碰它。
- * 备份文件（`core/storage/backup.ts`）把它单列一段：导出带走整份档案，而导入是**细粒度**的 ——
- * 色调与两个槽位照搬，逐主题只吃"怎么显示"的几个数值，背景来源与本机图片一律不动
- * （见 `importAppearance`）。
+ * 它不属于看板数据：独立落一个 localStorage 键。备份（`core/storage/backup.ts`）把它单列一段：
+ * 导出带走整份；导入是细粒度的 —— 色调与槽位照搬，逐主题只吃"怎么显示"的几个数值，
+ * 背景来源与本机图片不动（见 `importAppearance`）。
  *
  * 数据模型（键 `ffxiv-dash:appearance:v3`）：
- * - `colorMode`：浅色 / 深色 / 跟随系统。选「浅色」就用 `lightTheme` 那套、
- *   选「深色」用 `darkTheme`、「跟随系统」由 `systemScheme`（matchMedia）决定用哪个；
- * - `profiles`：**逐主题**的背景 + 卡片档案，且只存"用户改过的那几项"，
- *   读的时候由 `app/themes/appearance-sync.ts` 的 `factoryProfile` 补齐主题出厂值。
- *   ⚠️ **生效主题的档案也住在 `profiles` 里**，没有第二份 live 字段 ——
- *   于是"改非生效主题页面不动、改生效主题立刻可见"是数据模型的自然结果，
- *   不需要预览开关，也不需要"切主题时归档旧档案 / 装载新档案"那套编排；
+ * - `colorMode`：浅色 / 深色 / 跟随系统（由 `systemScheme` 决定用哪个槽位）；
+ * - `profiles`：逐主题的背景 + 卡片档案，只存"用户改过的那几项"，
+ *   读的时候由 `app/themes/appearance-sync.ts` 的 `factoryProfile` 补齐出厂值。
+ *   ⚠️ 生效主题的档案也住在 `profiles` 里，没有第二份 live 字段 ——
+ *   "改非生效主题页面不动、改生效主题立刻可见"是数据模型的自然结果；
  * - `profiles[key].imageName` / `.imageSize`：该主题上传图的展示信息
- *   （图片本体在 IndexedDB，见 ./image-store.ts；**逐主题一份，互不影响**）。
+ *   （图片本体在 IndexedDB，见 ./image-store.ts，逐主题一份）。
  *
- * 背景分四种来源（`ThemeProfile.source`）：
- * - `none`   不设背景，回落到主题自带的背景图（没有图就只剩底色）
- * - `color`  纯色，取自 `color`
- * - `url`    外链或主题自带的图片，取自 `url`
- * - `upload` 本地上传的图片，**图片本体在 IndexedDB 里**（逐主题一份，键 `background:<主题键>`），
- *   档案里只记文件名与大小
+ * 背景来源（`ThemeProfile.source`）：`none` 回落主题自带背景 / `color` 纯色 /
+ * `url` 外链或主题自带图 / `upload` 本地上传（本体在 IndexedDB，档案只记文件名与大小）。
  *
- * ⚠️ 上传图片为什么不塞进这里：5MB 的图转成 base64 约 6.7MB，而 localStorage
- * 通常只有 5MB 配额，直接存必然失败（还会连带把看板数据一起写坏）。
+ * ⚠️ 上传图不塞进 localStorage：5MB 的图转 base64 约 6.7MB，超出 localStorage 配额，
+ * 直接存必然失败（还会连带把看板数据写坏）。
  *
- * 消费侧走 useSyncExternalStore（见 ./hooks.ts），因此不需要任何 Provider。
+ * 消费侧走 useSyncExternalStore（见 ./hooks.ts），不需要 Provider。
  */
 
 export type AppearanceSource = 'none' | 'color' | 'url' | 'upload'
 
 /**
- * 一套主题的外观档案（背景 + 卡片 + 上传图的展示信息）。
- * 出厂值见 `app/themes/appearance-sync.ts`。
+ * 一套主题的外观档案（背景 + 卡片 + 上传图的展示信息）。出厂值见 `app/themes/appearance-sync.ts`。
  */
 export type ThemeProfile = {
   source: AppearanceSource
@@ -99,7 +91,7 @@ export type AppearanceSnapshot = AppearanceState & {
   imageUrls: Partial<Record<ThemeKey, string>>
 }
 
-/** 主题没声明背景 / 卡片时用的全局默认（与改造前的 `DEFAULT_APPEARANCE` 一致）。 */
+/** 主题没声明背景 / 卡片时用的全局默认。 */
 export const DEFAULT_COLOR = '#1f2937'
 export const DEFAULT_CARD_ALPHA = 62
 export const DEFAULT_CARD_BLUR = 12
@@ -115,15 +107,14 @@ const BRIGHTNESS_MIN = 20
 const BRIGHTNESS_MAX = 150
 
 /**
- * 图片地址：协议头（`http(s)://` / `data:image/`）或**根相对路径**（`/bg/x.jpg`）。
+ * 图片地址：协议头（`http(s)://` / `data:image/`）或根相对路径（`/bg/x.jpg`）。
  *
- * ⚠️ 比 CardFace 的 `linkIconKind` 多认一种「根相对路径」：主题自带的背景图就是
- * `public/bg/` 下的文件，写出来是 `/bg/8-evercold.jpg` —— 出厂档案会把它填进「图片链接」，
- * 而那个输入框用的就是这个校验。不用绝对地址（`location.origin + …`）是因为它会随部署
- * 地址变化、也没法离线打开。链接卡片那边（图标字段）保持原样，不动它。
+ * ⚠️ 比 CardFace 的 `linkIconKind` 多认一种「根相对路径」：主题自带背景图就是 `public/bg/`
+ * 下的文件（`/bg/8-evercold.jpg`），出厂档案会把它填进「图片链接」。不用绝对地址
+ * （`location.origin + …`）：它随部署地址变化、也没法离线打开。
  *
- * 这类地址是**部署无关**的 public 根相对写法：真正拼成可用链接在渲染时过一次
- * `core/asset-url.ts` 的 `assetUrl`（补上 `base`），存回来的值不改写。
+ * 这类地址是部署无关的 public 根相对写法：渲染时过一次 `core/asset-url.ts` 的 `assetUrl`
+ * 补上 `base`，存回来的值不改写。
  */
 const IMAGE_URL_PATTERN = /^(?:https?:\/\/|data:image\/|\/)/i
 
@@ -160,12 +151,10 @@ function clamp(raw: number, min: number, max: number): number {
 /**
  * 归一化一份"逐主题改动"。
  *
- * ⚠️ 非法字段**直接丢键**（而不是回落成默认值）：丢键的语义正好是"这项没改过"，
- * 读的时候由主题出厂值补上 —— 若在这里回落默认值，反而会把用户的改动写成一份
- * "看起来改过、其实是默认值"的档案，把出厂值覆盖掉。
+ * ⚠️ 非法字段直接丢键（而不是回落成默认值）：丢键的语义是"这项没改过"，读的时候由出厂值补上；
+ * 回落默认值反而会写出一"看起来改过、其实是默认值"的档案，把出厂值覆盖掉。
  *
- * ⚠️ 空 `url` 是**合法值**（"用户把它清空了"）不能丢，否则主题出厂那张图会冒回来，
- * 同一份档案会变成刷新前后显示不同的图。
+ * ⚠️ 空 `url` 是合法值（"用户清空了"）不能丢，否则主题出厂那张图会冒回来。
  */
 export function normalizeThemePatch(raw: unknown): ThemeProfilePatch {
   const source = asObject(raw)
@@ -205,9 +194,8 @@ export function normalizeThemePatch(raw: unknown): ThemeProfilePatch {
   }
 
   /*
-   * 上传图的展示信息。
-   * ⚠️ 空文件名是**合法值**（"用户把图移除了"）不能丢，理由同上面的空 `url`：
-   * 丢了的话，移除过的主题会继续显示上一次那个文件名。
+   * 上传图的展示信息。空文件名是合法值（"用户把图移除了"）不能丢，
+   * 否则移除过的主题会继续显示上一次的文件名。
    */
   if (typeof source.imageName === 'string' && source.imageName.length <= 120) {
     patch.imageName = source.imageName
@@ -221,7 +209,7 @@ export function normalizeThemePatch(raw: unknown): ThemeProfilePatch {
   return patch
 }
 
-/** 空对象 = "这套主题没改过"，不要留在 `profiles` 里（否则"有没有改过"会误判成 true）。 */
+/** 空对象 = "这套主题没改过"，不留进 `profiles`（否则"有没有改过"会误判成 true）。 */
 function normalizeProfiles(raw: unknown): Partial<Record<ThemeKey, ThemeProfilePatch>> {
   const source = asObject(raw)
   const profiles: Partial<Record<ThemeKey, ThemeProfilePatch>> = {}
@@ -245,8 +233,7 @@ function defaultAppearance(): AppearanceState {
   }
 }
 
-/** 校验并归一化：非法值一律回落到默认，保证界面上永远拿得到可用的状态。
- */
+/** 校验并归一化：非法值一律回落到默认，保证界面上永远拿得到可用的状态。 */
 export function normalizeAppearance(raw: unknown): AppearanceState {
   const source = asObject(raw)
 
@@ -297,9 +284,8 @@ let systemScheme: ColorScheme = 'light'
  * 模块级状态与快照。
  *
  * ⚠️ 快照必须是稳定引用：useSyncExternalStore 每次渲染都拿它比对，
- * 每次现算新对象会永远"变了"，直接无限重渲染（时钟那边踩过）。
- * `rebuildSnapshot` 只重建**顶层**对象，`profiles` 里没被改的那些主题保持原引用 ——
- * `useThemePatch(key)` 就是靠这一点做细粒度订阅的。
+ * 每次现算新对象会导致无限重渲染。`rebuildSnapshot` 只重建顶层对象，
+ * `profiles` 里没被改的主题保持原引用 —— `useThemePatch(key)` 靠这一点做细粒度订阅。
  */
 let state: AppearanceState = defaultAppearance()
 let snapshot: AppearanceSnapshot = { ...state, systemScheme, imageUrls }
@@ -327,11 +313,9 @@ function commit(next: AppearanceState): void {
 }
 
 /**
- * 备份导入时**照搬**的逐主题字段（白名单，默认不搬）。
- *
- * 这四个都是"怎么显示"的参数：模糊 / 亮度作用于背景图，卡片两项作用于卡片底色 ——
- * 它们跟在**本机那张图 / 那个色**上才有意义，所以不涉及"本机用哪张图"。
- * 白名单而不是黑名单：将来档案加字段时，默认是"不导入"，不会静默跟着备份跑。
+ * 备份导入时照搬的逐主题字段（白名单，默认不搬）。
+ * 这四个都是"怎么显示"的参数，跟在本机那张图 / 那个色上才有意义；
+ * 用白名单而不是黑名单：将来档案加字段时默认不导入，不会静默跟着备份跑。
  */
 const IMPORTED_PROFILE_FIELDS = [
   'blur',
@@ -341,10 +325,10 @@ const IMPORTED_PROFILE_FIELDS = [
 ] as const satisfies readonly (keyof ThemeProfile)[]
 
 /**
- * 从备份里的一份档案里挑出照搬的那几项。
+ * 从备份的一份档案里挑出照搬的那几项。
  *
- * ⚠️ 没写过的字段**不出现**在结果里：档案里"键不存在"的语义是"这项没改过"，
- * 若补上默认值就等于替用户把本机的值改成了主题出厂值（见 `normalizeThemePatch`）。
+ * ⚠️ 没写过的字段不出现在结果里：档案里"键不存在"的语义是"这项没改过"，
+ * 补上默认值等于替用户把本机的值改成出厂值（见 `normalizeThemePatch`）。
  */
 function pickImportedTunings(patch: ThemeProfilePatch | undefined): ThemeProfilePatch {
   const picked: ThemeProfilePatch = {}
@@ -361,38 +345,35 @@ function pickImportedTunings(patch: ThemeProfilePatch | undefined): ThemeProfile
 }
 
 /**
- * 导入备份里的外观偏好（备份恢复用）。粒度刻意分两半：
+ * 导入备份里的外观偏好。粒度刻意分两半：
  *
- * - `colorMode` / `lightTheme` / `darkTheme`：**整份照搬**备份 —— "用哪套主题"是纯偏好，
- *   与导入方的本机资源无关；
- * - 逐主题档案：只搬"怎么显示"的四个数值（`IMPORTED_PROFILE_FIELDS`），
- *   背景来源（无 / 纯色 / 图片链接 / 上传）与上传图信息**一律保持本机现状** ——
- *   别人的备份里那套图 / 色搬过来没有意义，把本机的背景换掉只会让"导入看板"变得危险。
+ * - `colorMode` / `lightTheme` / `darkTheme`：整份照搬 —— "用哪套主题"是纯偏好，与本机资源无关；
+ * - 逐主题档案：只搬"怎么显示"的四个数值（`IMPORTED_PROFILE_FIELDS`），背景来源与上传图信息
+ *   保持本机现状 —— 把别人备份里的图 / 色换掉本机背景只会让"导入看板"变得危险。
  *
- * 因此这里**不能**逐主题复用 `setThemeProfile`：它是"局部改动"语义，且合并结果为空时
- * 会把整份档案删掉。这里改成先拼好整份 `profiles`、再一次性交给 `commit` 落盘。
+ * 因此这里不能复用 `setThemeProfile`（它是"局部改动"语义，且合并结果为空时会删掉整份档案），
+ * 改为先拼好整份 `profiles` 再一次性 `commit`。
  *
- * ⚠️ **不碰 IndexedDB**：上传图既不搬进来，也不改动本机已有的那张（图片本体见 ./image-store.ts）。
+ * ⚠️ 不碰 IndexedDB：上传图既不搬进来，也不改动本机已有的那张（见 ./image-store.ts）。
  */
 export function importAppearance(raw: unknown): void {
-  // 先确保读盘走完（本机旧档案与系统色调就位）：正常流程里启动时已经调过，
-  // 这里兜的是"导入早于首帧"这种极端顺序 —— 幂等，重复调用不会重读存储
+  // 先确保读盘走完；幂等，重复调用不会重读存储
   loadAppearance()
 
-  // 归一化一次性把两半都拿到：全局三字段照搬，档案按白名单挑（手改坏的值在这里就被挡掉）
+  // 归一化一次性拿到两半：全局三字段照搬，档案按白名单挑（手改坏的值在这里被挡掉）
   const { colorMode, lightTheme, darkTheme, profiles: imported } = normalizeAppearance(raw)
 
   const profiles = { ...state.profiles }
   for (const key of THEME_KEYS) {
     const tunings = pickImportedTunings(imported[key])
     if (Object.keys(tunings).length === 0) {
-      // 备份里这套主题没调过显示参数：本机档案一点不动
+      // 备份里这套主题没调过显示参数：本机档案不动
       continue
     }
-    // 与本机档案合并后重新归一化一遍，保证落盘的一定是合法值
+    // 与本机档案合并后重新归一化，保证落盘的一定是合法值
     const next = normalizeThemePatch({ ...profiles[key], ...tunings })
     if (Object.keys(next).length === 0) {
-      // 理论上到不了（`tunings` 非空且已被校验过）；防御性丢掉空壳，别在 profiles 里留
+      // 理论上到不了（tunings 非空且已校验）；防御性丢掉空壳
       delete profiles[key]
       continue
     }
@@ -403,11 +384,10 @@ export function importAppearance(raw: unknown): void {
 }
 
 /**
- * 恢复**导入前快照**里的外观（整体替换）。
+ * 恢复导入前快照里的外观（整体替换）。
  *
  * 与 `importAppearance` 的细粒度刻意不同：快照来自本机、就在覆盖前一刻存下，
- * 档案里引用的也是本机 IndexedDB 里的同一批图 —— 整份搬回来就是恢复原状，
- * 既不需要白名单、也不需要核对本机有没有那张图。
+ * 档案引用的也是本机 IndexedDB 里的同一批图 —— 整份搬回来就是恢复原状。
  */
 export function restoreAppearance(raw: unknown): void {
   loadAppearance()
@@ -436,10 +416,8 @@ export function resolveScheme(current: AppearanceSnapshot = snapshot): ColorSche
 }
 
 /**
- * 当前**生效主题** —— 由色调模式与两个槽位纯算出来，不是存下来的一个字段。
- *
- * `useSyncExternalStore` 拿这个字符串做 `Object.is` 比较，所以换背景图
- * （会重建含 `imageUrls` 的快照）不会顺带让主题的消费者重渲染。
+ * 当前生效主题 —— 由色调模式与两个槽位纯算出来，不是存下来的字段。
+ * 换背景图（会重建含 `imageUrls` 的快照）不会让它变化，主题的消费者不会跟着重渲染。
  */
 export function resolveTheme(current: AppearanceSnapshot = snapshot): ThemeKey {
   return resolveScheme(current) === 'light' ? current.lightTheme : current.darkTheme
@@ -451,10 +429,8 @@ export function getThemePatch(key: ThemeKey): ThemeProfilePatch | undefined {
 }
 
 /**
- * 记录/替换**某套主题**上传图的 object URL。
- *
- * 换图时会 revoke 这套主题上一个 URL —— object URL 不会被 GC 自动回收，
- * 每换一次图就漏一份内存，必须手动释放。别的主题的 URL 一概不动。
+ * 记录/替换某套主题上传图的 object URL。
+ * 换图时 revoke 上一个 URL：object URL 不会被 GC 自动回收，不换就漏一份内存。
  */
 export function setThemeImageUrl(key: ThemeKey, next: string | null): void {
   const previous = imageUrls[key] ?? null
@@ -497,9 +473,7 @@ export function setColorMode(mode: ColorMode): void {
 
 /**
  * 给某个色调的槽位换一套主题。
- *
- * ⚠️ 只改槽位、不动 `colorMode`：「外观」里换浅色槽位的主题时，如果用户当前固定的是深色，
- * 页面本来就不该变（那套主题只在切到浅色时才生效）。
+ * ⚠️ 只改槽位、不动 `colorMode`：换非生效色调的主题时页面本来就不该变。
  */
 export function setThemeSlot(scheme: ColorScheme, key: ThemeKey): void {
   const field = scheme === 'light' ? 'lightTheme' : 'darkTheme'
@@ -511,9 +485,7 @@ export function setThemeSlot(scheme: ColorScheme, key: ThemeKey): void {
 
 /**
  * 系统色调变化（app 层的 matchMedia 监听调用）。
- *
- * 不是「跟随系统」时它只改一个不参与解析的字段，页面自然什么都不做 ——
- * 所以监听可以常驻，不必随模式进出订阅/退订。
+ * 不是「跟随系统」时它只改一个不参与解析的字段，页面无反应 —— 监听因此可以常驻。
  */
 export function setSystemScheme(scheme: ColorScheme): void {
   if (systemScheme === scheme) {
@@ -538,16 +510,14 @@ function sameProfile(a: ThemeProfilePatch | undefined, b: ThemeProfilePatch): bo
 
 /**
  * 改某套主题的档案（只传改动的项）。
- *
- * 生效主题的档案一改，快照就变 → 页面立刻跟着变；改的是别的主题，快照不变 →
- * 页面**一点样式都不动**。两个行为都不需要额外机制。
+ * 改生效主题 → 快照变、页面立刻跟着变；改别的主题 → 快照引用不变、页面不动。
  */
 export function setThemeProfile(key: ThemeKey, patch: ThemeProfilePatch): void {
   const current = state.profiles[key]
   const next = normalizeThemePatch({ ...current, ...patch })
 
   if (Object.keys(next).length === 0) {
-    // 传进来的值全被校验挡掉了：等同"恢复默认"，但别写一个空壳进 profiles
+    // 传进来的值全被校验挡掉：等同"恢复默认"，但别写空壳进 profiles
     resetThemeProfile(key)
     return
   }

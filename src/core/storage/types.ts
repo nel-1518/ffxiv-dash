@@ -13,9 +13,7 @@ export type LinkItem = {
   icon?: string
   /**
    * 用户自定的缩写：搜索时优先匹配它。
-   *
-   * 只允许 `[A-Za-z0-9]`（见 `LINK_ABBREVIATION_PATTERN`），**不做任何自动处理** ——
-   * 不 trim、不改大小写、不从名称或网址推导；留空表示没设。
+   * 只允许 `[A-Za-z0-9]`，不做任何自动处理（不 trim、不改大小写、不推导）；留空表示没设。
    */
   abbreviation?: string
 }
@@ -63,10 +61,8 @@ export const GROUP_TYPES: readonly GroupType[] = ['link', 'widget']
 export const ITEM_KINDS: readonly ItemKind[] = ['link', 'widget']
 
 /**
- * 分组列数的取值范围与各类型的默认值。
- *
- * 取值范围放在 core：它是数据模型的一部分（校验、表单、排布都要用），
- * 默认值刻意对齐"可配置列数"之前的展示效果，老数据的观感不会变。
+ * 分组列数的取值范围与各类型的默认值。取值范围是数据模型的一部分
+ * （校验、表单、排布都要用），默认值保持老数据的观感不变。
  */
 export const GROUP_COLUMNS_MIN = 1
 export const GROUP_COLUMNS_MAX = 6

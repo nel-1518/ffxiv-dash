@@ -1,14 +1,12 @@
 /**
  * 全局秒级时钟（纯逻辑，无 React）。
  *
- * 全应用共享同一份「现在」：艾欧泽亚时间、PvP 轮换倒计时以及后续任何需要计时的
- * 内容都从这里取，读数天然同步 —— 各自持有 setInterval 的话起点不同，会错开最多 1 秒。
+ * 全应用共享同一份「现在」：艾欧泽亚时间、PvP 轮换倒计时等都从这里取，读数天然同步 ——
+ * 各自持有 setInterval 的话起点不同，会错开最多 1 秒。
+ * 显示虽只到分钟，但轮换时刻需要"到点就翻"，所以仍按秒刷新。
  *
- * 时长虽然只显示到分钟，但轮换时刻本身需要"到点就翻"，所以仍按秒刷新；
- * 同一个 tick 驱动所有订阅者，一个读数一次更新，不会各跳各的。
- *
- * 订阅采用引用计数：有订阅者才起计时器，全部退订后自动停掉，空转成本为零。
- * 消费侧走 useSyncExternalStore（见 ./hooks.ts），因此不需要任何 Provider。
+ * 订阅采用引用计数：有订阅者才起计时器，全部退订后自动停掉。
+ * 消费侧走 useSyncExternalStore（见 ./hooks.ts），不需要 Provider。
  */
 
 type Listener = () => void
@@ -29,10 +27,8 @@ function tick(): void {
 
 /**
  * 自派生调度：每次先算到下一个整秒的距离，再排下一次。
- *
- * 用递归 setTimeout 而不是 setInterval，有两个好处：
- * ① 读数永远踩在整秒边界上，不会比真实秒慢将近 1 秒；
- * ② 每一轮都以 Date.now() 重新对齐，不像 setInterval 那样累积漂移。
+ * 用递归 setTimeout 而不是 setInterval：读数永远踩在整秒边界上，且每轮以 Date.now()
+ * 重新对齐，不像 setInterval 那样累积漂移。
  */
 function schedule(): void {
   timerId = window.setTimeout(() => {
@@ -73,7 +69,7 @@ export function subscribe(listener: Listener): () => void {
  * 当前时刻的毫秒时间戳。
  *
  * ⚠️ 必须返回这个稳定的模块级变量，不能写成 `Date.now()`：useSyncExternalStore
- * 每次渲染都会拿快照做比较，现算会永远"变了"，直接触发无限重渲染。
+ * 每次渲染都比快照，现算会永远"变了"，直接无限重渲染。
  */
 export function getNow(): number {
   return now

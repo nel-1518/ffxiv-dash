@@ -8,15 +8,12 @@ import type { ThemeKey } from '../../core/theme-preference.ts'
  * 一套主题 = 一个文件夹（`src/app/themes/<key>/`）：`index.ts` 放 antd 令牌与元信息，
  * `theme.css`（按需）放 antd 管不到的 `--dash-*` 变量。只改令牌的主题不需要 theme.css。
  *
- * 新增/删除主题的步骤、变量约定、八套速查表：见 `docs/themes.md`。
+ * 新增/删除主题的步骤、变量约定、速查表见 `docs/themes.md`。
  */
 
-/** 主题自带的背景预设（用户没自己选背景时用它）。固定“铺满裁切”（cover），不提供铺法选项。 */
+/** 主题自带的背景预设（用户没自己选背景时用它）。固定「铺满裁切」（cover），不提供铺法选项。 */
 export type ThemeBackground = {
-  /**
-   * `public/` 下的根相对路径（`PublicPath` 保证写法），例如 `/bg/8-evercold.jpg`。
-   * 存的是部署无关的路径：补上部署基础路径发生在渲染时（`app/background-layer.ts` 的 `assetUrl`）。
-   */
+  /** `public/` 下的根相对路径，如 `/bg/8-evercold.jpg`；部署基础路径在渲染时补（`assetUrl`）。 */
   url: PublicPath
   /** 模糊 0-20（px）。 */
   blur?: number
@@ -37,12 +34,12 @@ export type ThemeSpec = {
   /** 设置面板里显示的名字。 */
   label: string
   /**
-   * 本主题**覆盖**在基线之上的 antd 配置（见 `app/theme-config.ts` 的合成逻辑）：
-   * 没写的项沿用基线，因此只做了一半的主题也不会把界面改坏。
+   * 本主题覆盖在基线之上的 antd 配置（合成见 `app/theme-config.ts`）：
+   * 没写的项沿用基线，只做了一半的主题也不会把界面改坏。
    */
   antd: ThemeConfig
   /** 默认背景；不写就是"纯主题色，无图"。 */
   background?: ThemeBackground
-  /** 默认卡片外观；不写就沿用 `DEFAULT_APPEARANCE`（62 / 12）。 */
+  /** 默认卡片外观；不写就沿用全局默认（62 / 12，见 core/appearance/store.ts）。 */
   cards?: ThemeCards
 }

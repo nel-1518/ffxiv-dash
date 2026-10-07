@@ -1,12 +1,11 @@
 /**
  * 图标默认底色：**稳定 Hash + 12 色固定 pastel 调色板**。
  *
- * 链接没有自己的图标时，卡片上显示"一个字符 + 一层底色"。底色不随机生成 ——
- * 直接对 hash 取任意 RGB 会出现过亮、过艳、过脏的颜色，所以这里只用下面这 12 个
- * 人工挑过的低饱和色（Linear / Raycast 那类导航 UI 的观感）。
+ * 链接没有自己的图标时，卡片显示"一个字符 + 一层底色"。底色不随机生成 ——
+ * 直接对 hash 取 RGB 会出现过亮、过艳、过脏的颜色，所以只用 12 个人工挑过的低饱和色。
  *
- * 稳定性：同一个 key 永远落在同一个颜色上 —— 刷新、重开、拖动排序都不会变，
- * 因为 hash 只取决于 key 本身，不掺任何运行期状态（没有 `Math.random()`，也没有序号）。
+ * 同一个 key 永远落在同一个颜色上（刷新、重开、拖动排序都不变）：
+ * hash 只取决于 key 本身，不掺任何运行期状态。
  */
 
 export type PastelColor = {
@@ -17,9 +16,7 @@ export type PastelColor = {
   fg: string
 }
 
-/**
- * 12 个定色。顺序就是取值顺序（`hash % 12`），**加色或换序会让所有已有链接换色**。
- */
+/** 12 个定色。顺序就是取值顺序（`hash % 12`），加色或换序会让所有已有链接换色。 */
 export const pastelPalette: readonly PastelColor[] = [
   {
     name: 'rose',
@@ -85,9 +82,8 @@ export const pastelPalette: readonly PastelColor[] = [
 
 /**
  * FNV-1a 32 位 hash。
- *
- * 刻意写成全整数运算（`Math.imul` + `>>> 0`）：`hash * 31 + c` 那类写法在 32 位处
- * 会溢出成浮点数，结果因引擎而异，就做不到"跨浏览器、跨刷新完全一致"。
+ * 全整数运算（`Math.imul` + `>>> 0`）：普通乘法在 32 位处会溢出成浮点，
+ * 结果因引擎而异，做不到跨浏览器一致。
  */
 function hashString(value: string): number {
   let hash = 0x811c9dc5

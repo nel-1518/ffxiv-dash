@@ -2,9 +2,7 @@ import { createId } from '../ids.ts'
 import { SCHEMA_VERSION } from './schema.ts'
 import type { BoardDoc } from './types.ts'
 
-/**
- * 默认便签卡，写使用说明：新用户一进来就知道这个看板怎么用。
- */
+/** 默认便签卡：新用户的使用说明。 */
 const WELCOME_MEMO_1 = `# 这个网页是做什么的？
 一个适用于 [《最终幻想14》](https://ff.web.sdo.com/) 的导航站。
 可以自定义编辑多项内容：
@@ -47,15 +45,11 @@ const WELCOME_MEMO_6 = `# 如何配置主题？
 `
 
 /**
- * 初始演示数据。
- *
- * 组件配置统一收在各组件的 config 里（chips 是字符串数组，不是斜杠字符串）。
- *
- * 写成函数：每次调用都产出全新的 id，避免模块级副作用。
+ * 初始演示数据。写成函数：每次调用都产出全新的 id，避免模块级副作用。
  *
  * `version` 直接引用 SCHEMA_VERSION 而不写死数字：`sanitizeBoardDoc` 在版本对不上时
  * 会把整份数据判死并回退到这里，两者一旦不同步就会陷入
- * “每次刷新都静默重置为演示数据”的循环（详见 schema.ts 里 SCHEMA_VERSION 的注释）。
+ * "每次刷新都静默重置为演示数据"的循环（见 schema.ts 的 SCHEMA_VERSION）。
  */
 export function createDefaultBoard(): BoardDoc {
   return {

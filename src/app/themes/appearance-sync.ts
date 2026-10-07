@@ -10,17 +10,13 @@ import type { ThemeProfile } from '../../core/appearance/store.ts'
 import type { ThemeKey } from '../../core/theme-preference.ts'
 
 /**
- * 主题的**出厂档案**：这套主题没被用户改过时应该长什么样。
+ * 主题的出厂档案：这套主题没被用户改过时的样子。
+ * - 背景：主题自带图写进「图片链接」并取预设的模糊 / 亮度（写成链接而非隐形回落，
+ *   是为了让「图片显示」一节能直接调这张图的参数）；不带图退回「无」。
+ * - 卡片：`ThemeSpec.cards` 的不透明度 / 毛玻璃；没声明用全局默认。
+ * - 纯色：主题不声明背景颜色（`color` 只是"纯色"模式用的值），给全局默认。
  *
- * 逐字段与 `ThemeSpec` 对齐（等价于改造前的 `applyTheme(key)` 写进用户偏好的那几个值）：
- * - **背景**：主题自带图就写进「图片链接」并取预设的模糊 / 亮度；不带图就退回「无」。
- *   写成图片链接而不是留个隐形回落，是为了让这张图的参数能在设置里直接调
- *   （「图片显示」一节只在图片来源下才渲染）。
- * - **卡片**：`ThemeSpec.cards` 的不透明度 / 毛玻璃模糊；没声明就用全局默认。
- * - **纯色**：主题不声明背景颜色（`color` 只是"纯色"模式用的值），给全局默认。
- *
- * ⚠️ 住在 app 层而不是 core：算它要用 `getThemeSpec`，而 core 不能反向依赖 app
- * （与改造前的 `applyTheme` 同因）。
+ * ⚠️ 住在 app 层而不是 core：算它要用 `getThemeSpec`，core 不能反向依赖 app。
  */
 export function factoryProfile(key: ThemeKey): ThemeProfile {
   const { background, cards } = getThemeSpec(key)
@@ -40,25 +36,21 @@ export function factoryProfile(key: ThemeKey): ThemeProfile {
 }
 
 /**
- * 某套主题**实际生效**的档案 = 出厂档案 + 用户改过的那几项。
+ * 某套主题实际生效的档案 = 出厂档案 + 用户改动。
  *
- * ⚠️ 只想拿一份快照（比如在 hooks 里配合 `useThemePatch`）时用
- * `{ ...factoryProfile(key), ...patch }` 现拼，别走这里 —— 这个函数读模块状态，
- * 放在 `useMemo` 里会被 oxlint 判成"多余依赖"。
+ * ⚠️ 只想拿一份快照（如 hooks 里配合 `useThemePatch`）时用 `{ ...factoryProfile(key), ...patch }`
+ * 现拼，别走这里 —— 这个函数读模块状态，放进 `useMemo` 会被 oxlint 判成"多余依赖"。
  */
 export function readThemeProfile(key: ThemeKey): ThemeProfile {
   return { ...factoryProfile(key), ...getThemePatch(key) }
 }
 
 /**
- * 「跟随系统」：注册 `prefers-color-scheme` 的监听（`main.tsx` 里在 `loadAppearance()` 之后调）。
+ * 「跟随系统」：注册 `prefers-color-scheme` 监听（`main.tsx` 里在 `loadAppearance()` 之后调）。
  *
- * ⚠️ **只注册一次、不注销**：模式进出「跟随系统」时不订阅/退订，
- * 少一条生命周期分支，StrictMode 双跑也不会漏订阅。回调里只调 `setSystemScheme` ——
- * 不是「跟随系统」时生效主题不变，页面自然什么都不做。
- *
- * 注册时同步一次既是"开机对账"（把 matchMedia 的真值写进 store），
- * 也让这个函数不依赖"调用方之前读过一次"。
+ * ⚠️ 只注册一次、不注销：回调只调 `setSystemScheme`，不是「跟随系统」时生效主题不变、
+ * 页面无反应，因此模式进出时不需要订阅/退订，StrictMode 双跑也不会漏订阅。
+ * 注册时同步一次，让本函数不依赖"调用方之前读过系统色调"。
  */
 let installed = false
 

@@ -1,13 +1,12 @@
 /**
  * LinkMetadata 接口客户端（https://linkmetadata.com/docs/api-reference）。
  *
- * 放在 `core/` 而不是某个 feature 下：**两处**都在用它 —— 设置里的「批量添加链接」
- * 与编辑弹窗里新建链接的「自动获取数据」。放 feature 里会让另一处反向依赖。
- * 请求实现照 `market-widget/universalis.ts` / `house-widget/sale.ts` 的三条惯例来：
+ * 放在 `core/` 而不是某个 feature 下：设置的「批量添加链接」与编辑弹窗的「自动获取数据」
+ * 都在用它，放 feature 里会造成反向依赖。请求实现照 market-widget / house-widget 的惯例：
  * 模块内拼 URL、自己校验未知 JSON、按 URL 在飞去重。
  *
- * ⚠️ 这是**第三方公开服务**：无需 API key，但按 IP 限流（每 10 秒 20 次，超了封 10 秒）。
- * 批量调用方必须顺序或低并发地发请求，别在这里加并发池把它撑爆。
+ * ⚠️ 这是第三方公开服务：无需 API key，但按 IP 限流（每 10 秒 20 次，超了封 10 秒）。
+ * 批量调用方必须顺序或低并发发请求，别在这里加并发池。
  */
 
 const METADATA_ENDPOINT = 'https://api.linkmetadata.com/v1/metadata'
@@ -115,8 +114,8 @@ function optionalText(value: unknown): string | undefined {
 /**
  * 元数据 → 可落盘字段。
  *
- * 字段选择是**刻意的**：只取标题 / 描述 / favicon，
- * 不用 `url`（canonical 会改写用户填的地址）、也不用 `image` 与原始 OG/Twitter 数据。
+ * 只取标题 / 描述 / favicon：不用 `url`（canonical 会改写用户填的地址），
+ * 也不用 `image` 与原始 OG/Twitter 数据。
  */
 export function linkFieldsFromMetadata(metadata: LinkMetadata): LinkMetadataFields {
   const favicon =

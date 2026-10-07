@@ -1,11 +1,10 @@
 import type { BoardDoc, GroupType, ItemKind } from './storage/types.ts'
 
 /**
- * 分组类型注册表 —— 各类分组的**能力规则**，全站唯一的声明处。
+ * 分组类型注册表 —— 各类分组的能力规则，全站唯一的声明处。
  *
- * 放在 core 而不是 features/groups：`core/storage/schema.ts`（校验落盘数据）
- * 与 `state/board-reducer.ts`（落位把关）都要用它，这两个层不允许反向依赖
- * features；表单、看板和拖拽逻辑也只依赖这些能力，不要为每个类型增加 isXxx 分支。
+ * 放在 core 而不是 features/groups：`core/storage/schema.ts` 与 `state/board-reducer.ts`
+ * 都要用它，这两层不允许反向依赖 features；消费方只依赖这些能力，不要为每个类型加 isXxx 分支。
  */
 export const GROUP_TYPE_META: Record<
   GroupType,
@@ -47,11 +46,10 @@ export function groupsPerRow(type: GroupType): number {
 }
 
 /**
- * 某组件类型在**整块看板**上的实例数（跨全部分组的全局口径）。
+ * 某组件类型在整块看板上的实例数（跨分组的全局口径）。
  *
- * 组件实例上限（见 `features/widgets/types.ts` 的 `maxCount`）按看板全局计数，
- * 而不是按分组：同一类型放几个只取决于"整块板上已有几个"，与放在哪个分组无关。
- * `state/board-reducer.ts`（落库把关）与卡片表单（禁用选项）共用这里的口径。
+ * 实例上限（`features/widgets/types.ts` 的 `maxCount`）按看板全局计数，与放在哪个分组无关；
+ * `state/board-reducer.ts` 与卡片表单共用这里的口径。
  */
 export function countWidgetInstances(doc: BoardDoc, widgetKey: string): number {
   let count = 0

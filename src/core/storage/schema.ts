@@ -50,10 +50,7 @@ function asId(value: unknown): string {
 }
 
 /**
- * 链接缩写：只接受纯 ASCII 字母数字，且不超过上限。
- *
- * ⚠️ 刻意**不做任何自动处理** —— 不 trim（用户输入里的空格/符号就是非法）、
- * 不改大小写、不截断：整体不匹配就当成"没设"（返回 undefined）。
+ * 链接缩写：只接受纯 ASCII 字母数字且不超上限，否则当成"没设"（返回 undefined）。
  * 表单已用同一份规则拦在提交前，这里是存档被手改时的兜底。
  */
 function asAbbreviation(value: unknown): string | undefined {
@@ -120,7 +117,6 @@ function sanitizeGroup(value: unknown, normalize: WidgetConfigNormalizer): Group
     id: asId(value.id),
     title: asString(value.title, '未命名分组').trim() || '未命名分组',
     type,
-    // 列数是后加的字段：老数据缺省时补齐为该类型的默认值，越界值收敛到 1-6
     columns: clampGroupColumns(value.columns, type),
     items,
   }
@@ -162,11 +158,11 @@ export function sanitizeBoardDoc(
     0,
   )
   const outputItemCount = groups.reduce((total, group) => total + group.items.length, 0)
-  // 老数据没有 columns 字段，补齐后回写一次，避免每次打开都要重新补
+  // 老数据没有 columns 字段，补齐后回写一次，避免每次打开都重新补
   const columnsBackfilled = rawGroups.some(
     (group) => isRecord(group) && typeof group.columns !== 'number',
   )
-  // 版本已经在函数开头比过了（不符早就 return），这里不再重复判断
+  // 版本号在函数开头已比对（不符早已 return），normalized 不再重复判断
   const normalized =
     groups.length !== rawGroups.length ||
     outputItemCount !== inputItemCount ||

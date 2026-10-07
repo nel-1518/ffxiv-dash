@@ -1,12 +1,11 @@
 /**
  * 「跳转」设置：每天首次进入页面时自动打开的一批链接（纯逻辑 + 一个 localStorage 键，无 React）。
  *
- * 它既不进看板数据、也不进外观偏好，因此独立落一个键 ——
- * 备份文件（`core/storage/backup.ts`）把它单列一段，且只带走用户填写的链接原文。
+ * 它既不进看板数据、也不进外观偏好，独立落一个键；
+ * 备份文件（`core/storage/backup.ts`）把它单列一段，只带走用户填写的链接原文。
  *
- * 以**本地 0 点**为界（日历日，用 `core/clock/format.ts` 的 `formatDateKey`）：
- * 一天只跳一次，同一天里刷新、重开标签页都不再跳。判断只在页面启动时做一次，
- * 停留期间不挂任何定时器 —— 这就是"不需要实时"的落地方式。
+ * 以本地 0 点为界（`core/clock/format.ts` 的 `formatDateKey`）：一天只跳一次，
+ * 同一天里刷新、重开标签页都不再跳。判断只在页面启动时做一次，停留期间不挂定时器。
  */
 import { formatDateKey } from '../clock/format.ts'
 import { isRecord } from '../guards.ts'
@@ -29,7 +28,7 @@ const EMPTY_STATE: AutoOpenState = { links: '', lastOpenedOn: '' }
 /** 有协议头（`https://…`）就原样用，否则按 `https://` 补 —— 用户多半是直接粘域名的。 */
 const HAS_SCHEME_PATTERN = /^[a-z][a-z0-9+.-]*:\/\//i
 
-/** 合法的日历日。手改坏的值一律当成"没跳过"：最多今天多跳一次，比永远不跳强。 */
+/** 合法的日历日。手改坏的值当成"没跳过"：最多今天多跳一次，比永远不跳强。 */
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
 let state: AutoOpenState = EMPTY_STATE
@@ -51,7 +50,7 @@ function normalize(raw: unknown): AutoOpenState {
  * 备份导入用：把外部数据里的一段「跳转」设置归一化成链接原文（认不出来就是空）。
  *
  * 只取 `links`：`lastOpenedOn` 是"今天跳过没有"的当日记账，跟着备份走会让
- * 导入方当天少跳一次（见文件头的说明），一律不导出也不导入。
+ * 导入方当天少跳一次，一律不导出也不导入。
  */
 export function normalizeAutoOpenLinks(raw: unknown): string {
   return normalize(raw).links
@@ -90,11 +89,8 @@ function normalizeLink(line: string): string | null {
 
 /**
  * 解析输入框里的文本（每行一个链接）。
- *
- * - 空行忽略；
- * - 同一地址填两行也只留一条（浏览器不会替我们去重，会开出两个一样的标签页）；
- * - `invalid` 是"认不出来"的行原文，只为让设置面板把"N 行已忽略"说清楚，
- *   它不影响其它行生效。
+ * 空行忽略；同一地址去重（浏览器不会替我们去重，会开出两个一样的标签页）；
+ * `invalid` 是"认不出来"的行原文，只为让设置面板说清"N 行已忽略"，不影响其它行生效。
  */
 export function parseLinks(text: string): { links: string[]; invalid: string[] } {
   const links: string[] = []
@@ -155,12 +151,11 @@ export function setAutoOpenLinks(links: string): void {
 }
 
 /**
- * 今天该自动打开的链接；今天已经跳过、或压根没填链接时返回空数组。
+ * 今天该自动打开的链接；今天已跳过、或没填链接时返回空数组。
  *
- * ⚠️ **查到就立刻记账**（在同一个同步调用里完成）：本函数在 dev 的 StrictMode 下会被调两次，
+ * ⚠️ 查到就立刻记账（同一个同步调用里完成）：本函数在 dev 的 StrictMode 下会被调两次，
  * 查询与记账拆成两步就会开出两轮标签页。
- * 代价是"被浏览器拦下"时当天不再自动重试 —— 这条由调用方的提示与「全部打开」按钮兜住，
- * 总比每次刷新都多开一堆重复标签页好。
+ * 代价是"被浏览器拦下"时当天不再自动重试 —— 由调用方的提示与「全部打开」按钮兜住。
  */
 export function takeTodayLinks(now: Date): string[] {
   const current = load()

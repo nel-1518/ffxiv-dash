@@ -1,23 +1,16 @@
 /**
  * 上传背景图片的本地存放（IndexedDB，纯 I/O）。
  *
- * 为什么不用 localStorage：5MB 的图片转成 base64 约 6.7MB，而 localStorage
- * 通常只有 5MB 配额，写进去必然抛 QuotaExceededError，还会连带把看板数据一起拖坏。
- * IndexedDB 能直接存 Blob 二进制、配额按磁盘可用空间算，是这里的正解。
+ * 为什么不用 localStorage：5MB 的图转 base64 约 6.7MB，超出 localStorage 配额必然写失败，
+ * 还会连带拖坏看板数据；IndexedDB 直接存 Blob、配额按磁盘算。
  *
- * 图片本体**不属于外观偏好**（偏好里只记文件名与大小）：因此它既不会进 localStorage，
- * 也不进备份文件（备份只带那份档案）。备份导入同样**不碰上传图** ——
- * 逐主题只搬模糊 / 亮度 / 卡片参数，背景来源与本机图片一律保持现状
- * （见 `./store.ts` 的 `importAppearance`）。
+ * 图片本体不属于外观偏好（偏好里只记文件名与大小）：不进 localStorage，也不进备份文件；
+ * 备份导入也不碰上传图（见 `./store.ts` 的 `importAppearance`）。
  *
- * **逐主题一份**：图片按主题键分开存（`background:<主题键>`），彼此完全独立 ——
- * 换主题就是换自己那张图，改 / 删 A 主题的图不会动到 B 主题。
- * 展示信息（文件名 / 大小）住在 `ThemeProfile.imageName` / `.imageSize` 里，
- * 这里只管图片本体。
- *
+ * 逐主题一份：按主题键分开存（`background:<主题键>`），改 / 删 A 主题的图不会动到 B 主题。
  * 「恢复默认」会把图一起删掉（用 `resetThemeAppearance`，别直接调 store 的 `resetThemeProfile`）。
  *
- * 所有异常都只在控制台告警并回退 —— 隐私模式 / 禁用存储下浏览器会直接抛，
+ * 所有异常只在控制台告警并回退：隐私模式 / 禁用存储下浏览器会直接抛，
  * 那时背景功能静默失效即可，不能影响应用启动。
  */
 import { THEME_KEYS } from '../theme-preference.ts'
@@ -146,14 +139,13 @@ export function initAppearanceImage(): void {
 }
 
 /**
- * 「恢复默认」入口：清掉**某套主题**的全部改动（回到主题出厂背景），
- * 并把它上传的图片一并删掉（没传过就只清档案）。
+ * 「恢复默认」入口：清掉某套主题的全部改动（回到出厂背景），并把它上传的图一并删掉。
  *
- * 这是全仓唯一同时要碰外观 store 与 IndexedDB 的动作，所以住在这里 ——
+ * 这是全仓唯一同时碰外观 store 与 IndexedDB 的动作，所以住在这里 ——
  * `store.ts` 是纯逻辑，不能反过来依赖 IndexedDB。
  *
- * ⚠️ 顺序是「**先同步清档案、再后台删图**」：界面立刻回到出厂外观，不被 IndexedDB 的往返拖住；
- * 删图失败最多留下没东西引用的数据，不影响这次重置。
+ * ⚠️ 顺序是「先同步清档案、再后台删图」：界面立刻回到出厂外观，不被 IndexedDB 往返拖住；
+ * 删图失败最多留下没引用的数据，不影响重置。
  */
 export function resetThemeAppearance(key: ThemeKey): void {
   const previous = getThemeImageUrl(key)

@@ -1,8 +1,6 @@
 /*
- * 晓月（Endwalker）—— antd 令牌管不到的那部分。
- * 色值取自官方专题站的计算样式与样式表。
- *
- * 层次是"暗页面 + 暗顶栏 + 亮卡片"：卡片纯色 `#F5F5FA`（站点那套极淡冷白的底色）。
+ * 晓月（Endwalker）—— antd 令牌管不到的那部分（取色来源见 index.ts）。
+ * 层次是"暗页面 + 暗顶栏 + 亮卡片"：卡片纯色 `#F5F5FA`。
  */
 
 [data-dash-theme='endwalker'] {
@@ -22,13 +20,9 @@
 }
 
 /*
- * 卡片是纯色 #F5F5FA，卡内 antd 组件要整体换成深色文字，否则白字压白卡。
- * 原理与维护要点见 docs/themes.md。
- *
- * ⚠️ 连 `*` 一起选是必须的：antd 6 给每个组件自身的根元素再挂一份 `css-var-*`
- * 作用域，只写在卡片根上会被卡里的组件盖回去。
- * ⚠️ 顶栏排除在外（`:not(.dash-topbar)`）：它也挂 `dash-card-surface` 以共用毛玻璃，
- * 但底色是暗的，卷进来会变成"深字压暗底"。
+ * 卡片是亮色，卡内 antd 组件要整体换成深色文字，否则白字压白卡（原理见 docs/themes.md）。
+ * ⚠️ 连 `*` 一起选：antd 6 给每个组件根元素再挂一份 `css-var-*` 作用域，只写卡片根会被盖回去。
+ * ⚠️ 顶栏排除在外（`:not(.dash-topbar)`）：它也挂 `dash-card-surface` 共用毛玻璃，但底色是暗的。
  */
 [data-dash-theme='endwalker'] .dash-card-surface:not(.dash-topbar),
 [data-dash-theme='endwalker'] .dash-card-surface:not(.dash-topbar) * {
@@ -107,9 +101,9 @@
 }
 
 /*
- * 顶栏：暗色，与亮卡片分成两层。
- * `--dash-card-bg` 是在 `.dash-shell` 上算好的，所以要在顶栏**自己身上**重写（见 docs/themes.md）。
- * 不透明度仍取 `--dash-card-alpha`，不让"卡片不透明度"滑块只作用一半。
+ * 顶栏：暗色，与亮卡片分层。
+ * `--dash-card-bg` 是在 `.dash-shell` 上算好的，所以要在顶栏自己身上重写（见 docs/themes.md）；
+ * 不透明度仍取 `--dash-card-alpha`，"卡片不透明度"滑块才仍然有效。
  */
 [data-dash-theme='endwalker'] .dash-topbar {
   --dash-card-bg: linear-gradient(

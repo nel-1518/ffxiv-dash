@@ -1,7 +1,4 @@
-/**
- * 艾欧泽亚时间转换工具
- */
-
+/** 艾欧泽亚时间与地球时间的换算：1 地球秒 = 3600/175 艾欧泽亚秒。 */
 
 /** 艾欧泽亚时间常量（单位：秒） */
 const YEAR = 33177600
@@ -24,11 +21,7 @@ export interface EorzeaTime {
   secondVal: number
 }
 
-/**
- * 将地球时间转换为艾欧泽亚时间
- * @param time - 地球时间（JavaScript Date 对象）
- * @returns 艾欧泽亚时间结构
- */
+/** 将地球时间转换为艾欧泽亚时间。 */
 export function ConvertToEorzeaTime(time: Date): EorzeaTime {
   const earthTime = Math.floor(time.getTime() / 1000)
   const eorzeaTime = Math.floor(earthTime * EORZEA_TIME_CONSTANT)
@@ -43,12 +36,7 @@ export function ConvertToEorzeaTime(time: Date): EorzeaTime {
   }
 }
 
-/**
- * 将地球时间转换为格式化的艾欧泽亚时间字符串
- * @param time - 地球时间
- * @param format - 格式化模板，例如 "Y-M-D H:m:s"
- * @returns 格式化后的字符串
- */
+/** 将地球时间按模板格式化为艾欧泽亚时间字符串（模板如 "Y-M-D H:m:s"）。 */
 export function ConvertToEorzeaTimeString(time: Date, format: string): string {
   const earthTime = Math.floor(time.getTime() / 1000)
   const eorzeaTime = Math.floor(earthTime * EORZEA_TIME_CONSTANT)
@@ -69,7 +57,7 @@ export function ConvertToEorzeaTimeString(time: Date, format: string): string {
     .replace(/s/, secondVal)
 }
 
-/** 解析艾欧泽亚时间字符串（内部辅助函数）。 */
+/** 解析艾欧泽亚时间字符串；`format` 暂未使用（保留签名与导出版一致）。 */
 function parseEorzeaTimeString(timestring: string, format: string): Date | null {
   void format
   const regex = /(\d+)-(\d+)-(\d+) (\d+):(\d+):(\d+)/
@@ -80,12 +68,7 @@ function parseEorzeaTimeString(timestring: string, format: string): Date | null 
   return new Date(year, month - 1, day, hour, minute, second)
 }
 
-/**
- * 将艾欧泽亚时间字符串转换为地球时间
- * @param timestring - 艾欧泽亚时间字符串
- * @param format - 格式化模板
- * @returns 地球时间的 Date 对象
- */
+/** 将艾欧泽亚时间字符串转换为地球时间。 */
 export function ConvertToEarthTime(timestring: string, format: string): Date {
   const date = parseEorzeaTimeString(timestring, format)
   if (!date) {

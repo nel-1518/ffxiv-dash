@@ -1,7 +1,4 @@
-/*
- * 金曦（Dawntrail）—— antd 令牌管不到的那部分。
- * 色值取自官方专题站的计算样式：暖黑底 `#1a1918` + 亮金 `#ffd966` + 古金 `#d9bf57`。
- */
+/* 金曦（Dawntrail）—— antd 令牌管不到的那部分（取色来源见 index.ts）。 */
 
 [data-dash-theme='dawntrail'] {
   --dash-page-bg: #16140f;
