@@ -15,7 +15,7 @@ import { HOUSE_SIZE_KEYS } from './constants.ts'
 import type { HouseData, SizeCounts, UseCounts } from './sale.ts'
 
 /** 整个房屋缓存只占这一个键。 */
-const CACHE_KEY = 'ffxiv-dash:house:v1'
+const CACHE_KEY = 'ffxiv-dash-cache:house:v1'
 
 /**
  * 内部结构版本。结构一变就升它，旧数据自然被当成空缓存丢掉。

@@ -14,7 +14,7 @@ import { MARKET_CACHE_TTL_MS } from './config.ts'
 import type { MarketData } from './universalis.ts'
 
 /** 整个价格缓存只占这一个键。 */
-const CACHE_KEY = 'ffxiv-dash:market:v2'
+const CACHE_KEY = 'ffxiv-dash-cache:market:v1'
 
 /** 内部结构版本。结构一变就升它，旧数据自然被当成空缓存丢掉。 */
 const CACHE_VERSION = 1

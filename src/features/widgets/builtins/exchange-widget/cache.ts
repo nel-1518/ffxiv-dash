@@ -9,7 +9,7 @@ import { EXCHANGE_CACHE_TTL_MS } from './config.ts'
 import type { ExchangeRate } from './rates.ts'
 
 /** 整个汇率缓存只占这一个键。 */
-const CACHE_KEY = 'ffxiv-dash:exchange:v1'
+const CACHE_KEY = 'ffxiv-dash-cache:exchange:v1'
 
 /** 内部结构版本。结构一变就升它，旧数据自然被当成空缓存丢掉。 */
 const CACHE_VERSION = 1

@@ -14,7 +14,7 @@ import { NEWS_CACHE_TTL_MS } from './config.ts'
 import type { NewsItem } from './api.ts'
 
 /** 整个公告缓存只占这一个键。 */
-const CACHE_KEY = 'ffxiv-dash:news:v1'
+const CACHE_KEY = 'ffxiv-dash-cache:news:v1'
 
 /**
  * 内部结构版本。结构一变就升它，旧数据自然被当成空缓存丢掉。
