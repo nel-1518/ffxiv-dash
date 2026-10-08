@@ -23,31 +23,22 @@ export type CardFaceProps = {
 
 /**
  * 两种卡片外观共有的 props：`item` 各自收窄成具体类型，其余完全一致。
- *
- * 从 `CardFaceProps` 派生，而不是把五个字段各抄一份 —— 以后给它加字段
- * （⚠️ 加之前先确认是原始值或稳定引用，见下面的 `memo` 说明），
- * `LinkFace` / `WidgetFace` 会一起跟着变，不会漏掉其中一个。
+ * 从 `CardFaceProps` 派生而不是各抄一份：给它加字段时 `LinkFace` / `WidgetFace` 一起跟着变。
+ * ⚠️ 加字段前先确认是原始值或稳定引用（见 `CardFace` 的 `memo` 说明）。
  */
 type FaceCommonProps = Omit<CardFaceProps, 'item'>
 
 /**
- * 卡片外观（纯展示，不含任何拖拽逻辑）。
+ * 卡片外观（纯展示，不含拖拽逻辑）。
+ * `SortableCard` 用它渲染实体卡片，`DragPreview` 用它渲染跟随指针的虚影，两边同一份外观。
  *
- * `SortableCard` 用它渲染列表里的实体卡片，`DragPreview` 用它渲染跟随指针的预览。
- * 两边共用同一份标记，拖起来的虚影就是卡片本身，不会出现"预览和实体长得不一样"。
+ * ⚠️ 这层 `memo` 是拖拽流畅度的命门，别去掉。
+ * dnd-kit 的 `DndContext` 在拖拽开始与指针每移动一帧时都换引用，而 context 传播不受
+ * `memo` 拦截 —— `SortableCard` 必须一直重渲染（transform 要跟着走），但卡片外观这棵
+ * antd 子树没有任何理由跟着渲染；不拦住的话拖动开始时主线程会被堵住数百 ms。
  *
- * ⚠️ **这层 `memo` 是拖拽流畅度的命门，别去掉。**
- *
- * dnd-kit 的 `DndContext` context 在拖拽开始与**指针每移动一帧**时都会换引用，
- * 而 context 传播不受 `memo` 拦截 —— 于是 `SortableCard` 一直重渲染（这是必须的，
- * 它的 transform 要跟着走）。但卡片外观这棵子树（antd Card/Flex/Typography/Button
- * 与**每张卡三个 Tooltip 的 rc-trigger 机器**，实测单次 commit 里 72 个 Tooltip、
- * 96 个 Trigger、62 个 ResizeObserver）**没有任何理由跟着重渲染**：
- * 实测在拖动开始时它会把主线程堵住约 780ms，表现就是"一开始拖就卡一下"。
- *
- * memo 生效的前提是调用方传进来的每个 prop 引用都稳定 ——
- * `SortableCard` 因此用 `useMemo` 固定 `handle`、用 `useCallback` 固定 `onEdit` / `onRemove`。
- * ⚠️ 谁要再给这里加 prop，先确认它是原始值或稳定引用。
+ * memo 生效的前提是调用方传入的每个 prop 引用都稳定
+ * （`SortableCard` 用 `useMemo` 固定 `handle`、`useCallback` 固定 `onEdit` / `onRemove`）。
  */
 export const CardFace = memo(function CardFace({
   item,
@@ -63,14 +54,10 @@ export const CardFace = memo(function CardFace({
 })
 
 /**
- * 图标字段的取值判定。
- *
- * 两种形态：图片地址 → 显示图片；其他非空文字 → 显示这段文字。
- * 留空 → 显示名称首字 + `core/pastel.ts` 给的 pastel 底色。
- * 只认协议头，不去猜扩展名：`example.com/a.png` 这种没写协议的仍按文字处理。
- * ⚠️ 协议头之后必须**还有内容**（`\S`）：`//` / `https://` / `data:image/` 这种
- * 光秃秃的半截地址不算图片 —— 否则会渲染出 `<img src="//">`，浏览器真去发一次
- * 无意义的请求、再由 `onError` 回退，白搭一次网络与一次闪动。
+ * 图标字段的取值判定：图片地址 → 显示图片；其他非空文字 → 显示这段文字；
+ * 留空 → 名称首字 + pastel 底色（`core/pastel.ts`）。只认协议头，不猜扩展名。
+ * ⚠️ 协议头之后必须还有内容（`\S`）：`https://` 这种半截地址不算图片，
+ * 否则会渲染出 `<img src="//">`，白发一次请求再靠 `onError` 回退。
  */
 const IMAGE_URL_PATTERN = /^(?:https?:\/\/|data:image\/|\/\/)\S/i
 
@@ -84,12 +71,9 @@ function linkIconKind(value: string): LinkIconKind {
 }
 
 /**
- * 取第一个"字符"。
- *
- * 优先走 `Intl.Segmenter` 按**字素簇**切：`🕹️`（U+1F579 + 变体选择符）这种组合
- * 会被整体保留下来（只取码点会让 emoji 从彩色字形退化成单色文字字形）；
- * 没有 Segmenter 时才退回按码点切（`Array.from`），它至少不会像 `slice(0, 1)`
- * 那样把代理对劈成半个乱码字符。
+ * 取第一个"字符"。优先走 `Intl.Segmenter` 按字素簇切：`🕹️`（U+1F579 + 变体选择符）
+ * 这种组合会被整体保留（只取码点会让 emoji 退化成单色文字字形）；
+ * 没有 Segmenter 时退回按码点切（`Array.from`），至少不会像 `slice(0, 1)` 把代理对劈成乱码。
  */
 const graphemeSegmenter =
   typeof Intl !== 'undefined' && 'Segmenter' in Intl
@@ -107,12 +91,9 @@ function firstChar(text: string): string {
 }
 
 /**
- * 名称首字：先按字素簇取首字，**大写化之后再取一次**。
- *
+ * 名称首字：先按字素簇取首字，大写化之后再取一次。
  * `toUpperCase()` 不是"一个字符进、一个字符出"：`ß` → `SS`、`ﬁ` → `FI`，
- * 一些希腊语字母还会散成"基字母 + 组合符"两个码点。不补这一步，28px 的图标格里
- * 会挤出两个字符（`overflow: hidden` 再把后一个裁掉一半）——
- * 而这里承诺的是"图标上只显示一个字符"。
+ * 不补第二步会在 28px 的图标格里挤出两个字符 —— 这里承诺"图标上只显示一个字符"。
  */
 function upperInitial(text: string): string {
   return firstChar(firstChar(text).toUpperCase())
@@ -127,8 +108,8 @@ function LinkFace({
 }: FaceCommonProps & { item: LinkItem }): React.ReactNode {
   const { modal } = App.useApp()
   /**
-   * 手填图片地址加载失败的那一个值。
-   * 记的是"哪个地址失败了"而不是布尔量，字段值一变就自动重试，无需 effect 重置。
+   * 手填图片地址里加载失败的那一个。记"哪个地址失败了"而不是布尔量，
+   * 字段值一变就自动重试，无需 effect 重置。
    */
   const [brokenIcon, setBrokenIcon] = useState<string | null>(null)
 
@@ -143,32 +124,24 @@ function LinkFace({
     })
   }
 
-  // 导航卡只出现在网页导航分组里，永远是一行多个的紧凑版式；尺寸写死，不再有开关
+  // 导航卡永远是一行多个的紧凑版式，图标尺寸写死
   const size = 28
 
   const manualIcon = item.icon?.trim() ?? ''
   const iconKind = linkIconKind(manualIcon)
-  /*
-   * 图标上只显示**一个**字符（中英文一视同仁）：
-   * 「名称首字」沿用原有的大写化，「手填文字」保持用户原样（只是截到一个字）。
-   */
+  /* 图标上只显示一个字符：「名称首字」大写化，「手填文字」保持用户原样（截到一个字） */
   const initials = upperInitial(item.name) || '?'
   // 只有手填的图片地址会渲染 <img>；文字或留空都走"字符 + pastel 底色"
   const iconSrc = iconKind === 'image' && brokenIcon !== manualIcon ? manualIcon : undefined
   const iconFallback = iconKind === 'text' ? firstChar(manualIcon) : initials
   const showChar = !iconSrc
-  /*
-   * 字符回退的底色：按**域名**取，所以同一个站点永远同一个颜色，
-   * 刷新 / 重开 / 拖动排序都不会变（见 `core/pastel.ts`）。
-   * 显示图片时图标占满整个占位区、不铺底色，此时**不去解析域名**（算了也没人用）。
-   */
+  // 字符回退的底色按域名取，同站永远同色（见 `core/pastel.ts`）；显示图片时不必解析域名
   const pastel = showChar ? pastelColorOfLink(item.url, item.name) : null
   /*
-   * ⚠️ `item.url` 不能直接当 `href`：它来自 localStorage 与**导入的 JSON**，
-   * 而 storage 层只做长度/类型收敛、不校验协议 —— 一条 `javascript:` 地址
-   * 被点一下就会在本站 origin 执行脚本。统一走 `normalizeLinkUrl`
-   * （没写协议头补 `https://`、只放行 http(s)）；认不出来就**不挂 href**：
-   * 卡片照常显示，只是点不动（鼠标悬停仍能看到那条原始地址，好去改）。
+   * ⚠️ `item.url` 不能直接当 `href`：它来自 localStorage 与导入的 JSON，
+   * storage 层只做长度/类型收敛、不校验协议 —— 一条 `javascript:` 地址被点一下
+   * 就会在本站 origin 执行脚本。统一走 `normalizeLinkUrl`（只放行 http(s)）；
+   * 认不出来就不挂 href：卡片照常显示，只是点不动（悬停仍能看到原始地址）。
    */
   const href = normalizeLinkUrl(item.url)
 
@@ -177,29 +150,25 @@ function LinkFace({
       align="center"
       gap={8}
       /*
-       * `dash-link-card` 表示"这是导航卡"（悬停浮起、拖拽虚影用）；
-       * `dash-card-surface` 是**卡片表面**这个概念的标记：底色/投影/毛玻璃，
-       * 以及主题对卡片的适配（如银海"深色主题 + 浅色卡"的文字翻转）都挂在它上面。
-       * 组件卡由 WidgetShell 挂同一个类，两边共用一套规则（见 global.css）。
+       * `dash-link-card` 标记"这是导航卡"（悬停浮起、拖拽虚影用）；
+       * `dash-card-surface` 是"卡片表面"的标记：底色/投影/毛玻璃与主题适配都挂在它上面，
+       * 组件卡由 WidgetShell 挂同一个类（见 global.css）。
        */
       className="dash-link-card dash-card-surface"
       style={{
         padding: '6px 8px',
-        // 描边 / 底色 / 圆角都留给主题（见 global.css 的 --dash-card-*）：
-        // 变量取不到时退回 antd 令牌 —— 拖拽虚影等场景不会突然变透明、没描边或变直角。
-        // ⚠️ 拆成三个 longhand：简写里塞两个变量时，只要有一个算不出值整条声明就会失效。
-        // ⚠️ 宽度也做成变量：有的主题（暗影）要的是"连位置都不留"的真无边框，
-        // 光把颜色设成 `transparent` 是不够的 —— 那 1px 还在，卡片边缘会留一条发丝线。
+        // 描边 / 底色 / 圆角都留给主题变量（见 global.css 的 --dash-card-*），取不到时退回 antd 令牌。
+        // ⚠️ 拆成三个 longhand：简写里塞两个变量时，一个算不出值整条声明就失效。
+        // ⚠️ 宽度也做成变量：有的主题（暗影）要"连位置都不留"的真无边框，
+        // 光把颜色设成 transparent 还会留下 1px 的发丝线。
         borderWidth: 'var(--dash-card-border-width, 1px)',
         borderStyle: 'solid',
         borderColor: 'var(--dash-card-border, var(--ant-color-border-secondary))',
-        // 导航卡只有一行高，圆角用单独的小一档（--dash-card-radius-sm），
-        // 跟组件卡共用同一个值会在这种扁卡上变成叶子形
+        // 扁卡用单独小一档的圆角（--dash-card-radius-sm），与组件卡共用会变成叶子形
         borderRadius: 'var(--dash-card-radius-sm, var(--ant-border-radius))',
         /*
-         * ⚠️ 底色写在这里（inline style），所以主题的 CSS 规则**压不过它** ——
-         * 想换底色只能走变量：`--dash-card-bg-hover` 是悬停时的钩子（主题按需给，
-         * 暗影就是用它铺那层紫罗兰渐变的），缺省时逐级退回卡片底色。
+         * ⚠️ 底色写在 inline style，主题的 CSS 规则压不过它，换底色只能走变量：
+         * `--dash-card-bg-hover` 是悬停钩子（暗影用它铺紫罗兰渐变），缺省逐级退回卡片底色。
          */
         background: 'var(--dash-card-bg-hover, var(--dash-card-bg, var(--ant-color-bg-container)))',
         minWidth: 0,
@@ -207,18 +176,12 @@ function LinkFace({
     >
       {handle}
 
-      {/*
-        图标与文字同在一个 <a> 里：整块（图标 + 名称 + 副标题）都可点击跳转。
-        外层 Flex 的 gap 只管手柄/链接/按钮之间的距离，图标与文字之间的距离
-        交给 <a> 自己的 gap，两者取值一致，视觉间距不变。
-      */}
+      {/* 图标与文字同在一个 <a> 里：整块（图标 + 名称 + 副标题）都可点击跳转 */}
       <a
         className="dash-link-card-link"
         // 地址不合法（非 http(s)）时为 undefined：<a> 没有 href 就不是链接，点击不跳转
         href={href ?? undefined}
         target="_blank"
-        // ⚠️ 这里**没有** `loading` —— 那是 <img> / <iframe> 的属性，挂在 <a> 上
-        // 只会产出一条无效 DOM 属性（懒加载的是下面的图标图，见 <img loading="lazy">）
         rel="noopener noreferrer"
         title={href ?? item.url}
         style={{
@@ -237,11 +200,7 @@ function LinkFace({
             borderRadius: 8,
             display: 'grid',
             placeItems: 'center',
-            /*
-             * 有图片图标时不再铺底色（图片本身占满整个图标区域）；
-             * 留空或手填文字时才铺 pastel 底色（见 `core/pastel.ts`）——
-             * 那时 `pastel` 才有值。
-             */
+            // 有图片图标时不铺底色（图片占满整个区域）；留空或手填文字时才铺 pastel
             background: pastel ? pastel.bg : 'transparent',
             color: pastel ? pastel.fg : 'var(--ant-color-primary)',
             fontWeight: 700,
@@ -261,7 +220,6 @@ function LinkFace({
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                // 与背景占位同样的尺寸（28px）与圆角（8px）
                 borderRadius: 8,
               }}
               // 手填图片加载失败就退回"字符 + pastel 底色"（记下失败的那个地址）
@@ -273,10 +231,7 @@ function LinkFace({
         </div>
 
         <Flex vertical style={{ minWidth: 0, flex: 1 }}>
-          {/*
-            名称行：缩写（有就）跟在名称右边。两者都可压缩（`flex: 0 1 auto` + `minWidth: 0`），
-            窄卡里先省略名称，缩写作为"搜索时敲什么"的提示尽量留住。
-          */}
+          {/* 名称行：两者都可压缩，窄卡里先省略名称，缩写作为"搜索时敲什么"的提示尽量留住 */}
           <Flex align="baseline" gap={6} style={{ minWidth: 0 }}>
             <Typography.Text strong ellipsis style={{ minWidth: 0 }}>
               {item.name}

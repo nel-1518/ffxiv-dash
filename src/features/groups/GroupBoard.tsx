@@ -21,9 +21,7 @@ import { parseDragData } from '../navigation/drag-types.ts'
 export type GroupBoardProps = {
   /**
    * 分行后的分组结构，由 `BoardSurface` 订阅后传入。
-   *
-   * 收结构而不是 `Group[]`：本组件因此**完全不订阅看板数据**，只在分组增删、
-   * 分组重排时重渲染（那时行结构真的变了）。卡片内容的变化不会惊动这里。
+   * 收结构而不是 `Group[]`：本组件完全不订阅看板数据，卡片内容的变化不会惊动这里。
    */
   rows: GroupRow[]
   /** 是否处于编辑模式：关闭时隐藏手柄、分组操作与卡片上的编辑/删除。 */
@@ -38,11 +36,9 @@ const GRID_COLUMNS = 24
 /**
  * 只允许同 kind 的卡片互相吸附。
  *
- * 可拖拽容器只有卡片一种（`useSortableCard` 是唯一的 `useSortable` 调用点），
- * 所以这里只需要区分 kind：否则把链接卡拖过组件卡时，组件卡会先"让位"再弹回来 ——
- * 目标其实无效（reducer 的 `canPlaceItem` 会拒掉），却先动了一下，看起来像丢了位置。
- *
- * 找不到任何同类候选时回退到全量中心距离，保证拖拽不会"卡死"。
+ * 否则把链接卡拖过组件卡时，组件卡会先"让位"再弹回来 —— 目标其实无效
+ * （reducer 的 `canPlaceItem` 会拒掉），却先动了一下，看起来像丢了位置。
+ * 找不到同类候选时回退到全量中心距离，保证拖拽不会"卡死"。
  */
 const sameKindCollision: CollisionDetection = (args) => {
   const activeKind = parseDragData(args.active.data.current ?? undefined)?.kind
@@ -59,12 +55,11 @@ const sameKindCollision: CollisionDetection = (args) => {
 /**
  * 分组的位置调整：置顶 / 上移 / 下移 / 置底。
  *
- * 做成**模块级函数**（而不是组件内的闭包）：它的引用因此永远不变，可以直接喂给
- * `memo(BoardGroupSlot)` 的比较，不需要再套一层 `useCallback`。
- * 顺序在**调用那一刻**从 store 读，所以也不存在闭包捕获到过期顺序的问题。
+ * 做成模块级函数（而不是组件内闭包）：引用永远不变，可以直接喂给 `memo(BoardGroupSlot)`；
+ * 顺序在调用那一刻从 store 读，不存在闭包捕获过期顺序的问题。
  *
- * ⚠️ `readGroupIds()` 返回的是 store 里的缓存数组，**只能读不能改**，所以要复制一份再挪。
- * 置顶 / 置底是把元素**摘出来再插回首尾**（不是逐步换位）：中间隔着多少个分组都一步到位。
+ * ⚠️ `readGroupIds()` 返回的是 store 的缓存数组，只能读不能改，要复制一份再挪。
+ * 置顶 / 置底是摘出来再插回首尾（不是逐步换位）：中间隔着多少分组都一步到位。
  */
 function moveGroup(groupId: string, move: GroupMove): void {
   const currentIds = readGroupIds()
@@ -92,20 +87,16 @@ function moveGroup(groupId: string, move: GroupMove): void {
 /**
  * 拖拽编排层。
  *
- * 传感器说明：
- * - PointerSensor + activationConstraint.distance 让"点卡片"和"拖卡片"分开，
- *   卡片内的链接点击、图标按钮点击不会被误判成拖拽。
- * - KeyboardSensor + sortableKeyboardCoordinates 让键盘也能完成排序。
+ * 传感器：PointerSensor + activationConstraint.distance 分开"点卡片"与"拖卡片"
+ * （卡内链接、图标按钮不会被误判成拖拽）；KeyboardSensor 让键盘也能排序。
+ * 拖拽手柄只绑在 DragHandle 上，整张卡片可以自由放交互元素。
  *
- * 拖拽手柄只绑在 DragHandle 上，因此整张卡片可以自由放交互元素。
+ * 涉及分组归属的判断都在事件回调里即时读 store（`read*` 系列），
+ * 不需要订阅，也不存在闭包捕获过期数据的问题。
  *
- * 所有涉及分组归属的判断都在**事件回调里**即时读 store（`read*` 系列），
- * 既不需要订阅，也不存在闭包捕获到过期数据的问题。
- *
- * ⚠️ 这一层**不持有任何拖拽状态**：正在拖的是谁、虚影怎么飞回去都由
- * `BoardDragOverlay` 交给 dnd-kit 自己的机制处理。
- * 拖拽开始/结束那一刻在这里 `setState`，会让整棵看板元素树重建 —— 拖拽的卡顿与
- * "落位后闪一下"都出在这两条上（详见 README 的「拖拽性能」一节）。
+ * ⚠️ 这一层不持有任何拖拽状态：正在拖的是谁、虚影怎么飞回去都交给 dnd-kit
+ * （见 `BoardDragOverlay`）。拖拽开始/结束那一刻在这里 `setState` 会让整棵看板树重建 ——
+ * 拖拽卡顿与"落位后闪一下"都出在这上面（详见 docs/development.md 的「拖拽」一节）。
  */
 export function GroupBoard({
   rows,
@@ -201,8 +192,8 @@ export function GroupBoard({
                   <BoardGroupSlot
                     groupId={groupId}
                     editMode={editMode}
-                    // 边界只跟 id 顺序有关，所以是布尔值 —— 槽位的 memo 因此能挡住无关的重渲染；
-                    // 「置顶」与「上移」的可用条件同为"不是第一个"，「置底」与「下移」同为"不是最后一个"
+                    // 边界只跟 id 顺序有关，所以传布尔值，槽位的 memo 能挡住无关重渲染；
+                    // 「置顶」与「上移」同为"不是第一个"可用，「置底」与「下移」同为"不是最后一个"
                     canMoveUp={position > 0}
                     canMoveDown={position < positions.size - 1}
                     onMove={moveGroup}

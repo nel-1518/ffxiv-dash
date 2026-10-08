@@ -12,11 +12,9 @@ import {
 
 export type GroupPanelProps = {
   /**
-   * 表头要的几样东西收的都是**原始值**，不是整个 `Group` 对象。
-   *
-   * 配合下面的 `memo`，效果是：分组里某张卡片改了配置（标题、类型、项数都没变）时，
-   * 表头这一整块 antd Card 根本不重渲染 —— 只有那张卡片自己重渲染。
-   * 传 `group` 对象的话引用必然变化，memo 会完全失效。
+   * 表头要的几样东西收的都是原始值，不是整个 `Group` 对象：
+   * 配合 `memo`，卡片改配置时（标题、类型、项数都没变）表头这块 antd Card 不重渲染；
+   * 传 `group` 对象的话引用必然变化，memo 完全失效。
    */
   title: string
   typeLabel: string
@@ -26,10 +24,8 @@ export type GroupPanelProps = {
   /** 是否处于编辑模式：关闭时表头右侧的位置组与内容组全部隐藏。 */
   editMode: boolean
   /**
-   * 「不是第一个」与「不是最后一个」。
-   *
-   * ⚠️ 各管两个按钮：「置顶」和「上移」共用 `canMoveUp`，「置底」和「下移」共用 `canMoveDown`
-   * （两种操作的可用条件本来就一样），所以没有单独的 `canMoveToTop` 之类。
+   * 「不是第一个」与「不是最后一个」。各管两个按钮：「置顶」「上移」共用 `canMoveUp`，
+   * 「置底」「下移」共用 `canMoveDown`（可用条件本来就一样）。
    */
   canMoveUp: boolean
   canMoveDown: boolean
@@ -41,19 +37,12 @@ export type GroupPanelProps = {
   /** 内容组：往这一组里添加组件 / 链接，或改名称与列数。 */
   onAddItem: () => void
   onEdit: () => void
-  /**
-   * ⚠️ 传进来的 children **必须是引用稳定的元素**（调用方用 `useMemo` 固定）。
-   * 每次新建子元素会让 `memo` 判定"变了"，表头就又跟着重渲染了。
-   */
+  /** ⚠️ children 必须是引用稳定的元素（调用方用 `useMemo` 固定），否则 memo 判定"变了"。 */
   children: React.ReactNode
 }
 
 /**
- * 表头的一个图标按钮。
- *
- * 表头按钮已经有六颗，逐个写 `Tooltip` + `Button` 会让这段 JSX 长得看不清结构；
- * 这里把「可访问名 = 提示文案」这条约定收成一处（两者同名，别只改一个）。
- * 它是纯展示组件、没有状态，放在模块级也不会影响 `memo(GroupPanel)`。
+ * 表头的一个图标按钮。把「可访问名 = 提示文案」这条约定收成一处（两者同名，别只改一个）。
  */
 function HeadAction({
   label,
@@ -83,18 +72,14 @@ function HeadAction({
 /**
  * 分组面板：Card 外壳 + 单行表头（标题、类型与计数、操作组）。
  *
- * 表头的操作分成**两组**，中间一条竖线断开（编辑模式才出现）：
- * - 位置组：置顶 / 上移 / 下移 / 置底 —— 只改「这一块分组放在页面的哪个位置」；
- *   首尾两个是"一步到位"的，中间两个是"挪一格"的，需要精细调整时仍用得上。
- * - 内容组：添加组件 / 添加链接（＋，按分组类型区分）、编辑分组（✎）—— 改「这一组里有什么 / 它叫什么」。
- *   分组名称与列数、以及删除，都收在编辑弹窗里。
+ * 表头操作分两组，中间一条竖线断开（编辑模式才出现）：
+ * - 位置组：置顶 / 上移 / 下移 / 置底；
+ * - 内容组：添加（＋）、编辑分组（✎）。名称与列数、删除都收在编辑弹窗里。
+ * 分组是为了少误点：六颗图标排成一行时，"左边管位置、右边管内容"一眼可辨。
  *
- * 分成两组是为了少误点：六颗图标按钮排成一行时，"删掉/改掉"这类动作和
- * "挪个位置"混在一起很容易点错，隔开之后"左边管位置、右边管内容"一眼可辨。
- *
- * ⚠️ 六颗按钮在窄面板里会跟分组名抢宽度（4 个并排的网页导航分组就是这样），
- * 装不下时由 CSS 把**整组按钮换到第二行**，并把「类型 · 项数」交给省略号（见 global.css 的表头一节）。
- * 这两处规则都挂在类名上（`.dash-group-actions` / `.dash-group-meta`），改按钮数量时要一起复核。
+ * ⚠️ 窄面板里按钮会跟分组名抢宽度：装不下时由 CSS 把整组按钮换到第二行、
+ * 把「类型 · 项数」交给省略号（见 global.css 的表头一节）。
+ * 规则挂在 `.dash-group-actions` / `.dash-group-meta` 上，改按钮数量时要一起复核。
  */
 export const GroupPanel = memo(function GroupPanel({
   title,
@@ -117,19 +102,16 @@ export const GroupPanel = memo(function GroupPanel({
       className="dash-group-panel"
       variant="borderless"
       /*
-       * 正文上内边距收窄到 8px：表头没有分割线了，标题与第一行卡片之间
-       * 只剩表头自己的居中留白（40 - 25 ≈ 7px），再叠 16 就散开了。
-       * 左右与下方仍是 16px，卡片与分组边缘的关系不变。
+       * 正文上内边距收窄到 8px：标题与第一行卡片之间已有表头的居中留白，再叠 16 就散开了。
        */
       styles={{ body: { padding: '8px 16px 16px' } }}
       title={
         <Flex align="center" gap={8} style={{ minWidth: 0 }}>
           <Typography.Text strong>{title}</Typography.Text>
           {/*
-            类型标签与项数是"元信息"，只在编辑模式露出：
-            浏览时表头只留用户自定义的分组名，卡片网格自己说明内容。
-            ⚠️ 它是表头里**第一个可以被牺牲**的东西：面板不够宽时由容器查询收起它，
-            否则六颗按钮会把分组名本身挤成省略号。
+            类型与项数是"元信息"，只在编辑模式露出。
+            ⚠️ 它是表头里第一个可以被牺牲的东西：面板不够宽时由容器查询收起它，
+            否则按钮会把分组名挤成省略号。
           */}
           {editMode ? (
             <Typography.Text className="dash-group-meta" type="secondary" style={{ fontSize: 12 }}>

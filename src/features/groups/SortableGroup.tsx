@@ -24,9 +24,8 @@ export type SortableGroupProps = {
 
 /**
  * 分组容器。分组排序由标题行的上下按钮完成，组内卡片仍在 ItemGrid 中拖拽。
- *
- * 外面这层 `memo` 只是顺手挡一下：父层（`BoardGroupSlot`）会因为本组数据变化而重渲染，
- * 但表头的几个值与 children 元素都没变时，这里连同下面的 `GroupPanel` 一起跳过。
+ * 这层 `memo` 顺手挡一下：父层（`BoardGroupSlot`）会因本组数据变化重渲染，
+ * 但表头几个值与 children 元素没变时，这里连同 `GroupPanel` 一起跳过。
  */
 export const SortableGroup = memo(function SortableGroup({
   title,

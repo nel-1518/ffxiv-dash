@@ -8,17 +8,15 @@ import type { Item } from '../../core/storage/types.ts'
 /**
  * 跟随指针的虚影：复用 `CardFace`，与列表里的实体卡片同一份外观。
  *
- * dnd-kit 的 sortable 只在 activeIndex / overIndex 都落在同一个 SortableContext 里时
- * 才让原卡片跟随指针；卡片被拖到别的分组时这两个下标对不上，原卡片会"僵在原地"。
- * 所以统一用 DragOverlay 渲染实体，原卡片只留一个半透明的占位（见 SortableCard）。
+ * dnd-kit 的 sortable 只在 activeIndex / overIndex 落在同一个 SortableContext 时才让原卡片
+ * 跟随指针；拖到别的分组时下标对不上，原卡片会"僵在原地"。所以统一用 DragOverlay 渲染，
+ * 原卡片只留半透明占位（见 SortableCard）。
  *
- * 尺寸由 DragOverlay 的外层盒子（= 被拖卡片拖起瞬间的实测尺寸）决定，
- * 这里只管铺满它并加一点抬起感（阴影），dropAnimation 也能像素级落回原卡槽。
- * 预览里的编辑/删除按钮不接动作，拖动中点击它们不会触发任何副作用。
+ * 尺寸由 DragOverlay 的外层盒子（被拖卡片拖起瞬间的实测尺寸）决定，这里只管铺满；
+ * 预览里的编辑/删除按钮不接动作。
  *
  * ⚠️ `memo` + 模块级常量（`LIFT_STYLE` / `INERT_HANDLE` / `NOOP`）是必需的：
- * DragOverlay 会跟着指针每一帧重渲染它自己的孩子，不固定住的话预览里那棵 antd 子树
- * （Card + 三个 Tooltip 的 rc-trigger 机器）会一帧一动，拖起来就是持续掉帧。
+ * DragOverlay 每帧重渲染它的孩子，不固定住的话预览里那棵 antd 子树会一帧一动、持续掉帧。
  */
 const DragPreview = memo(function DragPreview({ item }: { item: Item }): React.ReactNode {
   return (
@@ -51,18 +49,13 @@ const INERT_HANDLE = <DragHandle inert />
 const DROP_ANIMATION = { duration: 220, easing: 'cubic-bezier(0.2, 0, 0, 1)' }
 
 /**
- * 虚影宿主。
+ * 虚影宿主。它单独存在，是为了把拖拽带来的重渲染挡在"只含虚影"的小子树里。
  *
- * ⚠️ **它单独存在，是为了把拖拽带来的重渲染挡在"只含虚影"的小子树里。**
+ * ⚠️ 刻意不持任何状态：正在拖的是谁直接从 dnd-kit 的 context 读（`useDndContext().active`）。
+ * 若把 activeId 存进 `GroupBoard`，每次拖拽开始都 `setState` → 整棵看板元素树重建 →
+ * 连锁到每一张卡片（实测拖拽起始卡顿从数百 ms 级降到流畅）。
  *
- * 这里刻意**不持任何状态**：正在拖的是谁直接从 dnd-kit 的 context 读
- * （`useDndContext().active`）。如果换成把 activeId 存在 `GroupBoard` 里，
- * 每次拖拽开始都要 `setState` 一次 → `GroupBoard` 整棵元素树（所有 Row/Col/槽位）
- * 跟着重建，`DndContext` 的 children 也换新 → 连锁到每一张卡片。
- * 实测（24 张卡、dev 构建）：拖拽起始的卡顿约 780ms 阻塞，
- * 把状态挪出 `GroupBoard` + 给卡片外观加 `memo` 之后降到 ~190ms。
- *
- * `readItem` 是即时的 store 读取，不订阅 —— 虚影内容只在拖拽开始那一刻需要。
+ * `readItem` 是即时读取、不订阅 —— 虚影内容只在拖拽开始那一刻需要。
  */
 export function BoardDragOverlay(): React.ReactNode {
   const { active } = useDndContext()

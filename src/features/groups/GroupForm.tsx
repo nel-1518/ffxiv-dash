@@ -45,8 +45,8 @@ export function GroupForm({ form, formId, initialValues, mode, onFinish }: Group
   }, [form, initialValues])
 
   /**
-  * 新建时切换分组类型，如果列数还停在旧类型的默认值上，就跟着换成新类型的默认值；
-   * 用户手动挑过列数则原样保留，不覆盖他的选择。
+   * 新建时切换分组类型，如果列数还停在旧类型的默认值上，就跟着换成新类型的默认值；
+   * 用户手动挑过列数则原样保留。
    */
   const handleValuesChange = (changed: Partial<GroupFormValues>) => {
     const nextType = changed.type
