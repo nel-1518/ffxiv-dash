@@ -13,6 +13,12 @@ export const GOLD_TRIAL_API_URL = 'https://ffxiv-api.neeeel.com/api/goldTrial'
 /** 活动专题页：挑战成功后的**登记入口**（规则要求登记确认，否则视为放弃）。 */
 export const GOLD_TRIAL_SITE_URL = 'https://actff1.web.sdo.com/20241130_GoldTrial/#/index'
 
+/**
+ * 前端缓存有效期 8 小时。
+ * 试炼每周才换一期（周五公布），重开页面命中缓存就直接用、**不发请求**，停留期间不轮询。
+ */
+export const GOLD_TRIAL_CACHE_TTL_MS = 8 * 60 * 60 * 1000
+
 /** 无配置项。写成空对象类型，别处就不会误以为能读某个字段。 */
 export type GoldTrialConfig = Record<string, never>
 

@@ -10,6 +10,12 @@ export const ACTIVITY_CALENDAR_API_URL = 'https://ffxiv-api.neeeel.com/api/getAc
 export const ACTIVITY_CALENDAR_EMPHASIS_MIN = 0
 export const ACTIVITY_CALENDAR_EMPHASIS_MAX = 30
 
+/**
+ * 前端缓存有效期 8 小时。
+ * 重开页面命中缓存就直接用、**不发请求**，停留期间不轮询。
+ */
+export const ACTIVITY_CALENDAR_CACHE_TTL_MS = 8 * 60 * 60 * 1000
+
 export type ActivityCalendarConfig = {
   /** 剩余不超过该天数时，倒计时读数用强调色显示；0 = 始终不高亮。 */
   emphasisDays: number

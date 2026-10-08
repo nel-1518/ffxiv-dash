@@ -6,13 +6,13 @@
  * 整卡可点，跳到活动专题页 —— 挑战成功后的**登记**就在那里完成（规则要求登记确认，
  * 否则视为放弃本周试炼）。
  *
- * 数据在挂载时取一次（服务端已缓存 97 分钟），停留期间不轮询；
- * 阶段与倒计时跟着**分钟粒度**的全局时钟走，跨分钟才重渲染。
+ * 数据在挂载时取一次，停留期间不轮询；阶段与倒计时跟着**分钟粒度**的全局时钟走，跨分钟才重渲染。
  */
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, Button, Flex, Typography } from 'antd'
 import { useClockAt } from '../../../../core/clock/hooks.ts'
 import { GOLD_TRIAL_SITE_URL } from './config.ts'
+import { isGoldTrialCacheFresh, readGoldTrialCache, writeGoldTrialCache } from './cache.ts'
 import {
   GOLD_TRIAL_PHASE_LABELS,
   fetchGoldTrial,
@@ -74,11 +74,18 @@ export function GoldTrialRender(): React.ReactNode {
   // 分钟粒度：倒计时最小单位就是分，秒级时钟只会让这张卡白渲染
   const now = useClockAt('minute')
 
-  const [data, setData] = useState<GoldTrialData | null>(null)
+  const [entry, setEntry] = useState<GoldTrialData | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
 
   /*
-   * 拉取 + 记账。
+   * 渲染期读缓存（纯读、无副作用）：页面打开时命中缓存就立刻有数据可显示。
+   * 缓存 8 小时，命中即不发请求（见下面的 effect）。
+   */
+  const cached = useMemo(() => readGoldTrialCache(), [])
+  const data = entry ?? cached
+
+  /*
+   * 拉取 + 落盘 + 记账。
    *
    * 刻意写成**同步函数返回 Promise**（而不是 async 函数）：setState 全部落在
    * then/catch 回调里，effect 同步阶段一次都不会触发渲染。
@@ -87,7 +94,8 @@ export function GoldTrialRender(): React.ReactNode {
   const reload = useCallback((): Promise<void> => {
     return fetchGoldTrial()
       .then((result) => {
-        setData(result)
+        writeGoldTrialCache(result)
+        setEntry(result)
         setFailure(null)
       })
       .catch((error: unknown) => {
@@ -95,8 +103,12 @@ export function GoldTrialRender(): React.ReactNode {
       })
   }, [])
 
-  // 打开页面时取一次，只此一次：服务端已缓存 97 分钟，前端不必再轮询
+  // 打开页面时取一次，只此一次：命中未过期缓存（8 小时内）就直接用、不发请求，停留期间不轮询
   useEffect(() => {
+    const hit = readGoldTrialCache()
+    if (hit !== null && isGoldTrialCacheFresh(hit, Date.now())) {
+      return
+    }
     void reload()
   }, [reload])
 
