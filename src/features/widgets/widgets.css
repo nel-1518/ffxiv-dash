@@ -1855,3 +1855,162 @@
   font-variant-numeric: tabular-nums;
   color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45));
 }
+
+/* ---------------- 活动日历 ---------------- */
+
+/*
+ * 活动日历卡
+ *
+ * 卡面 = 标题行（月份 + 活动数 / 状态）+ 可滚动的活动列表（高度预算同待办卡，
+ * 见 `.dash-card-fill`）。每条活动两行：上面是「名称 + 倒计时读数」，
+ * 下面是生效区间；名称的下划线用活动自己的主题色（只能 inline，见 fields.tsx）。
+ */
+.dash-calendar {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  /* 标题行与列表之间 10px（同房屋售卖 / 公告卡） */
+  gap: 10px;
+}
+
+/* ⚠️ 列表一溢出，flex 会把标题行也按比例缩掉，这里钉住 */
+.dash-calendar-meta {
+  flex: none;
+}
+
+/* 活动数 / 状态：等宽数字，跳字时宽度不抖 */
+.dash-calendar-status {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 滚动只挂在这一层；横向不滚（名称一律省略号截断），纵向细滚动条同公告卡 */
+.dash-calendar-scroll {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  /* ⚠️ 必须有：flex 项的自动最小尺寸等于内容大小，不归零会把卡片顶破上限 */
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.dash-calendar-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dash-calendar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dash-calendar-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--ant-color-fill-secondary, rgba(0, 0, 0, 0.06));
+}
+
+.dash-calendar-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--ant-color-fill, rgba(0, 0, 0, 0.15));
+}
+
+/*
+ * 一条活动 = 两行（名称行 + 区间行），整条可点。
+ * 悬停才铺浅底（同公告卡 / 待办卡）；高度是内容高度（两行）。
+ */
+.dash-calendar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  padding: 3px 6px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
+  text-decoration: none;
+  transition: background-color 120ms ease;
+}
+
+/* 悬停整行提亮一档（只有指针设备上才有意义；触屏的 :hover 会粘住） */
+@media (hover: hover) and (pointer: fine) {
+  .dash-calendar-row:hover {
+    background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.04));
+  }
+}
+
+.dash-calendar-row:focus-visible {
+  outline: 2px solid var(--ant-color-primary, #1677ff);
+  outline-offset: -2px;
+}
+
+/* 名称行：名字占满剩余宽度（窄卡先省略号吃掉），倒计时固定靠右、基线对齐 */
+.dash-calendar-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+/*
+ * 活动名：加粗 13px，底下 2px 活动主题色下划线（颜色由 inline style 给）。
+ * 默认透明下划线，保证"有没有颜色"都不改变行高。
+ */
+.dash-calendar-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding-bottom: 1px;
+  border-bottom: 2px solid transparent;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* 倒计时读数：等宽数字防抖；默认次级色（剩余还早，不抢眼） */
+.dash-calendar-countdown {
+  flex: none;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
+}
+
+/* 剩余不足一天：主色加粗强调 —— 与「优先级」同一套语言（同试炼卡的强调读数） */
+.dash-calendar-countdown.is-emphasis {
+  font-weight: 600;
+  color: var(--ant-color-primary, #1677ff);
+}
+
+/* 已结束：压淡一档 */
+.dash-calendar-countdown.is-ended {
+  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45));
+}
+
+/* 生效区间：最轻的一行 */
+.dash-calendar-range {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45));
+}
+
+/* 已结束整条压淡（名称与区间一起）：下划线仍保留，但不再抢眼 */
+.dash-calendar-row.is-ended .dash-calendar-name,
+.dash-calendar-row.is-ended .dash-calendar-range {
+  opacity: 0.55;
+}
+
+/* 占位行：破折号压淡，读成"读数还没回来"（同公告卡的占位行） */
+.dash-calendar-row.is-blank .dash-calendar-name {
+  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45));
+  border-bottom-color: transparent;
+}
+
+/* 空列表兜底文案（接口正常时不会出现） */
+.dash-calendar-empty {
+  padding: 12px 0;
+  font-size: 12px;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}

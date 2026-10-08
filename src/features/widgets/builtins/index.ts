@@ -1,4 +1,5 @@
 import { installWidgetConfigNormalizer, registerWidget } from '../registry.ts'
+import { activityCalendarWidgetSpec } from './activity-calendar-widget/widget.ts'
 import { auroraWidgetSpec } from './aurora-widget/widget.ts'
 import { countdownWidgetSpec } from './countdown-widget/widget.ts'
 import { exchangeWidgetSpec } from './exchange-widget/widget.ts'
@@ -34,6 +35,7 @@ export function installBuiltinWidgets(): void {
   registerWidget(houseWidgetSpec)
   registerWidget(newsWidgetSpec)
   registerWidget(goldTrialWidgetSpec)
+  registerWidget(activityCalendarWidgetSpec)
   registerWidget(todoWidgetSpec)
   registerWidget(statsWidgetSpec)
   registerWidget(memoWidgetSpec)
