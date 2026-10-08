@@ -38,6 +38,13 @@ const SECTIONS = [
 export type SettingsSectionKey = (typeof SECTIONS)[number]['key']
 
 export type SettingsDialogProps = {
+  /**
+   * 打开时落在哪一页；缺省「外观」。
+   *
+   * 由调用方决定而不是弹窗自己推：读盘失败的提示条要把用户直接送到「数据管理」
+   * （见 `views/DashboardPage.tsx`），这种"从别处带着目的进来"的场景不该散落在弹窗内部。
+   */
+  initialSection?: SettingsSectionKey
   onClose: () => void
 }
 
@@ -48,8 +55,8 @@ export type SettingsDialogProps = {
  * 也没有"边打字边保持焦点"的需求，交给 Modal 处理焦点陷阱与 Esc 更省事。
  * antd 的 cssVar 类会打在 `.ant-modal` 自身上，因此弹窗内部照样能用 `var(--ant-color-*)`。
  */
-export function SettingsDialog({ onClose }: SettingsDialogProps): React.ReactNode {
-  const [active, setActive] = useState<SettingsSectionKey>('appearance')
+export function SettingsDialog({ initialSection, onClose }: SettingsDialogProps): React.ReactNode {
+  const [active, setActive] = useState<SettingsSectionKey>(initialSection ?? 'appearance')
   const { Panel } = SECTIONS.find((section) => section.key === active) ?? SECTIONS[0]
 
   return (

@@ -2,6 +2,9 @@ import { App, Button, Flex, Typography, Upload } from 'antd'
 import { DownloadOutlined, UploadOutlined } from '@ant-design/icons'
 import { boardActions } from '../../state/board-store.ts'
 import { useBoardDoc } from '../../state/hooks.ts'
+import { createDefaultBoard } from '../../core/storage/default-board.ts'
+import { rawBoardFileName, readStoredBoardText } from '../../core/storage/persistent.ts'
+import { downloadText, timestampForFileName } from '../../core/download-file.ts'
 import {
   clearImportUndo,
   loadImportUndo,
@@ -14,19 +17,6 @@ import { importAppearance, restoreAppearance } from '../../core/appearance/store
 import { setAutoOpenLinks } from '../../core/auto-open/store.ts'
 import { setSearchEngines } from '../../core/search/store.ts'
 
-/** 导出文件名里的时间戳：本地时间、到分钟，够用来区分多次导出。 */
-function timestampForFileName(now: Date): string {
-  const pad = (value: number) => String(value).padStart(2, '0')
-  return [
-    now.getFullYear(),
-    pad(now.getMonth() + 1),
-    pad(now.getDate()),
-    '-',
-    pad(now.getHours()),
-    pad(now.getMinutes()),
-  ].join('')
-}
-
 /** 导入前快照的时间戳转展示文本（`10-07 14:30`）。 */
 function formatUndoTime(savedAt: number): string {
   if (!Number.isFinite(savedAt) || savedAt <= 0) {
@@ -35,20 +25,6 @@ function formatUndoTime(savedAt: number): string {
   const date = new Date(savedAt)
   const pad = (value: number) => String(value).padStart(2, '0')
   return `${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
-}
-
-/** 把文本存成文件下载。 */
-function downloadText(text: string, fileName: string): void {
-  const blob = new Blob([text], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = fileName
-  document.body.appendChild(anchor)
-  anchor.click()
-  anchor.remove()
-  // 点击后立刻 revoke 在部分浏览器里会把下载掐断，挪到下一个任务里做
-  window.setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
 /**
@@ -96,6 +72,45 @@ export function DataSettingsPanel(): React.ReactNode {
       `ffxiv-dash-backup-${timestampForFileName(new Date())}.json`,
     )
     message.success('已导出看板与设置')
+  }
+
+  /**
+   * 导出看板原始数据：本机存着的那份文本，**一字不改**（不校验、不补默认值、不包成备份文件）。
+   *
+   * 与"导出备份"的区别：备份是给人恢复用的（四段数据、结构规整），这一份是给**排查 / 抢救**用的 ——
+   * 看板读不出来时，提示条上那个同名按钮导的就是它；用户没在提示条上及时点，也能来这里补上。
+   * 只导看板那一段：读盘失败的是看板，而设置各住各的键、各有各的导出方式。
+   */
+  const handleExportRaw = () => {
+    const raw = readStoredBoardText()
+    if (raw === null) {
+      message.error('本机没有可导出的看板原始数据')
+      return
+    }
+    downloadText(raw, rawBoardFileName(new Date()), 'text/plain')
+    message.success('已导出看板原始数据')
+  }
+
+  /**
+   * 恢复默认看板。
+   *
+   * 它是"看板读不出来"时那条提示的落点：把本机存着的那份坏数据明确覆盖掉，
+   * 用户不必去开发者工具里手动清 localStorage。只动看板 —— 跳转 / 搜索引擎 / 外观
+   * 都是另一批键，读盘失败的是看板，没理由顺手把设置也清了。
+   */
+  const handleResetDefault = () => {
+    modal.confirm({
+      title: '恢复默认数据',
+      content:
+        '将把看板整体换回默认内容（当前的分组与卡片会被覆盖），「跳转」「搜索引擎」「外观」等设置不受影响。此操作不可撤销。',
+      okText: '恢复默认',
+      okButtonProps: { danger: true },
+      cancelText: '取消',
+      onOk: () => {
+        boardActions.replaceDoc(createDefaultBoard())
+        message.success('已恢复默认看板')
+      },
+    })
   }
 
   const handleImport = (file: File) => {
@@ -150,10 +165,18 @@ export function DataSettingsPanel(): React.ReactNode {
         <Typography.Text type="secondary" className="dash-settings-hint is-inline">
           当前有 {doc.groups.length} 个分组、{itemCount} 项内容，全部保存在本机浏览器里。
         </Typography.Text>
+      </section>
 
+      {/*
+       * 三组按钮按"用户此刻想干什么"分开：整理数据（备份搬进搬出）与修数据
+       */}
+      <section>
+        <Typography.Title className="dash-settings-label" level={5}>
+          备份与恢复
+        </Typography.Title>
         <Flex className="dash-settings-actions" gap={12} wrap>
           <Button icon={<UploadOutlined />} onClick={handleExport}>
-            导出
+            备份数据
           </Button>
           <Upload
             accept=".json,application/json"
@@ -161,17 +184,27 @@ export function DataSettingsPanel(): React.ReactNode {
             showUploadList={false}
             maxCount={1}
           >
-            <Button icon={<DownloadOutlined />}>导入</Button>
+            <Button icon={<DownloadOutlined />}>恢复数据</Button>
           </Upload>
+        </Flex>
+      </section>
+
+      <section>
+        <Typography.Title className="dash-settings-label" level={5}>
+          修复与重置
+        </Typography.Title>
+        <Flex className="dash-settings-actions" gap={12} wrap>
+          <Button onClick={handleExportRaw}>导出看板原始数据</Button>
+          <Button danger onClick={handleResetDefault}>
+            恢复默认数据
+          </Button>
+          {undo ? <Button onClick={() => handleRestore(undo)}>恢复导入前的数据</Button> : null}
         </Flex>
 
         {undo ? (
-          <Flex align="center" gap={12} wrap>
-            <Button onClick={() => handleRestore(undo)}>恢复导入前的数据</Button>
-            <Typography.Text type="secondary" className="dash-settings-hint is-inline">
-              导入前备份（{formatUndoTime(undo.savedAt)}）：恢复会覆盖导入后的全部改动。
-            </Typography.Text>
-          </Flex>
+          <Typography.Text type="secondary" className="dash-settings-hint">
+            导入前备份（{formatUndoTime(undo.savedAt)}）：恢复会覆盖导入后的全部改动。
+          </Typography.Text>
         ) : null}
       </section>
     </Flex>

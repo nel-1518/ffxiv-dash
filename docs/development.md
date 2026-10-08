@@ -135,6 +135,7 @@ type WidgetItem = {
 - 分组类型规则集中在 `src/core/group-rules.ts` 的 `GROUP_TYPE_META`：每种类型声明 `allowedKinds`、`defaultColumns` 与 `perRow`（widget 独占一行、link 每行最多 4 个）。
 - 分组内部排布由 `Group.columns` 决定，用 CSS Grid（`navigation/ItemGrid.tsx`），列数通过 `--dash-grid-columns` 下发，窄屏自动降列。
 - 落盘键 `ffxiv-dash:board:v1`，当前 `SCHEMA_VERSION` 为 4；`loadDoc()` 做 JSON 解析 → 结构校验，失败回退默认数据。版本号对不上直接判为无法识别（无逐版迁移，未上线期间破坏性改动靠重置数据）。
+- **读盘失败要说出来**：`loadDoc()` 返回 `{ doc, failure }`（`failure` 分 `storage` / `json` / `schema` 三档），回退时**不写盘**（那份坏数据留在原地）；board store 把它记成 `bootFailure`，顶栏下方据此亮一条 `Alert`（`features/dashboard/BoardLoadAlert.tsx`）——提示语写明出路，按钮只有一个「去数据管理」（`SettingsDialog` 的 `initialSection`）。落盘**成功**一次后即清掉 —— 那时本机存着的已经是当前看板，坏数据已被覆盖。提示条上**不放**数据操作，处理手段都在数据管理里：导出看板原始数据（一字不改的原文，`.txt`，见 `readStoredBoardText` / `rawBoardFileName`）、导入备份、恢复默认数据（只换看板，不动跳转 / 搜索引擎 / 外观）。
 - 组件配置的归一化能力由 widgets 层**运行时注入** core（`registry.ts` 的 `installWidgetConfigNormalizer` → `storage/persistent.ts`），避免 core 反向依赖 feature；未注册类型保留原始配置，界面用降级卡提示。
 - **组件实例上限**：每种类型在整块看板全局计数（跨分组），上限由 spec 的 `maxCount` 声明（缺省 20，设 0 禁止新增）。两道闸门：表单里达上限的选项禁用并标注（正在编辑的实例自己的类型除外），reducer 在新增 / 换类型时拒绝落库。
 - 分组类型创建后锁定：`updateGroup` 不接受 `groupType`，换类型就新建分组。

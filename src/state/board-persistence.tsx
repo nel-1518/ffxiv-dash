@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { App } from 'antd'
-import { readBoardDoc, subscribeBoard } from './board-store.ts'
+import { clearBootFailure, readBoardDoc, subscribeBoard } from './board-store.ts'
 import { persistDoc } from './board-storage.ts'
 import type { ReactNode } from 'react'
 
@@ -36,6 +36,8 @@ export function BoardPersistence({ children }: { children: ReactNode }): ReactNo
           return
         }
         notified = false
+        // 写盘成功 = 本机存着的已经是当前这份看板了：启动时那句"数据读不出来"的提示到此为止
+        clearBootFailure()
       }, PERSIST_DEBOUNCE_MS)
     })
 

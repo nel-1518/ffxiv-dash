@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { App, Flex } from 'antd'
 import { boardActions, readGroupTitle } from '../state/board-store.ts'
+import { BoardLoadAlert } from '../features/dashboard/BoardLoadAlert.tsx'
 import { BoardSurface } from '../features/dashboard/BoardSurface.tsx'
 import { EditDialog } from '../features/dashboard/EditDialog.tsx'
 import { Topbar } from '../features/dashboard/Topbar.tsx'
@@ -8,6 +9,7 @@ import { SearchDialog } from '../features/search/SearchDialog.tsx'
 import { useLinkSearch } from '../features/search/useLinkSearch.ts'
 import { SettingsDialog } from '../features/settings/SettingsDialog.tsx'
 import type { ModalState } from '../features/dashboard/EditDialog.tsx'
+import type { SettingsSectionKey } from '../features/settings/SettingsDialog.tsx'
 import type { GroupFormValues } from '../features/groups/GroupForm.tsx'
 import type { Item } from '../core/storage/types.ts'
 
@@ -22,12 +24,18 @@ export function DashboardPage(): React.ReactNode {
   const { modal } = App.useApp()
 
   const [modalState, setModalState] = useState<ModalState | null>(null)
-  const [settingsOpen, setSettingsOpen] = useState(false)
+  /**
+   * 设置弹窗开着时记的是**当前分区**，关着是 null。
+   *
+   * 记分区而不是布尔：读盘失败的提示条要能把用户直接送到「数据管理」，
+   * 而"打开哪一页"是设定值，不该由弹窗自己再推一遍（见 `initialSection`）。
+   */
+  const [settingsSection, setSettingsSection] = useState<SettingsSectionKey | null>(null)
   /** 编辑模式：刻意不持久化，刷新后回到干净的浏览态，避免误拖误删。 */
   const [editMode, setEditMode] = useState(false)
 
   // 搜索：顶栏输入与弹窗共享同一份 keyword；任一弹窗打开时把快捷键整体让位
-  const search = useLinkSearch({ suspended: modalState !== null || settingsOpen })
+  const search = useLinkSearch({ suspended: modalState !== null || settingsSection !== null })
 
   /*
    * 这批回调全部引用稳定（只依赖 setState 或模块级常量）：它们会被透传到
@@ -63,8 +71,10 @@ export function DashboardPage(): React.ReactNode {
   )
 
   const closeModal = useCallback(() => setModalState(null), [])
-  const openSettings = useCallback(() => setSettingsOpen(true), [])
-  const closeSettings = useCallback(() => setSettingsOpen(false), [])
+  const openSettings = useCallback(() => setSettingsSection('appearance'), [])
+  /** 读盘失败提示条上的「去数据管理」：直接把设置开在数据管理那一页。 */
+  const openDataSettings = useCallback(() => setSettingsSection('data'), [])
+  const closeSettings = useCallback(() => setSettingsSection(null), [])
   const toggleEditMode = useCallback(() => setEditMode((value) => !value), [])
 
   const handleSaveGroup = useCallback((groupId: string | null, values: GroupFormValues) => {
@@ -100,6 +110,9 @@ export function DashboardPage(): React.ReactNode {
         onOpenSettings={openSettings}
       />
 
+      {/* 读盘失败时，顶栏下面先说清楚发生了什么（没失败就什么都不渲染） */}
+      <BoardLoadAlert onOpenDataSettings={openDataSettings} />
+
       {/*
        * 看板整块交给 `BoardSurface`：它自己订阅分组结构，看板数据的变化到不了这一层。
        * 顶栏不在里面 —— 它要铺满视口宽度（`.dash-container` 的居中限宽由 BoardSurface 负责）。
@@ -134,7 +147,9 @@ export function DashboardPage(): React.ReactNode {
         />
       ) : null}
 
-      {settingsOpen ? <SettingsDialog onClose={closeSettings} /> : null}
+      {settingsSection ? (
+        <SettingsDialog initialSection={settingsSection} onClose={closeSettings} />
+      ) : null}
     </Flex>
   )
 }

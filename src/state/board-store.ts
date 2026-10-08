@@ -1,6 +1,7 @@
 import { loadInitialDoc } from './board-storage.ts'
 import { boardReducer } from './board-reducer.ts'
 import { splitIntoRows } from './group-rows.ts'
+import type { BoardLoadFailure } from '../core/storage/persistent.ts'
 import type { BoardDoc, Group, Item } from '../core/storage/types.ts'
 import type { BoardAction, BoardActions } from './board-types.ts'
 import type { GroupRow } from './group-rows.ts'
@@ -29,9 +30,20 @@ const listeners = new Set<Listener>()
  */
 let doc: BoardDoc | undefined
 
+/**
+ * 首次读盘是否回退了默认数据（以及为什么）。
+ *
+ * 只可能由 `getDoc()` 的首次读盘写入，之后只有 `clearBootFailure()` 会清掉它 ——
+ * 那样看待它的快照引用才是稳定的（`useSyncExternalStore` 靠 `Object.is` 比对，
+ * 字符串 / null 正好是稳定值）。
+ */
+let bootFailure: BoardLoadFailure | null = null
+
 function getDoc(): BoardDoc {
   if (doc === undefined) {
-    doc = loadInitialDoc()
+    const loaded = loadInitialDoc()
+    doc = loaded.doc
+    bootFailure = loaded.failure
   }
   return doc
 }
@@ -81,6 +93,33 @@ export function subscribeBoard(listener: Listener): () => void {
 /** 当前整份文档。⚠️ 只在确实需要全文时用（导出、统计项数），卡片里不要用。 */
 export function readBoardDoc(): BoardDoc {
   return getDoc()
+}
+
+/**
+ * 首次读盘是否失败（失败原因），供页面上的提示条订阅。
+ *
+ * 先走一遍 `getDoc()`：提示条可能比看板更早渲染，不能指望"读盘一定发生在它之前"。
+ */
+export function readBootFailure(): BoardLoadFailure | null {
+  getDoc()
+  return bootFailure
+}
+
+/**
+ * 清掉"读盘失败"这件事。
+ *
+ * 由落盘闸门在**写盘成功**时调用：那一刻本机存着的就是当前这份看板了，
+ * 之前那份坏数据已经被覆盖，"数据读不出来"的提示没有理由继续挂着
+ * （localStorage 不可用时写盘也不会成功，提示自然留着）。
+ */
+export function clearBootFailure(): void {
+  if (bootFailure === null) {
+    return
+  }
+  bootFailure = null
+  for (const listener of listeners) {
+    listener()
+  }
 }
 
 /** 分组 id 序列。结构未变时返回同一个数组引用。 */

@@ -246,6 +246,18 @@ body {
   padding-block: 0 48px;
 }
 
+/*
+ * 页面级提示条（目前只有"看板数据读取失败"那条）：与内容列同一套居中限宽，
+ * 好和看板的左缘对齐；但要**去掉** `.dash-container` 的底部留白 ——
+ * 它属于看板，提示条下方还有看板要用同一份间距。
+ */
+.dash-alert-bar {
+  width: 100%;
+  max-width: 1600px;
+  margin-inline: auto;
+  padding-inline: var(--dash-page-pad-x);
+}
+
 /* antd Typography 的标题字号在仪表盘里偏大，整体收一档 */
 .ant-typography h2,
 h2.ant-typography {
