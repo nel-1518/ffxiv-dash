@@ -3,10 +3,11 @@ import { Alert, Flex, Form, InputNumber, Select, Spin, Typography } from 'antd'
 import { useClockAt } from '../../../../core/clock/hooks.ts'
 import { formatRelativeTime } from '../../../../core/clock/format.ts'
 import { boardActions } from '../../../../state/board-store.ts'
-import { isFresh, readMarketCache, writeMarketCache } from './cache.ts'
+import { isFresh, readMarketCache } from './cache.ts'
 import { findItem, getItemDbStatus, loadItemDb, searchItems } from './items.ts'
 import { resolveTier, scopeLabel, scopeOptions } from './scopes.ts'
-import { buildMarketPageUrl, fetchMarket } from './universalis.ts'
+import { requestMarket } from './batch.ts'
+import { buildMarketPageUrl } from './universalis.ts'
 import type { ItemDbStatus, ItemEntry } from './items.ts'
 import type { MarketData, PriceReading, QualityReadings } from './universalis.ts'
 import type { MarketConfig, MarketItemMeta } from './config.ts'
@@ -321,7 +322,11 @@ export function MarketRender({
   const pending = itemIds.length > 0 && data === null && error === null
 
   /*
-   * 拉取 + 落盘 + 记账。
+   * 取数 + 记账。
+   *
+   * 请求交给合并器（`requestMarket`）：它会等同一轮的其它卡片一起，按区服合并成一次请求，
+   * 再把这批结果里属于本卡的物品分回来 —— 落盘也由它统一做（缓存按物品拆条，见 cache.ts），
+   * 卡片这边只认「记账」，不再各自写缓存。
    *
    * 刻意写成**同步函数返回 Promise**（而不是 async 函数）：setState 全部落在
    * then/catch 回调里，effect 同步阶段一次都不会触发渲染。
@@ -330,9 +335,8 @@ export function MarketRender({
     if (itemIds.length === 0) {
       return Promise.resolve()
     }
-    return fetchMarket(scope, itemIds)
+    return requestMarket(scope, itemIds)
       .then((result) => {
-        writeMarketCache(result)
         setEntry({ key: requestKey, data: result })
         // 成功就把同一份请求的错误记录清掉，否则重试成功后错误提示还挂着
         setFailure((previous) => (previous?.key === requestKey ? null : previous))
