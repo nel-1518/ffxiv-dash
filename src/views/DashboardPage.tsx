@@ -137,12 +137,17 @@ export function DashboardPage(): React.ReactNode {
         <SearchDialog
           keyword={search.keyword}
           selectAllOnOpen={search.selectAllOnOpen}
+          mode={search.mode}
           rows={search.rows}
+          commandNotice={search.commandNotice}
+          copiedKey={search.copiedKey}
+          drillTitle={search.drillTitle}
           activeIndex={search.activeIndex}
           onKeywordChange={search.handleKeywordChange}
           onMoveActive={search.handleMoveActive}
           onActivate={search.handleActivate}
           onSelect={search.handleSelect}
+          onBack={search.handleBack}
           onClose={search.handleClose}
         />
       ) : null}

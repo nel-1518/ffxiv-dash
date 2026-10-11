@@ -41,6 +41,15 @@ const API_ENDPOINTS: readonly EndpointEntry[] = [
     site: 'https://docs.universalis.app/',
   },
   {
+    name: '物品检索',
+    provider: 'XIVAPI v2',
+    endpoint:
+      'https://xivapi-v2.xivcdn.com/api/search?sheets=Item&fields=Name,IsUntradable&query=Name~"{名称}"&limit=10',
+    usage:
+      '搜索弹窗的「/i 物品搜索」命令按名称检索物品，返回物品 ID、名称与是否可交易。',
+    site: 'https://xivapi-v2.xivcdn.com/zh-cn/',
+  },
+  {
     name: '售楼中心',
     provider: 'ffxiv.cyou',
     endpoint: 'https://house.ffxiv.cyou/api/sales?server={服务器 ID}',
