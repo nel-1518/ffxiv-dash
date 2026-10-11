@@ -106,6 +106,17 @@ export function Topbar({
             onCompositionEnd={onStartTyping}
             placeholder="搜索已保存的链接…"
             prefix={<SearchOutlined />}
+            /*
+             * Tab 键帽：把「按 Tab 打开搜索弹窗」这条隐藏快捷键摆到明面上。
+             * 纯装饰（aria-hidden），真正的说明在 Tooltip 里；窄屏没有 Tab 键，CSS 会隐藏它。
+             */
+            suffix={
+              <Tooltip title="按 Tab 键打开搜索弹窗">
+                <span className="dash-topbar-kbd" aria-hidden="true">
+                  Tab
+                </span>
+              </Tooltip>
+            }
             aria-label="搜索已保存的链接"
           />
         </div>
