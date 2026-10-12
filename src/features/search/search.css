@@ -106,10 +106,12 @@
 }
 
 .dash-search-results {
+  position: relative;
   flex: 1;
   min-height: 120px;
   padding: 10px 16px 16px;
   overflow-y: auto;
+  scroll-behavior: smooth;
   scrollbar-width: thin;
   scrollbar-color: var(--ant-color-border) transparent;
   scrollbar-gutter: stable;
@@ -145,6 +147,7 @@
 
 .dash-search-item {
   position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -157,23 +160,49 @@
     border-color 0.18s ease;
 }
 
-.dash-search-item:hover,
-.dash-search-item.is-active {
-  background: var(--ant-color-primary-bg);
-  border-color: var(--ant-color-primary-border);
+/* 鼠标悬停与键盘导航共用高亮条，确保两种操作的背景和左侧强调条一致 */
+.dash-search-active-indicator {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  right: 16px;
+  left: 16px;
+  box-sizing: border-box;
+  border: 1px solid var(--ant-color-primary-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ant-color-primary-bg) 60%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 0.22s cubic-bezier(0.2, 0.75, 0.25, 1),
+    height 0.22s cubic-bezier(0.2, 0.75, 0.25, 1),
+    opacity 0.12s ease;
 }
 
-/* 选中项左侧的强调条：键盘移动时一眼能看出停在哪一行 */
-.dash-search-item.is-active::before {
+.dash-search-active-indicator[data-ready] {
+  opacity: 1;
+}
+
+.dash-search-active-indicator::before {
   content: '';
   position: absolute;
-  left: 0;
+  left: -1px;
   top: 50%;
   transform: translateY(-50%);
   width: 3px;
   height: 20px;
   border-radius: 0 3px 3px 0;
   background: var(--ant-color-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-search-results {
+    scroll-behavior: auto;
+  }
+
+  .dash-search-active-indicator {
+    transition: none;
+  }
 }
 
 .dash-search-item-icon {
@@ -411,6 +440,11 @@
 
   .dash-search-results {
     padding: 8px 12px 12px;
+  }
+
+  .dash-search-active-indicator {
+    right: 12px;
+    left: 12px;
   }
 
   .dash-search-item {

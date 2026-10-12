@@ -62,6 +62,7 @@ export function SearchDialog({
 }: SearchDialogProps): React.ReactNode {
   const overlayRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const activeIndicatorRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<InputRef>(null)
 
   // 跟踪可视视口：移动端键盘弹出时可视区会缩小，卡片要跟着缩，否则会被顶出屏幕
@@ -117,6 +118,20 @@ export function SearchDialog({
   useEffect(() => {
     const el = listRef.current?.querySelector<HTMLElement>('.dash-search-item.is-active')
     el?.scrollIntoView({ block: 'nearest' })
+  }, [activeIndex, rows, drillTitle])
+
+  // 共享高亮条随当前行移动，避免逐行切换 active 样式造成高亮闪跳
+  useLayoutEffect(() => {
+    const indicator = activeIndicatorRef.current
+    const activeRow = listRef.current?.querySelector<HTMLElement>('.dash-search-item.is-active')
+    if (!indicator || !activeRow) {
+      indicator?.removeAttribute('data-ready')
+      return
+    }
+
+    indicator.style.transform = `translateY(${activeRow.offsetTop}px)`
+    indicator.style.height = `${activeRow.offsetHeight}px`
+    indicator.setAttribute('data-ready', '')
   }, [activeIndex, rows, drillTitle])
 
   // 点击遮罩空白处关闭
@@ -404,6 +419,7 @@ export function SearchDialog({
         </div>
 
         <div className="dash-search-results" ref={listRef}>
+          <div className="dash-search-active-indicator" ref={activeIndicatorRef} aria-hidden="true" />
           {command === null ? renderLinkResults() : renderCommandResults()}
         </div>
       </Card>
