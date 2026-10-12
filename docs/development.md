@@ -148,7 +148,7 @@ type WidgetItem = {
 - 链接集合由 `search/link-index.ts` 拍平成「内容不变则引用不变」的索引，搜索侧订阅它而不是整份看板 —— 组件卡片的任何改动都不会惊动搜索；
 - **搜索引擎是用户配置**，不再写死在代码里：`core/search/store.ts` 的 localStorage 键 `ffxiv-dash:search-engines:v1`，由设置「搜索引擎」面板增删 / 启停 / 拖动排序，可恢复默认。地址模板里 `%s` 是关键词占位符（替换时会 `encodeURIComponent`，模板不要自己编码）；默认 8 个引擎（百度、必应、哔哩哔哩、小红书、微博、石之家、FF14 WIKI、物品检索器）；
 - 快捷键：`Tab` 开关、`Esc` 关闭、`↑`/`↓` 高亮循环、`Enter` 打开、页面空白处敲字母数字直接开窗、`Ctrl+V` 粘贴关键词开窗（粘贴会顺手清掉 FF14 物品名里的私有区字符）；
-- 弹窗是内联 `position: fixed` overlay 而非 antd `Modal`（Modal 会 portal 出 CSS 变量容器）；
+- 弹窗是内联 `position: fixed` overlay 而非 antd `Modal`（搜索面板需要自行适配 visualViewport 与移动端键盘）；
 - IME 焦点交接用 `flushSync` + `useLayoutEffect`；编辑弹窗或设置打开时全局快捷键 `suspended` 停用（那时 Tab 留给表单）；
 - overlay 尺寸跟随 `visualViewport`，移动端键盘弹出时卡片被压缩而不是顶出屏幕。
 

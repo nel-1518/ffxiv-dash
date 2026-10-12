@@ -36,10 +36,8 @@ function rowId(index: number): string {
 /**
  * 搜索弹窗：居中悬浮的结果卡片。
  *
- * 刻意**不用 antd 的 Modal**：Modal 会 portal 到 `document.body`，
- * 从而逃出 ConfigProvider 的 `.css-var-*` 容器，`var(--ant-color-*)` 全部取不到值。
- * 这里改成内联 overlay，既能继续用 antd 变量，也和参考实现一致。
- * 代价是焦点陷阱与 Esc 要自己处理（Esc 在 useLinkSearch 里统一监听）。
+ * 刻意**不用 antd 的 Modal**：自绘 overlay 才能按 visualViewport 调整移动端键盘弹出时的尺寸，
+ * 并将搜索输入、结果列表与键盘导航作为一个整体控制。Esc 由 useLinkSearch 统一监听。
  *
  * 结果区按模式分发：links = 已保存链接 + 搜索引擎（原有）；command = 由命令产出的行。
  * 命令若有两层（如 /i），选中物品钻入动作面板，表头给出返回入口。

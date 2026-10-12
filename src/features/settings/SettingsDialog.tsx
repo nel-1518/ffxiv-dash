@@ -53,7 +53,7 @@ export type SettingsDialogProps = {
  *
  * 用 antd `Modal` 而不是像搜索弹窗那样自绘浮层：这里不需要 visualViewport 适配，
  * 也没有"边打字边保持焦点"的需求，交给 Modal 处理焦点陷阱与 Esc 更省事。
- * antd 的 cssVar 类会打在 `.ant-modal` 自身上，因此弹窗内部照样能用 `var(--ant-color-*)`。
+ * Portal 上的 `.ant-modal-root` 保留 antd CSS 变量作用域，因此弹窗内部照样能用 `var(--ant-color-*)`。
  */
 export function SettingsDialog({ initialSection, onClose }: SettingsDialogProps): React.ReactNode {
   const [active, setActive] = useState<SettingsSectionKey>(initialSection ?? 'appearance')

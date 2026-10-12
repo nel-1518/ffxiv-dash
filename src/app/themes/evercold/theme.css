@@ -21,7 +21,7 @@
 
 /*
  * 卡片是亮色玻璃，卡内 antd 组件要整体换成深色文字，否则白字压白卡（原理见 docs/themes.md）。
- * ⚠️ 连 `*` 一起选：antd 6 给每个组件根元素再挂一份 `css-var-*` 作用域，只写卡片根会被盖回去。
+ * ⚠️ 连 `*` 一起选：antd 6 给每个组件根元素都挂 CSS 变量作用域，只写卡片根会被盖回去。
  * ⚠️ 顶栏排除在外（`:not(.dash-topbar)`）：它也挂 `dash-card-surface` 共用毛玻璃，但底色是暗的。
  */
 [data-dash-theme='evercold'] .dash-card-surface:not(.dash-topbar),

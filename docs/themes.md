@@ -77,7 +77,7 @@ src/app/themes/
 
 选择器上有两个坑：
 
-- 必须连 `*` 一起选 —— antd 6 会给**每个组件自身的根元素**再挂一份 `css-var-*` 作用域，只写在卡片根上会被卡里的组件盖回去（0,1,0 vs 我们的 0,3,0）
+- 必须连 `*` 一起选 —— antd 6 会给**每个组件自身的根元素**再挂一份 CSS 变量作用域，只写在卡片根上会被卡里的组件盖回去（0,1,0 vs 我们的 0,3,0）
 - 顶栏要排除（`:not(.dash-topbar)`）—— 它也挂 `dash-card-surface`（为了共用毛玻璃），但底色不同，卷进来会变成"深字压暗底"
 
 ## 取色方法
@@ -97,7 +97,7 @@ src/app/themes/
 
 ## antd 6 的坑
 
-- 每个组件根元素各挂一份 `css-var-*`，重新声明**全部**令牌 —— 在祖先上覆盖 `--ant-color-*` 管不到它内部的组件
+- 每个组件根元素各挂一份 CSS 变量作用域，重新声明**全部**令牌 —— 在祖先上覆盖 `--ant-color-*` 管不到它内部的组件
 - **组件级 token**（`--ant-<组件>-*`）是构建时算好写死的字面量，**不会**回头读 `--ant-color-*`。已命中过：`--ant-progress-*`、`--ant-button-text-*`、`--ant-input-*`、`--ant-color-error*`
 - `type="secondary"` 读的是 `--ant-color-text-description`，不是 `secondary`
 - `Typography.Title` 读的是 `--ant-color-text-heading`，不是 `text`
@@ -152,5 +152,5 @@ src/app/themes/
 - 切主题后读计算样式，逐项比对：卡片底 / 名称色 / 圆角 / 描边宽度
 - 对比度：**截图 + 采像素** —— 卡片底是半透明叠在背景图上，`getComputedStyle` 给不出合成分
 - 悬停效果：`locator.hover()` 在自动化环境里**不触发** `:hover`，要用 `page.mouse.move(cx, cy)`，且先 `window.scrollTo(0, 0)`（页面滚过之后卡片在视口外）
-- 组件卡相关规则：看板里可能没有组件卡，临时造一个 `div` 挂 `ant-card ant-card-bordered dash-card-surface` + 从现有组件抄来的 `css-dev-only-do-not-override-*` 与 `css-var-*` 两个类，读完再移除
+- 组件卡相关规则：看板里可能没有组件卡，临时造一个 `div` 挂 `ant-card ant-card-bordered dash-card-surface ffxiv-dash`，读完再移除
 - 隐藏标签页的假象：CSS 过渡不推进（读到的阴影 / 描边是过渡**起点**的值）、rAF 不触发、动态 `import()` 在 dev 下可能拿到另一个模块实例

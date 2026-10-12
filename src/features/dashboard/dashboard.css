@@ -211,7 +211,7 @@
   max-width: calc(100vw - 24px);
 }
 
-.dash-edit-dialog .ant-modal-content {
+.dash-edit-dialog .ant-modal-container {
   overflow: hidden;
   border-radius: 16px;
 }

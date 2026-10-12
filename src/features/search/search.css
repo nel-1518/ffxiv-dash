@@ -2,8 +2,8 @@
 /*
  * 搜索弹窗
  *
- * 内联 fixed overlay，**不用 antd Modal**：Modal 会 portal 到 document.body，
- * 从而逃出 ConfigProvider 的 .css-var-* 容器，--ant-color-* 全部取不到值。
+ * 内联 fixed overlay，**不用 antd Modal**：搜索面板需要跟随 visualViewport 适配移动端键盘，
+ * 并由搜索交互统一管理输入焦点与结果列表。
  *
  * 尺寸链路：overlay 用 flex 居中，高度跟随 --vv-height（visualViewport），
  * 卡片 max-height 再扣掉上下边距——移动端键盘弹出时卡片不会被顶出屏幕。

@@ -4,7 +4,7 @@
  *
  * 壳子交给 antd Modal（焦点陷阱 / Esc / 遮罩都是现成的），
  * 这里只排版它内部的两栏：左侧分组导航 + 右侧内容。
- * antd 的 cssVar 类会打在 .ant-modal 自身上，所以这些 var(--ant-color-*) 在 portal 里照样能取到。
+ * Portal 上的 .ant-modal-root 保留 antd CSS 变量作用域，所以这些 var(--ant-color-*) 在弹窗里照样能取到。
  */
 .dash-settings {
   display: flex;

@@ -43,8 +43,7 @@ export function BoardLoadAlert({
       <Alert
         type="error"
         showIcon
-        closable
-        onClose={() => setDismissed(true)}
+        closable={{ onClose: () => setDismissed(true) }}
         title="看板数据读取失败，已载入默认看板"
         description={FAILURE_TEXT[failure]}
         action={
