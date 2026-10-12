@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { App, ConfigProvider } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
 import { BoardPersistence } from '../state/board-persistence.tsx'
@@ -19,6 +19,7 @@ import type { ReactNode } from 'react'
  */
 export function AppProviders({ children }: { children: ReactNode }): ReactNode {
   const themeKey = useTheme()
+  const theme = useMemo(() => createAppTheme(themeKey), [themeKey])
 
   /*
    * 主题 CSS 变量定义在 `[data-dash-theme='<key>']` 上，属性必须挂到 <html>：
@@ -32,7 +33,7 @@ export function AppProviders({ children }: { children: ReactNode }): ReactNode {
   return (
     <ConfigProvider
       locale={zhCN}
-      theme={createAppTheme(themeKey)}
+      theme={theme}
       // 表单校验的默认文案走 antd 中文包，这里只补两条项目内更常用的
       form={{
         validateMessages: {

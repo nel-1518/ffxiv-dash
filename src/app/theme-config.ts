@@ -13,6 +13,8 @@ const PAGE_BACKGROUND = '#efeaea'
  * （`--dash-*` 变量 + `[data-dash-theme]` 作用域）。
  */
 const BASE_THEME: ThemeConfig = {
+  hashed: false,
+  cssVar: { key: 'ffxiv-dash' },
   token: {
     colorBgLayout: PAGE_BACKGROUND,
   },
@@ -23,6 +25,8 @@ const BASE_THEME: ThemeConfig = {
 export function createAppTheme(key: ThemeKey): ThemeConfig {
   const { antd } = getThemeSpec(key)
   return {
+    ...antd,
+    ...BASE_THEME,
     algorithm: antd.algorithm,
     token: { ...BASE_THEME.token, ...antd.token },
     components: { ...BASE_THEME.components, ...antd.components },

@@ -31,7 +31,7 @@ src/
     AppProviders.tsx        ConfigProvider(中文/主题) → App → ErrorBoundary → BoardPersistence + AutoOpenLinks
     ErrorBoundary.tsx       整站渲染错误边界（组件卡另有单卡边界，见 WidgetRenderer）
     AutoOpenLinks.tsx       「每日自动跳转」：每天首次进入页面时自动打开设置里的链接
-    theme-config.ts         基线主题 + 把主题规格合成 antd ThemeConfig
+    theme-config.ts         基线主题 + 稳定 CSS 变量作用域 + 把主题规格合成 antd ThemeConfig
     AppShell.tsx            布局外壳；将来接路由的挂载点
     background-layer.ts     生效档案 + 主题预设 → 背景层样式（纯函数）
     themes/                 八套主题，一套一个文件夹（<key>/index.ts 令牌 + theme.css 变量）
@@ -269,7 +269,9 @@ src/app/themes/<key>/theme.css    该主题的 --dash-* 变量（按需）
 
 ## 已知事项
 
-- 构建产物主包约 1.37 MB（gzip 约 442 kB），是 antd 全量引入的正常水平；如需优化可做 codeSplitting 或按需引入。
+- 构建产物主包约 1.39 MB（gzip 约 449 kB），包含 antd 与全部内置组件；如需进一步减小首屏资源，可做 codeSplitting 或按需引入。
+- `ConfigProvider` 使用稳定的 CSS 变量 key，并在仅有一份 antd 的前提下关闭 hashed 类名以减少运行时样式开销；`AppProviders` 按当前主题缓存 `ThemeConfig`，只有切换主题时才重建。
+- 不启用 antd 的 `zeroRuntime`：主题令牌与用户外观设置需要在运行时切换，静态样式无法完整覆盖这些配置。
 
 ## 参考
 
