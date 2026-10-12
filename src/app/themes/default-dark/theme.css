@@ -6,6 +6,9 @@
  */
 
 [data-dash-theme='default-dark'] {
+  --dash-selection-bg: #69b1ff;
+  --dash-selection-color: #102a43;
+
   /* 与 token.colorBgLayout 一致（global.css 里 html/body 的兜底也用这个） */
   --dash-page-bg: #000000;
 
@@ -16,4 +19,11 @@
   --dash-shadow-xl: 0 12px 32px -8px rgba(0, 0, 0, 0.9), 0 2px 8px rgba(0, 0, 0, 0.7);
   --dash-link-lift-shadow:
     -2px 5px 14px -3px rgba(0, 0, 0, 0.85), 0 0 2px 0 rgb(255 255 255 / 0.28);
+}
+
+[data-dash-theme='default-dark'],
+[data-dash-theme='default-dark'] * {
+  --ant-color-link: #69b1ff;
+  --ant-color-link-hover: #91caff;
+  --ant-color-link-active: #4096ff;
 }

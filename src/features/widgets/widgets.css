@@ -393,13 +393,14 @@
 }
 
 .dash-note-md a {
-  color: var(--ant-color-primary);
+  color: var(--ant-color-link, var(--ant-color-primary));
   text-decoration: none;
 }
 
 /* 触屏的 :hover 会粘住，只在指针设备上下划线 */
 @media (hover: hover) and (pointer: fine) {
   .dash-note-md a:hover {
+    color: var(--ant-color-link-hover, var(--ant-color-link, var(--ant-color-primary)));
     text-decoration: underline;
   }
 }

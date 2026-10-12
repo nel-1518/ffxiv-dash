@@ -11,7 +11,7 @@ src/app/themes/
   appearance-sync.ts   主题出厂档案 factoryProfile / readThemeProfile + initSystemFollow
   hooks.ts             useThemeProfile(key)：出厂档案 + 用户改动
   <key>/index.ts       该主题的 antd 令牌 + 元信息
-  <key>/theme.css      该主题的 `--dash-*` 变量（按需）
+  <key>/theme.css      该主题的 `--dash-*` 变量（按需，含文字选中色）
 ```
 
 主题键 = 资料片英文名（默认两套除外），与 `public/bg/<n>-<key>.jpg` 一一对应（默认两套不带背景图）。
@@ -23,6 +23,7 @@ src/app/themes/
 3. `themes/index.ts` 的注册表加一行
 4. 需要背景图就放进 `public/bg/`
 5. 卡片是浅色的，从另一套浅色主题的 `theme.css` 照抄
+6. 为每套主题定义 `--dash-selection-bg` / `--dash-selection-color`，避免文字选中颜色随系统明暗模式改变
 
 删除时反向操作即可 —— **不需要清理任何残留**（变量没定义就回落到 `global.css` 的 `:root` 默认值）。
 
@@ -69,6 +70,7 @@ src/app/themes/
 - 填充与描边换成"深色叠加"—— 深色主题里它们是白色叠加，亮卡上等于隐形
 - **控件底色**（`--ant-color-bg-container`）换成浅色 —— 深色主题给的是深色，卡里的按钮 / 输入框会变成**一块深斑**
 - **主色**（`--ant-color-primary`）换成浅底版 —— 深色主题的主色是为暗底提亮的，压在浅卡上只有约 2.4:1
+- **链接色**（`--ant-color-link` 及 hover / active）也换成浅底版 —— 深色主题生成的链接强调色在亮卡上对比不足，悬停与按下状态应继续加深而非降低可读性
 - 组件级 token（`--ant-progress-*`、`--ant-button-text-*`、error 族）要**按名字**点掉 —— 它们是构建时算好后写死的字面量，不回头读 `--ant-color-*`
 
 主色**必须手给浅底版**，antd 不会帮你压深：`getDesignToken` 在浅色算法下返回的就是种子色本身，而主题的种子本来就是为深底挑的。进度环的颜色是 `--ant-progress-default-color`，**不跟**主色，要同步点掉。

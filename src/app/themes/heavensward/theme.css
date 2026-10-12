@@ -1,10 +1,13 @@
 /*
  * 苍穹（Heavensward）—— antd 令牌管不到的那部分。
- * 色值取自官方专题站（老版官网）的样式表：近黑底 `#141414` + 冰蓝白标题 `#e5f4ff`，
+ * 色值取自官方专题站的样式表：近黑底 `#141414` + 冰蓝白标题 `#e5f4ff`，
  * 卡片刻意走同族的深蓝黑（站点面板是"白底 + 深蓝描边"，这里只把那两个蓝拿来做底与边）。
  */
 
 [data-dash-theme='heavensward'] {
+  --dash-selection-bg: #9fd2ef;
+  --dash-selection-color: #0f1117;
+
   --dash-page-bg: #0f1117;
 
   --dash-card-rgb: 31 38 51;
@@ -14,9 +17,9 @@
   --dash-card-border-width: 1px;
   --dash-card-title-color: #e5f4ff;
 
-  --dash-card-shadow: 0 2px 10px -2px rgb(6 9 16 / 0.55), 0 1px 2px rgb(6 9 16 / 0.35);
+  --dash-card-shadow: 0 2px 8px -2px rgb(6 9 16 / 0.42), 0 1px 2px rgb(6 9 16 / 0.28);
   --dash-link-lift-shadow:
-    -2px 5px 16px -3px rgba(92, 127, 153, 0.5), 0 0 2px 0 rgb(204 234 255 / 0.4);
+    -1px 4px 12px -3px rgba(92, 127, 153, 0.32), 0 0 2px 0 rgb(204 234 255 / 0.22);
   --dash-shadow-xl: 0 12px 32px -8px rgba(4, 7, 14, 0.72), 0 2px 8px rgba(4, 7, 14, 0.5);
 
   /* 四周暗角（八套里唯一用到它的主题），画在背景图之上，见 global.css 的 .dash-bg::after */

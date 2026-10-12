@@ -6,6 +6,9 @@
  */
 
 [data-dash-theme='shadowbringers'] {
+  --dash-selection-bg: #a299ff;
+  --dash-selection-color: #130f2e;
+
   --dash-page-bg: #0d0b12;
 
   --dash-card-rgb: 26 25 38;
@@ -32,8 +35,8 @@
   [data-dash-theme='shadowbringers'] .dash-link-cell:hover > .dash-link-card {
     --dash-card-bg-hover: linear-gradient(
       to right,
-      rgb(80 71 178 / 0.92) 0%,
-      rgb(4 0 51 / 0.86) 100%
+      rgb(80 71 178 / 0.8) 0%,
+      rgb(4 0 51 / 0.7) 100%
     );
   }
 }

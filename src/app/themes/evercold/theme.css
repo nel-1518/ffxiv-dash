@@ -5,6 +5,9 @@
  */
 
 [data-dash-theme='evercold'] {
+  --dash-selection-bg: #73bfe6;
+  --dash-selection-color: #102b3a;
+
   --dash-page-bg: #10161d;
 
   --dash-card-rgb: 255 255 255;
@@ -14,8 +17,8 @@
   --dash-card-border-width: 0;
   --dash-card-title-color: #586b93;
 
-  --dash-card-shadow: 0 0 2px 0 rgb(255 255 255 / 0.55), 0 0 10px 0 rgba(255, 255, 255, 0.18);
-  --dash-link-lift-shadow: 0 0 2px 0 rgb(255 255 255 / 0.55), 0 0 10px 0 rgba(255, 255, 255, 0.18);
+  --dash-card-shadow: 0 1px 3px 0 rgb(255 255 255 / 0.28), 0 4px 12px 0 rgba(255, 255, 255, 0.1);
+  --dash-link-lift-shadow: 0 2px 6px 0 rgb(255 255 255 / 0.24), 0 0 6px 0 rgba(255, 255, 255, 0.12);
   --dash-shadow-xl: 0 12px 32px -8px rgba(3, 10, 18, 0.62), 0 2px 8px rgba(3, 10, 18, 0.42);
 }
 
@@ -41,12 +44,18 @@
 
   /* 主色：深色主题为暗底把它提亮了，落在浅卡上不够深，这里给一支浅底版 */
   --ant-color-primary: #457c9c;
+  --ant-color-link: #2b6380;
+  --ant-color-link-hover: #24536c;
+  --ant-color-link-active: #1b4156;
   /* 主色的几种"淡底"在深色算法下是深色，落到亮卡上会变成一块脏色 */
   --ant-color-primary-bg: rgb(101 165 199 / 0.14);
   --ant-color-primary-border: rgb(101 165 199 / 0.35);
 
   /* 卡内控件的底色：深色主题给的是深色，落在浅卡上会变成一块深斑（进度卡的加减按钮） */
   --ant-color-bg-container: #ffffff;
+  /* Input 的 hover / focus 底色是组件级 token，不会随容器色覆盖而变 */
+  --ant-input-hover-bg: #ffffff;
+  --ant-input-active-bg: #ffffff;
 
   /* 填充与交互底：深色主题里它们都是"白色叠加"，亮卡上等于看不见 */
   --ant-color-fill: rgb(107 131 179 / 0.2);

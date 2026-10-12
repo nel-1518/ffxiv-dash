@@ -1,6 +1,9 @@
 /* 金曦（Dawntrail）—— antd 令牌管不到的那部分（取色来源见 index.ts）。 */
 
 [data-dash-theme='dawntrail'] {
+  --dash-selection-bg: #ffcc33;
+  --dash-selection-color: #241b08;
+
   --dash-page-bg: #16140f;
 
   /* 单色卡片：两端相同，全局模板拼出来的 linear-gradient 就退化成纯色（链接卡共用） */
@@ -12,6 +15,6 @@
   --dash-card-title-color: #e8cc70;
 
   --dash-link-lift-shadow:
-    -2px 5px 16px -3px rgba(255, 200, 90, 0.28), 0 0 2px 0 rgb(255 244 128 / 0.35);
+    -1px 4px 12px -3px rgba(255, 200, 90, 0.2), 0 0 2px 0 rgb(255 244 128 / 0.24);
   --dash-shadow-xl: 0 12px 32px -8px rgba(10, 6, 0, 0.72), 0 2px 8px rgba(10, 6, 0, 0.5);
 }

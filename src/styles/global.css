@@ -51,12 +51,24 @@
    */
   --dash-card-rgb: 255 255 255;
   --dash-card-rgb-2: 255 255 255;
+  --dash-selection-bg: #1677ff;
+  --dash-selection-color: #ffffff;
   /*
    * 卡片常驻的投影。参考专题站的信息卡，主题可以给一圈“纯白外发光”而不是深色投影。
    * ⚠️ 默认值必须是一条**合法的投影**而不是 `none`：它会被拼进 `box-shadow` 列表
    * （链接卡悬停时是「浮起投影, 常驻投影」），列表里出现 `none` 会让整条声明失效。
    */
   --dash-card-shadow: 0 0 #0000;
+}
+
+::selection {
+  color: var(--dash-selection-color);
+  background-color: var(--dash-selection-bg);
+}
+
+::-moz-selection {
+  color: var(--dash-selection-color);
+  background-color: var(--dash-selection-bg);
 }
 
 * {

@@ -13,6 +13,7 @@ export const defaultDarkSpec: ThemeSpec = {
     token: {
       /* 基线里的 colorBgLayout 是浅灰（app/theme-config.ts 的 PAGE_BACKGROUND），深色必须盖掉 */
       colorBgLayout: '#0A0A0A',
+      colorLink: '#69b1ff',
     },
   },
   cards: { alpha: 100, blur: 0 },

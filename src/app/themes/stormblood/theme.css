@@ -3,6 +3,9 @@
  */
 
 [data-dash-theme='stormblood'] {
+  --dash-selection-bg: #ffdf5d;
+  --dash-selection-color: #5c0d0d;
+
   --dash-page-bg: #5c0d0d;
 
   --dash-card-rgb: 128 17 17;
@@ -10,13 +13,23 @@
   --dash-card-radius: 8px;
   --dash-card-radius-sm: 6px;
   --dash-card-border-width: 0;
-  --dash-card-title-color: #e5d473;
+  --dash-card-title-color: #ffe082;
 
   /* 站点导航条是"内嵌上缘亮线 + 一层外投影"，卡片照这个"形"走（亮线压淡一档） */
-  --dash-card-shadow: 0 1px 0 0 rgb(255 255 255 / 0.07) inset, 0 2px 8px 0 rgb(0 0 0 / 0.35);
+  --dash-card-shadow: 0 1px 0 0 rgb(255 255 255 / 0.06) inset, 0 2px 7px 0 rgb(0 0 0 / 0.28);
   --dash-link-lift-shadow:
-    -2px 5px 16px -3px rgba(204, 41, 41, 0.55), 0 0 2px 0 rgb(255 123 123 / 0.4);
+    -1px 4px 12px -3px rgba(204, 41, 41, 0.34), 0 0 2px 0 rgb(255 123 123 / 0.22);
   --dash-shadow-xl: 0 12px 32px -8px rgba(20, 2, 2, 0.72), 0 2px 8px rgba(20, 2, 2, 0.5);
+}
+
+[data-dash-theme='stormblood'],
+[data-dash-theme='stormblood'] * {
+  --ant-color-primary: #ffcc33;
+  --ant-color-primary-hover: #ffe082;
+  --ant-color-primary-active: #e6ad24;
+  --ant-color-link: #ffdf5d;
+  --ant-color-link-hover: #fff1b8;
+  --ant-color-link-active: #f4c542;
 }
 
 /*
