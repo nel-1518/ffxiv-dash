@@ -1,12 +1,15 @@
 /*
- * 全局基础样式（令牌、基线、背景层、卡片材质、页面布局、全局动效兜底）。
- * 各域样式已拆到 features 下各域目录的同名 css（widgets / search / settings /
- * dashboard / groups / navigation），由各自入口组件引入。
- * 所有颜色都引用 antd 的 CSS 变量，因此切换主题时这里会自动跟随。
- */
-/*
  * 全局基础样式。
  *
+ * 本文件按层级只承载跨域的部分：
+ *   ① 设计令牌 :root 的 --dash-* 变量（主题的 theme.css 可覆盖其中一部分）；
+ *   ② 元素基线（box-sizing / selection / 链接下划线）；
+ *   ③ 页面布局（背景层、内容列、顶栏对齐）；
+ *   ④ 共享卡片材质（.dash-card-surface，组件卡与导航卡、主题共同依赖的那层）；
+ *   ⑤ 全局动效兜底。
+ *
+ * 各域样式已拆到 features 下各域目录的同名 css（widgets / search / settings /
+ * dashboard / groups / navigation），由各自入口组件引入。
  * 所有颜色都引用 antd 的 CSS 变量，因此切换主题时这里会自动跟随。
  */
 
@@ -22,6 +25,15 @@
     'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   /* 页面底色。与 theme-config.ts 的 token.colorBgLayout 保持一致。 */
   --dash-page-bg: #f0f2f5;
+  /*
+   * 组件卡内容的纵向预算（px）。
+   *
+   * 「读数卡跟随本行最高卡撑高」时，内部内容最多长到这个数：
+   * 164 = 235（PvP 地图轮换卡单独一张时的卡高）− 72（卡片头 + 卡面上下内边距）。
+   * 需要这个数的三处 —— `.dash-card-fill`、`.dash-note--editing`、`.dash-aurora`（均在
+   * widgets.css）—— 都引用本令牌，改卡片尺寸后只需改这里（推导过程见 widgets.css 的注释）。
+   */
+  --dash-card-content-max: 164px;
   /*
    * 页面顶部留白。
    * 由顶栏那条元素自己吃掉（它要顶到页面最上边），所以单独抽成变量：
@@ -66,11 +78,6 @@
   background-color: var(--dash-selection-bg);
 }
 
-::-moz-selection {
-  color: var(--dash-selection-color);
-  background-color: var(--dash-selection-bg);
-}
-
 * {
   box-sizing: border-box;
 }
@@ -91,7 +98,6 @@ html,
 body {
   background-color: var(--ant-color-bg-layout, var(--dash-page-bg));
 }
-
 body {
   font-family: var(--dash-font-family);
   min-height: 100svh;
@@ -276,12 +282,8 @@ h2.ant-typography {
   font-size: 24px;
 }
 
-/* 卡片网格里的链接卡片：整块可点，但不继承下划线 */
+/* 卡片网格里的链接卡片：整块可点，但不继承下划线（悬停同样保持无下划线） */
 a {
-  text-decoration: none;
-}
-
-a:hover {
   text-decoration: none;
 }
 

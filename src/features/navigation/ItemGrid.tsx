@@ -34,7 +34,7 @@ export type ItemGridProps = {
  *
  * 排布用 CSS Grid 而不是 antd 的 Row/Col：列数可由用户按 1-6 配置，
  * 而 24 栅格切不出 5 列这种整数之外的份数。列数通过自定义属性下发，
- * 窄屏由 global.css 的媒体查询自动降列（列数越多降得越狠）；间距也由 global.css
+ * 窄屏由 navigation.css 的媒体查询自动降列（列数越多降得越狠）；间距也由 navigation.css
  * 按分组类型给（网页导航 8px、组件 12px）。
  *
  * 这里还给本组卡片套了一层 SortableContext：卡片的"让位动画"需要
@@ -62,7 +62,7 @@ export const ItemGrid = memo(function ItemGrid({
     )
   }
 
-  // 组件分组统一卡片高度（见 global.css 的 .dash-item-grid--widget）
+  // 组件分组统一卡片高度（见 navigation.css 的 .dash-item-grid--widget）
   const gridClassName = groupType === 'widget' ? 'dash-item-grid dash-item-grid--widget' : 'dash-item-grid'
 
   // 窄屏降列：中屏最多 3 列、小屏最多 2 列、手机 1 列

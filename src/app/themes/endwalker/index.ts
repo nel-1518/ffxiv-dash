@@ -1,5 +1,7 @@
 import { theme as antdTheme } from 'antd'
 import type { ThemeSpec } from '../types.ts'
+// 亮卡翻色的共享令牌块（本主题只补 --dash-lightcard-* 取值，见 theme.css）
+import '../light-card.css'
 import './theme.css'
 
 /**

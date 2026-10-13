@@ -78,7 +78,7 @@ function HeadAction({
  * 分组是为了少误点：六颗图标排成一行时，"左边管位置、右边管内容"一眼可辨。
  *
  * ⚠️ 窄面板里按钮会跟分组名抢宽度：装不下时由 CSS 把整组按钮换到第二行、
- * 把「类型 · 项数」交给省略号（见 global.css 的表头一节）。
+ * 把「类型 · 项数」交给省略号（见 groups.css 的表头一节）。
  * 规则挂在 `.dash-group-actions` / `.dash-group-meta` 上，改按钮数量时要一起复核。
  */
 export const GroupPanel = memo(function GroupPanel({

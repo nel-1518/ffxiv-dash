@@ -10,8 +10,9 @@ src/app/themes/
   types.ts             ThemeSpec / ThemeBackground / ThemeCards
   appearance-sync.ts   主题出厂档案 factoryProfile / readThemeProfile + initSystemFollow
   hooks.ts             useThemeProfile(key)：出厂档案 + 用户改动
+  light-card.css       亮色卡片上的 antd 组件翻色（evercold / endwalker 共用，见该文件头注释）
   <key>/index.ts       该主题的 antd 令牌 + 元信息
-  <key>/theme.css      该主题的 `--dash-*` 变量（按需，含文字选中色）
+  <key>/theme.css      该主题的 `--dash-*` 变量（按需；有的主题没有这个文件）
 ```
 
 主题键 = 资料片英文名（默认两套除外），与 `public/bg/<n>-<key>.jpg` 一一对应（默认两套不带背景图）。
@@ -22,7 +23,8 @@ src/app/themes/
 2. `core/theme-preference.ts` 的 `ThemeKey` 联合与 `THEME_KEYS` 各加一行
 3. `themes/index.ts` 的注册表加一行
 4. 需要背景图就放进 `public/bg/`
-5. 卡片是浅色的，从另一套浅色主题的 `theme.css` 照抄
+5. 卡片是浅色的，在 `index.ts` 里顺带 `import '../light-card.css'`，并在 `theme.css` 的
+   `[data-dash-theme='<key>']` 块上补一对 `--dash-lightcard-*` 变量（语义见 `light-card.css`）
 6. 为每套主题定义 `--dash-selection-bg` / `--dash-selection-color`，避免文字选中颜色随系统明暗模式改变
 
 删除时反向操作即可 —— **不需要清理任何残留**（变量没定义就回落到 `global.css` 的 `:root` 默认值）。

@@ -66,7 +66,7 @@ export const SortableCard = memo(function SortableCard({
   const handleRemove = useCallback(() => boardActions.removeItem(groupId, item.id), [groupId, item.id])
 
   /*
-   * 悬停浮起（见 global.css 的 .dash-link-cell）只在浏览模式的链接卡片上启用。
+   * 悬停浮起（见 navigation.css 的 .dash-link-cell）只在浏览模式的链接卡片上启用。
    * 类名挂在**网格单元**而不是卡片上：卡片抬起后会从指针下方移开，
    * 判定挂在卡片上会立刻失焦、来回抖动；单元本身不动，是稳定的判定面。
    */

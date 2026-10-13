@@ -13,7 +13,7 @@
  */
 .dash-card-fill {
   flex: 1 1 auto;
-  max-height: 164px;
+  max-height: var(--dash-card-content-max, 164px);
 }
 
 /*
@@ -27,6 +27,109 @@
   flex-direction: column;
   min-width: 0;
   color: inherit;
+}
+
+/*
+ * 共享工具层
+ * ——  这里承载同一批声明在多张卡里逐字重复的部分；各卡的规则块只保留自己的差异。
+ * 新的选择器加进对应分组时，注意保持分组注释里登记的那份清单与实际一致。
+ */
+
+/*
+ * 省略号三件套（`min-width: 0` + 单行 + 省略）。
+ * flex 网格里"窄卡先被省略号吃掉的是它"的那一类元素共用；
+ * 字号 / 颜色等差异留在各卡自己的规则块里。
+ */
+.dash-todo-rule,
+.dash-todo-item .dash-todo-check > :last-child,
+.dash-rest-hint,
+.dash-aurora-zone,
+.dash-aurora-slot-day,
+.dash-news-title,
+.dash-goldtrial-terri-name,
+.dash-goldtrial-value,
+.dash-calendar-name,
+.dash-calendar-range {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/*
+ * 卡内滚动容器共用的细滚动条。
+ * 标准属性 `scrollbar-width: thin`（Firefox 只认它）+ webkit 伪元素三件套（Chromium）。
+ * 拇指悬停加深一档只给本来就有这条反馈的容器 —— 税率卡与极光卡原本没有，不追加，
+ * 否则悬停表现就不只是"合并"而是"新增"了。
+ */
+.dash-todo-scroll,
+.dash-note-scroll,
+.dash-note-input,
+.dash-tax-places,
+.dash-aurora,
+.dash-news-scroll,
+.dash-calendar-scroll {
+  scrollbar-width: thin;
+}
+
+.dash-todo-scroll::-webkit-scrollbar,
+.dash-note-scroll::-webkit-scrollbar,
+.dash-note-input::-webkit-scrollbar,
+.dash-tax-places::-webkit-scrollbar,
+.dash-aurora::-webkit-scrollbar,
+.dash-news-scroll::-webkit-scrollbar,
+.dash-calendar-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+/* 待办列表两个方向都滚都给 8px；备忘滚动层原来也是这个值，一并保留 */
+.dash-todo-scroll::-webkit-scrollbar,
+.dash-note-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.dash-todo-scroll::-webkit-scrollbar-track,
+.dash-note-scroll::-webkit-scrollbar-track,
+.dash-note-input::-webkit-scrollbar-track,
+.dash-tax-places::-webkit-scrollbar-track,
+.dash-aurora::-webkit-scrollbar-track,
+.dash-news-scroll::-webkit-scrollbar-track,
+.dash-calendar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dash-todo-scroll::-webkit-scrollbar-thumb,
+.dash-note-scroll::-webkit-scrollbar-thumb,
+.dash-note-input::-webkit-scrollbar-thumb,
+.dash-tax-places::-webkit-scrollbar-thumb,
+.dash-aurora::-webkit-scrollbar-thumb,
+.dash-news-scroll::-webkit-scrollbar-thumb,
+.dash-calendar-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--ant-color-fill-secondary, rgba(0, 0, 0, 0.06));
+}
+
+.dash-todo-scroll::-webkit-scrollbar-thumb:hover,
+.dash-note-scroll::-webkit-scrollbar-thumb:hover,
+.dash-note-input::-webkit-scrollbar-thumb:hover,
+.dash-news-scroll::-webkit-scrollbar-thumb:hover,
+.dash-calendar-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--ant-color-fill, rgba(0, 0, 0, 0.15));
+}
+
+/*
+ * 空态占位：空腹虚线块，读成"待填的格子"而不是"渲染失败"（待办 / 备忘 / 倒数日同形）。
+ */
+.dash-todo-empty,
+.dash-note-empty,
+.dash-countdown-empty {
+  padding: 18px 14px;
+  border: 1px dashed var(--ant-color-border, #d9d9d9);
+  border-radius: 10px;
+  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
 }
 
 /*
@@ -69,13 +172,7 @@
   color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
 }
 
-/* 刷新规则：窄卡里先被省略号吃掉的是它，进度永远留着 */
-.dash-todo-rule {
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+/* 刷新规则：窄卡里先被省略号吃掉的是它（省略号三件套见共享工具层），进度永远留着 */
 
 /* 完成进度：等宽数字（跳动时宽度不抖），比说明文字更显眼一档 */
 .dash-todo-progress {
@@ -89,33 +186,13 @@
   color: var(--ant-color-primary);
 }
 
-/* 滚动只挂在这一层：里面那层网格的高度始终等于内容高度 */
+/* 滚动只挂在这一层：里面那层网格的高度始终等于内容高度（细滚动条见共享工具层） */
 .dash-todo-scroll {
   flex: 1 1 auto;
   /* ⚠️ 必须有：flex 项的自动最小尺寸等于内容大小，不归零会把卡片顶破上限 */
   min-height: 0;
   /* 两个方向都要能滚到：列数顶到上限（20 项 / 窄卡）时会横向溢出 */
   overflow: auto;
-  /* 细滚动条：默认那根 15px 宽的会明显吃掉列表宽高（Firefox 只认这一行，Chromium 还有下面一套） */
-  scrollbar-width: thin;
-}
-
-.dash-todo-scroll::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.dash-todo-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.dash-todo-scroll::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: var(--ant-color-fill-secondary, rgba(0, 0, 0, 0.06));
-}
-
-.dash-todo-scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--ant-color-fill, rgba(0, 0, 0, 0.15));
 }
 
 .dash-todo-list {
@@ -172,13 +249,8 @@
  * ⚠️ antd 会把 children 再包一层（`<span class="ant-checkbox-label">`），**那层才是 flex 项**：
  * 不写 `min-width: 0` 就永远是"整段文字的宽度"，省略号无从谈起（实测：项宽 138px、文字盒 268px，
  * 被裁得干巴巴、没有省略号）。这里用结构选择器而不是 antd 类名 —— 类名在 antd 6 里改过好几处。
+ * （省略号三件套在共享工具层。）
  */
-.dash-todo-item .dash-todo-check > :last-child {
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
 
 .dash-todo-text {
   font-size: 12px;
@@ -198,16 +270,7 @@
   }
 }
 
-/* 空态与倒数日同形：一块虚线占位，读成"待填的格子"而不是"渲染失败" */
-.dash-todo-empty {
-  padding: 18px 14px;
-  border: 1px dashed var(--ant-color-border, #d9d9d9);
-  border-radius: 10px;
-  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
-}
+/* 空态与倒数日同形（见共享工具层）：虚线占位，"待填的格子" */
 
 /*
  * 备忘卡
@@ -229,31 +292,12 @@
   min-width: 0;
 }
 
-/* 预览态的滚动层：markdown 那层的高度始终等于内容高度，所以滚动只挂在这一层 */
+/* 预览态的滚动层：markdown 那层的高度始终等于内容高度，所以滚动只挂在这一层（细滚动条见共享工具层） */
 .dash-note-scroll {
   flex: 1 1 auto;
   /* ⚠️ 必须有：flex 项的自动最小尺寸等于内容大小，不归零会把卡片顶破上限 */
   min-height: 0;
   overflow: auto;
-  scrollbar-width: thin;
-}
-
-.dash-note-scroll::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.dash-note-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.dash-note-scroll::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: var(--ant-color-fill-secondary, rgba(0, 0, 0, 0.06));
-}
-
-.dash-note-scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--ant-color-fill, rgba(0, 0, 0, 0.15));
 }
 
 /*
@@ -414,8 +458,9 @@
 /*
  * 编辑态的输入框。
  *
- * ⚠️ **它是编辑态唯一的滚动容器**（外面不再套 `.dash-note-scroll`），高度写死 164px ——
- * 与 `.dash-card-fill` 的上限同一个数，改一个要改另一个。
+ * ⚠️ **它是编辑态唯一的滚动容器**（外面不再套 `.dash-note-scroll`），高度写死
+ * `var(--dash-card-content-max)`（= 164px，见 global.css 的令牌）——
+ * 与 `.dash-card-fill` 的上限同一个数，改全场都走那一个令牌。
  *
  * 为什么不沿用"autoSize 撑高 + 外层滚动"：autoSize 的高度是**测量**出来的，而测量可能发生在
  * 布局还没定下来的那一刻（实测刚进编辑态时量到 795.6px，而按最终宽度排完要 1402px，差 600 多像素）。
@@ -425,48 +470,22 @@
  * 代价是短文本在编辑时也是这么高（提交后卡片会收回内容高度）。
  */
 .dash-note--editing {
-  height: 164px;
+  height: var(--dash-card-content-max, 164px);
 }
 
 .dash-note-input {
   flex: 1 1 auto;
-  /* ⚠️ 必须有：flex 项的自动最小尺寸等于内容尺寸，不归零会被内容撑破上面那个 164px */
+  /* ⚠️ 必须有：flex 项的自动最小尺寸等于内容尺寸，不归零会被内容撑破上面那个预算 */
   min-height: 0;
   resize: none;
   font-family: inherit;
   font-size: 12.5px;
   line-height: 1.6;
-  /* 细滚动条：默认那根 15px 宽的会明显吃掉输入框的宽高（与 `.dash-note-scroll` 同一套） */
-  scrollbar-width: thin;
 }
 
-.dash-note-input::-webkit-scrollbar {
-  width: 8px;
-}
-
-.dash-note-input::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.dash-note-input::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: var(--ant-color-fill-secondary, rgba(0, 0, 0, 0.06));
-}
-
-.dash-note-input::-webkit-scrollbar-thumb:hover {
-  background: var(--ant-color-fill, rgba(0, 0, 0, 0.15));
-}
-
-/* 空态与待办卡同形，但它是"可双击的格子"，所以光标与提示都跟着正文走 */
+/* 空态与待办卡同形（见共享工具层）。光标与提示都跟着正文走（它是"可双击的格子"） */
 .dash-note-empty {
-  padding: 18px 14px;
-  border: 1px dashed var(--ant-color-border, #d9d9d9);
-  border-radius: 10px;
-  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
   cursor: text;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
 }
 
 /*
@@ -516,13 +535,7 @@
   color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
 }
 
-/* 右侧小字：窄卡里先被省略号吃掉（全文靠 title） */
-.dash-rest-hint {
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
+/* 右侧小字：窄卡里先被省略号吃掉（省略号三件套见共享工具层；全文靠 title） */
 
 /*
  * 环内读数：只写整分钟（`30min`）。
@@ -967,27 +980,14 @@
   flex: 1 1 auto;
   /* ⚠️ 必须有：flex 项的自动最小尺寸等于内容大小，不归零会把卡片顶破上限 */
   min-height: 0;
+  /* 细滚动条见共享工具层 */
   overflow: auto;
-  scrollbar-width: thin;
   /*
    * 这一层本身是整块可点的 <a>（跳 Universalis）：清掉链接默认的下划线与颜色，
    * 文字颜色由里面的城市名 / 说明句各自决定。
    */
   color: inherit;
   text-decoration: none;
-}
-
-.dash-tax-places::-webkit-scrollbar {
-  width: 8px;
-}
-
-.dash-tax-places::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.dash-tax-places::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: var(--ant-color-fill-secondary, rgba(0, 0, 0, 0.06));
 }
 
 /* 一组减税地点：城市名 + 活动说明，读作同一段文字（两个 span 行内接续） */
@@ -1166,18 +1166,9 @@
 }
 
 /*
- * 「日」跟着数字一起缩放，但只到数字的三分之一左右：
- * 太小会被大数字吞掉、太大又会跟数字抢焦点。
- * 颜色取状态色再压淡，自动跟着今天/已过去的换色走。
- *
- * 注意：当前渲染层**没有**这个元素 —— 单位由描述行「还有 X 日」读出来，
- * 数字旁边刻意留白。规则留着，是为了哪天想把它加回来时不用重写。
+ * 「日」这个元素：当前渲染层**没有**它 —— 单位由描述行「还有 X 日」读出来，
+ * 数字旁边刻意留白（原规则已按死代码清理；哪天要加回来，从 git 历史里取这个注释）。
  */
-.dash-countdown-unit {
-  font-size: clamp(14px, 8cqi, 20px);
-  color: var(--cd-accent);
-  opacity: 0.6;
-}
 
 /*
  * 事件/数字与说明之间的强调短线。
@@ -1231,10 +1222,6 @@
   --cd-accent: var(--ant-color-success, #52c41a);
 }
 
-.dash-countdown.is-today .dash-countdown-amount::before {
-  opacity: 0.2;
-}
-
 /*
  * 已经过去：强调色降到三级文字色（事件名保持正文色，信息仍要能读），
  * 把注意力让给还在倒数的那几张卡。
@@ -1246,17 +1233,8 @@
 /*
  * 还没选日期。
  * 卡片此刻没有任何主视觉，一行灰字悬在中间读起来像"出错了"；
- * 换成一块虚线占位：它把这张卡读成"待填的格子"，也顺手把编辑入口说清楚。
+ * 换成一块虚线占位（见共享工具层）：它把这张卡读成"待填的格子"，也顺手把编辑入口说清楚。
  */
-.dash-countdown-empty {
-  padding: 18px 14px;
-  border: 1px dashed var(--ant-color-border, #d9d9d9);
-  border-radius: 10px;
-  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
-}
 
 /*
  * 掷骰卡（/roll）
@@ -1428,22 +1406,9 @@
   flex-direction: column;
   gap: 8px;
   min-width: 0;
-  max-height: 164px;
+  max-height: var(--dash-card-content-max, 164px);
+  /* 细滚动条见共享工具层 */
   overflow: auto;
-  scrollbar-width: thin;
-}
-
-.dash-aurora::-webkit-scrollbar {
-  width: 8px;
-}
-
-.dash-aurora::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.dash-aurora::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: var(--ant-color-fill-secondary, rgba(0, 0, 0, 0.06));
 }
 
 /* 块：头部 + 窗口网格，留在顶部往下排 */
@@ -1473,12 +1438,8 @@
   background: var(--aurora-accent, var(--ant-color-primary));
 }
 
-/* 区域名：窄卡里先被省略号吃掉的是它（时间读数永远留着） */
+/* 区域名：窄卡里先被省略号吃掉的是它（省略号三件套见共享工具层；时间读数永远留着） */
 .dash-aurora-zone {
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
   font-size: 12px;
   font-weight: 600;
   line-height: 1.2;
@@ -1529,12 +1490,8 @@
   line-height: 1.35;
 }
 
-/* 相对日期：窄卡里先被省略号吃掉，时刻永远留着 */
+/* 相对日期：窄卡里先被省略号吃掉，时刻永远留着（省略号三件套见共享工具层） */
 .dash-aurora-slot-day {
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
   color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
 }
 
@@ -1561,7 +1518,7 @@
   gap: 10px;
 }
 
-/* 副本行：名字占满剩余宽度（窄卡先省略号吃掉），等级徽标固定靠右 */
+/* 副本行：名字占满剩余宽度（窄卡先省略号吃掉，三件套见共享工具层），等级徽标固定靠右 */
 .dash-goldtrial-terri {
   display: flex;
   align-items: center;
@@ -1571,10 +1528,6 @@
 }
 
 .dash-goldtrial-terri-name {
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
   font-size: 13px;
   font-weight: 600;
   color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
@@ -1615,10 +1568,6 @@
 }
 
 .dash-goldtrial-value {
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
   font-variant-numeric: tabular-nums;
   color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
 }
@@ -1677,24 +1626,7 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  scrollbar-width: thin;
-}
-
-.dash-news-scroll::-webkit-scrollbar {
-  width: 8px;
-}
-
-.dash-news-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.dash-news-scroll::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: var(--ant-color-fill-secondary, rgba(0, 0, 0, 0.06));
-}
-
-.dash-news-scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--ant-color-fill, rgba(0, 0, 0, 0.15));
+  /* 细滚动条见共享工具层 */
 }
 
 /*
@@ -1728,13 +1660,7 @@
   outline-offset: -2px;
 }
 
-/* 长标题省略号截断，悬停看全名（title 属性） */
-.dash-news-title {
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
+/* 长标题省略号截断（省略号三件套见共享工具层），悬停看全名（title 属性） */
 
 /*
  * 置顶行：整行染主色并加粗 —— 与「优先级」同一套语言（同待办卡的已完成色 / 试炼卡倒计时）。
@@ -1893,24 +1819,7 @@
   /* ⚠️ 必须有：flex 项的自动最小尺寸等于内容大小，不归零会把卡片顶破上限 */
   min-height: 0;
   overflow-y: auto;
-  scrollbar-width: thin;
-}
-
-.dash-calendar-scroll::-webkit-scrollbar {
-  width: 8px;
-}
-
-.dash-calendar-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.dash-calendar-scroll::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: var(--ant-color-fill-secondary, rgba(0, 0, 0, 0.06));
-}
-
-.dash-calendar-scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--ant-color-fill, rgba(0, 0, 0, 0.15));
+  /* 细滚动条见共享工具层 */
 }
 
 /*
@@ -1953,14 +1862,10 @@
 }
 
 /*
- * 活动名：加粗 13px，底下 2px 活动主题色下划线（颜色由 inline style 给）。
+ * 活动名：加粗 13px，底下 2px 活动主题色下划线（颜色由 inline style 给；省略号三件套见共享工具层）。
  * 默认透明下划线，保证"有没有颜色"都不改变行高。
  */
 .dash-calendar-name {
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
   padding-bottom: 1px;
   border-bottom: 2px solid transparent;
   font-size: 13px;
@@ -1988,10 +1893,6 @@
 
 /* 生效区间：最轻的一行 */
 .dash-calendar-range {
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
   font-size: 10.5px;
   font-variant-numeric: tabular-nums;
   color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45));

@@ -17,7 +17,7 @@
 }
 
 /*
- * 顶栏的底由 `.dash-card-surface`（见上面「卡片表面」那一节）统一提供：
+ * 顶栏的底由 `.dash-card-surface`（见 global.css 的「卡片表面」那一节）统一提供：
  * **与卡片同一套材质**（底色、毛玻璃、投影），无圆角，下面一条平直的下沿。
  */
 
@@ -164,18 +164,9 @@
   border-color: var(--ant-color-primary-border, rgba(5, 145, 255, 0.28));
 }
 
-/* 主按钮：正圆，与胶囊搜索框同一套大圆角语言 */
-.dash-topbar-primary.ant-btn {
-  flex: none;
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  padding: 0;
-  border-radius: 50%;
-  font-size: 15px;
-}
-
-/* 次级图标按钮（系统设置）：同尺寸同圆角，但没有主色底，不跟主按钮抢视线 */
+/* 圆形操作按钮：主按钮（新建）与次级图标按钮（系统设置）同尺寸同圆角，
+ * 与胶囊搜索框凑成一套 36px 的控件语言；主色与否、字号各归各的规则 */
+.dash-topbar-primary.ant-btn,
 .dash-topbar-icon.ant-btn {
   flex: none;
   width: 36px;
@@ -183,6 +174,14 @@
   min-width: 36px;
   padding: 0;
   border-radius: 50%;
+}
+
+.dash-topbar-primary.ant-btn {
+  font-size: 15px;
+}
+
+/* 次级图标按钮（系统设置）：没有主色底，不跟主按钮抢视线 */
+.dash-topbar-icon.ant-btn {
   font-size: 16px;
   color: var(--ant-color-text-secondary);
 }

@@ -110,7 +110,7 @@ export function MemoRender({ config, item }: WidgetRenderProps<MemoConfig>): Rea
   if (draft !== null) {
     return (
       /*
-       * 编辑态**不套** `.dash-note-scroll`：输入框自己就是唯一的滚动容器（见 global.css 的 `.dash-note--editing`）。
+       * 编辑态**不套** `.dash-note-scroll`：输入框自己就是唯一的滚动容器（见 widgets.css 的 `.dash-note--editing`）。
        *
        * ⚠️ 这里刻意**不用** antd 的 `autoSize`：它的高度是"测量"出来的，而测量可能发生在布局还没定下来的那一刻 ——
        * 实测刚进编辑态时量到 795.6px，而按最终宽度排完需要 1402px（差 600 多像素），于是输入框自己
@@ -147,7 +147,7 @@ export function MemoRender({ config, item }: WidgetRenderProps<MemoConfig>): Rea
         {/*
          * 双击提示有两半：这里的原生 `title`（悬停出系统提示）与 CSS 里的 `cursor: text`。
          * 刻意不用 antd Tooltip —— 卡片上每多一台 rc-trigger 机器，拖拽期间都要跟着 dnd-kit 的
-         * context 一起重渲染（见 global.css 里 `.dash-note-md` 的注释）。
+         * context 一起重渲染（见 widgets.css 里 `.dash-note-md` 的注释）。
          */}
         <div
           className="dash-note-md"
