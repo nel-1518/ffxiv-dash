@@ -7,14 +7,10 @@ import type { BoardAction, BoardActions } from './board-types.ts'
 import type { GroupRow } from './group-rows.ts'
 
 /**
- * 看板状态的**唯一来源**（纯逻辑，无 React）。
- *
- * 用模块级 store 而不是 context：context 的订阅粒度是整个 value，`doc` 一换引用所有消费者
- * 都要重渲染；store 让每个组件各自订阅自己那一小片，`useSyncExternalStore` 按 `Object.is`
- * 比快照，互不牵连。
- *
- * 与 `core/clock/store.ts`、`core/appearance/store.ts` 同一套形状：
- * 模块级变量 + `Set<Listener>` + `subscribe` + 快照读取，消费侧走 `useSyncExternalStore`。
+ * 看板状态的唯一来源（纯逻辑，无 React）：模块级变量 + `Set<Listener>` + `subscribe` + 快照读取，
+ * 与 `core/clock/store.ts`、`core/appearance/store.ts` 同一形状，消费侧走 `useSyncExternalStore`。
+ * ⚠️ 细粒度订阅的前提（docs/development.md 引用）：**内容不变就复用旧引用**——各 read 系快照函数
+ * 在数据未变时必须返回同一引用，否则 `Object.is` 判变、订阅组件全部重渲染。
  */
 
 type Listener = () => void
@@ -22,20 +18,14 @@ type Listener = () => void
 const listeners = new Set<Listener>()
 
 /**
- * ⚠️ 必须惰性初始化，不能在模块顶层直接读盘。
- *
- * `main.tsx` 里 `installBuiltinWidgets()` 是语句，而 ESM 的 import 先全部求值完才执行语句 ——
- * 模块顶层读盘时组件注册表还是空的，各组件 config 不会被归一化。
- * 首次读盘只能发生在首次渲染（那时注册表已装配好）。
+ * ⚠️ 必须惰性初始化，不能在模块顶层读盘：ESM 的 import 先全部求值完才执行 `main.tsx` 的
+ * `installBuiltinWidgets()` 语句，顶层读盘时组件注册表还是空的、config 不会归一化；首次读盘只能发生在首次渲染。
  */
 let doc: BoardDoc | undefined
 
 /**
- * 首次读盘是否回退了默认数据（以及为什么）。
- *
- * 只可能由 `getDoc()` 的首次读盘写入，之后只有 `clearBootFailure()` 会清掉它 ——
- * 那样看待它的快照引用才是稳定的（`useSyncExternalStore` 靠 `Object.is` 比对，
- * 字符串 / null 正好是稳定值）。
+ * 首次读盘是否回退了默认数据（及原因）。只由 `getDoc()` 首次读盘写入、只由 `clearBootFailure()` 清除
+ * ——字符串 / null 正好是 `useSyncExternalStore` 按 `Object.is` 比对所需的稳定值。
  */
 let bootFailure: BoardLoadFailure | null = null
 
@@ -54,13 +44,10 @@ let cachedGroupRows: GroupRow[] = []
 
 /**
  * 维护两份「结构快照」：分组 id 序列、按行切开的分组结构。
- *
- * ⚠️ 细粒度订阅的性能命门：结构没变就必须复用原来的数组引用。
- * `useSyncExternalStore` 靠 `Object.is` 比快照决定要不要重渲染，每次返回新数组就等于
- * 告诉 React"变了"，细粒度订阅全部失效 —— 且症状只是"仍然整页刷新"，没有任何报错。
- *
- * 只比 id 序列是安全的：行结构只由「id 顺序 + 各分组类型」决定，
- * 而类型创建后不可修改（`board-reducer` 的 `updateGroup` 刻意不收 groupType）。
+ * ⚠️ 细粒度订阅的命门：结构没变就必须复用原来的数组引用——`useSyncExternalStore` 按 `Object.is`
+ * 比快照，每次返回新数组等于宣告「变了」，细粒度订阅全部失效且无任何报错。
+ * 只比 id 序列是安全的：行结构 = f(id 顺序， 各分组类型)，类型创建后不可修改
+ * （`board-reducer` 的 `updateGroup` 刻意不收 groupType）。
  */
 function rebuildStructure(): void {
   const groups = getDoc().groups
@@ -72,7 +59,7 @@ function rebuildStructure(): void {
         break
       }
     }
-    // 结构没变：两份缓存继续复用，订阅者不会被唤醒
+    // 结构未变：两份缓存继续复用，订阅者不会被唤醒
     if (same) {
       return
     }
@@ -95,22 +82,15 @@ export function readBoardDoc(): BoardDoc {
   return getDoc()
 }
 
-/**
- * 首次读盘是否失败（失败原因），供页面上的提示条订阅。
- *
- * 先走一遍 `getDoc()`：提示条可能比看板更早渲染，不能指望"读盘一定发生在它之前"。
- */
+/** 首次读盘是否失败（及原因），供提示条订阅；先走一遍 `getDoc()`——提示条可能比看板更早渲染，不能指望读盘一定发生在它之前。 */
 export function readBootFailure(): BoardLoadFailure | null {
   getDoc()
   return bootFailure
 }
 
 /**
- * 清掉"读盘失败"这件事。
- *
- * 由落盘闸门在**写盘成功**时调用：那一刻本机存着的就是当前这份看板了，
- * 之前那份坏数据已经被覆盖，"数据读不出来"的提示没有理由继续挂着
- * （localStorage 不可用时写盘也不会成功，提示自然留着）。
+ * 清掉「读盘失败」。由落盘闸门在**写盘成功**时调用：那一刻本机存的就是当前这份看板，
+ * 坏数据已被覆盖，提示没有理由继续挂着（localStorage 不可用时写盘也不会成功，提示自然留着）。
  */
 export function clearBootFailure(): void {
   if (bootFailure === null) {
@@ -161,9 +141,8 @@ export function readGroupTitle(groupId: string): string {
 }
 
 /**
- * 派发一个操作。
- * `boardReducer` 未命中目标时返回原引用（例如 patch 的 itemId 不存在），
- * 这时直接返回、不通知订阅者 —— 否则会白跑一遍所有组件的快照比较。
+ * 派发一个操作。reducer 未命中目标时返回原引用（如 patch 的 itemId 不存在），
+ * 这时直接返回、不通知订阅者——否则会白跑一遍所有组件的快照比较。
  */
 export function dispatchBoard(action: BoardAction): void {
   const current = getDoc()
@@ -178,9 +157,8 @@ export function dispatchBoard(action: BoardAction): void {
 }
 
 /**
- * 语义化操作集合 —— 模块级常量，引用永远不变。
- * 只派发、不订阅的组件靠它彻底避开重渲染：事件处理器直接 import 即可，
- * 所有读取都发生在调用那一刻（见上面各个 `read*`），不会捕获到过期的 doc。
+ * 语义化操作集合——模块级常量，引用永远不变。
+ * 只派发不订阅的组件直接 import 即可：读取都发生在调用那一刻（见各 `read*`），不会捕获过期的 doc。
  */
 export const boardActions: BoardActions = {
   addGroup: (title, groupType, columns) => dispatchBoard({ type: 'addGroup', title, groupType, columns }),

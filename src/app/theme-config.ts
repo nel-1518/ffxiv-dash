@@ -6,11 +6,9 @@ import type { ThemeKey } from '../core/theme-preference.ts'
 const PAGE_BACKGROUND = '#efeaea'
 
 /**
- * 基线主题：所有主题都以它为底，各主题只声明覆盖项（见 `src/app/themes/<key>/`），
+ * 基线主题：所有主题以它为底，各主题只声明覆盖项（见 `src/app/themes/<key>/`），
  * 未声明配色的主题（`antd: {}`）即等于基线。
- *
- * ⚠️ 卡片底色、投影等 antd 变量管不到的部分不在这里，走各主题的 `theme.css`
- * （`--dash-*` 变量 + `[data-dash-theme]` 作用域）。
+ * ⚠️ 卡片底色、投影等 antd 变量管不到的部分不在这里，走各主题的 `theme.css`（`--dash-*` 变量 + `[data-dash-theme]` 作用域）。
  */
 const BASE_THEME: ThemeConfig = {
   hashed: false,

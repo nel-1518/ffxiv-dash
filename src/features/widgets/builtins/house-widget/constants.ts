@@ -1,6 +1,5 @@
 /**
  * 房屋组件的静态对照表（纯数据，无 React）。
- *
  * 房区与尺寸的取值都来自售楼中心的字段定义，数组顺序即接口的枚举顺序。
  * 服务器下拉不在这里 —— 那是几个组件共用的东西，已提到 `core/world.ts` 的 `worldOptions()`。
  */
@@ -70,7 +69,6 @@ export const HOUSE_USE_LABELS: Record<HouseUse, string> = {
 
 /**
  * 筛选值 → 计入的 `RegionType` 集合。
- *
  * ⚠️ `RegionType = 0` 是「个人/部队」—— 两种买家都能买，所以**两边都算上**。
  */
 export function regionTypesOf(use: HouseUse): readonly number[] {

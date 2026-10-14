@@ -6,8 +6,7 @@ import type { RestConfig } from './config.ts'
 
 export const restWidgetSpec: WidgetSpec<RestConfig> = defineWidget<RestConfig>({
   /*
-   * key 用 `pomodoro`：`rest` 太泛（将来难保不会有别的"休息"类卡片），
-   * 而 `pomodoro` 与 `countdown` 一样是单个语义词。写进用户数据后不要再改。
+   * key 用 `pomodoro`：`rest` 太泛，`pomodoro` 与 `countdown` 一样是单个语义词。写进用户数据后不要再改。
    */
   key: 'pomodoro',
   label: '休息提醒',

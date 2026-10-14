@@ -4,10 +4,8 @@ import type { ThemeKey } from '../../core/theme-preference.ts'
 
 /**
  * 主题规格。
- *
  * 一套主题 = 一个文件夹（`src/app/themes/<key>/`）：`index.ts` 放 antd 令牌与元信息，
- * `theme.css`（按需）放 antd 管不到的 `--dash-*` 变量。只改令牌的主题不需要 theme.css。
- *
+ * `theme.css`（按需）放 antd 管不到的 `--dash-*` 变量；只改令牌的主题不需要 theme.css。
  * 新增/删除主题的步骤、变量约定、速查表见 `docs/themes.md`。
  */
 
@@ -34,12 +32,11 @@ export type ThemeSpec = {
   /** 设置面板里显示的名字。 */
   label: string
   /**
-   * 本主题覆盖在基线之上的 antd 配置（合成见 `app/theme-config.ts`）：
-   * 没写的项沿用基线，只做了一半的主题也不会把界面改坏。
+   * 本主题覆盖在基线之上的 antd 配置（合成见 `app/theme-config.ts`）：没写的项沿用基线，只做一半也不会改坏界面。
    */
   antd: ThemeConfig
-  /** 默认背景；不写就是"纯主题色，无图"。 */
+  /** 默认背景；不写 = 纯主题色无图。 */
   background?: ThemeBackground
-  /** 默认卡片外观；不写就沿用全局默认（62 / 12，见 core/appearance/store.ts）。 */
+  /** 默认卡片外观；不写沿用全局默认（62 / 12，见 core/appearance/store.ts）。 */
   cards?: ThemeCards
 }

@@ -1,10 +1,8 @@
 /**
  * 待办卡的配置类型、默认值与归一化（纯数据，无组件）。
- *
- * config 里放的是**用户填的内容**：周期、刷新时刻、待办原文。
- * 「已完成」不进这里 —— 它每天会被清掉，属于临时状态，单独落一个 localStorage 键（见 `state.ts`），
- * 理由与「跳转」设置（`core/auto-open/store.ts`）一样：临时状态不该跟着看板导出走，
- * 也不该让每次勾选都重写整份看板数据。
+ * config 里放用户填的内容：周期、刷新时刻、待办原文。
+ * 「已完成」不进这里——它每天会被清掉，属于临时状态，单独落一个 localStorage 键（见 `state.ts`）；
+ * 临时状态不跟着看板导出、也不让每次勾选重写整份看板数据。
  */
 import { TODO_CYCLE_OPTIONS, formatHhMm, isTodoCycle, parseHhMm } from './schedule.ts'
 import type { TodoCycle } from './schedule.ts'
@@ -16,11 +14,8 @@ export const DEFAULT_TODO_TIME = '16:00'
 export const MAX_TODO_ITEMS = 20
 
 /**
- * 待办原文的长度上限。
- *
- * 这是防呆而不是业务限制：`items` 存的是**原文**（面板里的输入框要能原样回显用户写的东西），
- * 所以它会长进 config、进而进 localStorage 与导出的看板文件。20 行正常人写的字远到不了这个数，
- * 它挡的是"整篇小说粘进来"。
+ * 待办原文的长度上限。防呆而非业务限制：`items` 存的是原文（输入框要能原样回显），
+ * 会进 config、localStorage 与导出的看板文件。它挡的是「整篇小说粘进来」。
  */
 export const MAX_TODO_TEXT_LENGTH = 4000
 
@@ -55,10 +50,8 @@ export type ParsedTodos = {
 
 /**
  * 解析待办原文（每行一项）。
- *
- * 同一行填两遍只留一项：勾选状态是按**行文本**归档的，留两行就会一起勾/一起取消，
- * 与其制造两行"绑在一起"的假象，不如按「跳转」设置（`parseLinks`）的老规矩去重，
- * 并在面板的小结里说明忽略了几行。
+ * 同一行填两遍只留一项：勾选状态按行文本归档，留两行就会一起勾 / 一起取消；
+ * 与「跳转」设置（`parseLinks`）同一规矩去重，并在面板小结里说明忽略了几行。
  */
 export function parseTodos(text: string): ParsedTodos {
   const items: string[] = []

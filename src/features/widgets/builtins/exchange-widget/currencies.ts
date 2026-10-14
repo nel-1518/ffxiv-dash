@@ -1,10 +1,9 @@
 /**
  * 汇率卡支持的货币表（纯数据，无 React）。
- *
- * Frankfurter v2 实际支持两百多种货币，但选择器里塞两百项没人翻得动 ——
- * 这里按「日常用得上」的口径精选三十来种，人民币 / 日元置顶（默认货币对）。
- * 想加品种就往表里补一行：代码必须在 Frankfurter 支持之列
- * （完整列表见 https://api.frankfurter.dev/v2/currencies ，写一个不支持的代码这张卡就永远取不到数）。
+ * Frankfurter v2 实际支持两百多种货币，选择器里塞两百项没人翻得动 ——
+ * 按「日常用得上」的口径精选三十来种，人民币 / 日元置顶（默认货币对）。加品种就补一行，
+ * 代码必须在 Frankfurter 支持之列（完整列表 https://api.frankfurter.dev/v2/currencies ，
+ * 写一个不支持的代码这张卡就永远取不到数）。
  */
 export type CurrencyInfo = {
   /** ISO 4217 代码，也是接口要的参数。 */

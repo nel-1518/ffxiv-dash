@@ -1,9 +1,7 @@
 /**
- * 汇率缓存（localStorage，纯逻辑无 React）。
- *
- * 与市场税率 / 物品价格同一套写法：**整个缓存只占一个键**，内部按货币对分条目，
- * 写入时顺手把过期条目一起清掉，不会随时间无限堆积。
- * 网页打开时先看它：命中且未过期就直接用、**不发请求**。
+ * 汇率缓存（localStorage，纯逻辑无 React）。与市场税率 / 物品价格同一套写法：
+ * **整个缓存只占一个键**、内部按货币对分条目、写入时顺手清掉过期条目（不随时间堆积）；
+ * 网页打开时命中且未过期就直接用、**不发请求**。
  */
 import { EXCHANGE_CACHE_TTL_MS } from './config.ts'
 import type { ExchangeRate } from './rates.ts'
@@ -81,9 +79,7 @@ export function isFresh(data: ExchangeRate, now: number): boolean {
 }
 
 /**
- * 写入一条，并**顺手清掉所有已过期条目**。
- *
- * 清理和写入共用 `EXCHANGE_CACHE_TTL_MS`：过期数据留在盘上不会有人读，只会白占地方。
+ * 写入一条，并**顺手清掉所有已过期条目**（过期数据留在盘上不会有人读，只会白占地方）。
  */
 export function writeExchangeCache(data: ExchangeRate): void {
   const file = readFile()

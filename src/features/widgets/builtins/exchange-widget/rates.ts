@@ -1,11 +1,9 @@
 /**
  * Frankfurter 汇率接口（纯逻辑，无 React）。
- *
  * 接口：`GET https://api.frankfurter.dev/v2/rates?base=CNY&quotes=JPY` →
- * `[{"date":"2026-10-05","base":"CNY","quote":"JPY","rate":23.561}]`
- * —— 数组里每项是一条货币对，`rate` 是 1 基准货币能换多少目标货币，
- * `date` 是汇率所属的**交易日**（不是拿到响应的时刻，卡面上把它当数据日期展示）。
- * 数据是欧洲央行等多家央行参考汇率的中间价，每个交易日更新一次。
+ * `[{"date":"2026-10-05","base":"CNY","quote":"JPY","rate":23.561}]`，数组里每项一条货币对：
+ * `rate` 是 1 基准货币换多少目标货币，`date` 是汇率所属的**交易日**（不是拿到响应的
+ * 时刻，卡面把它当数据日期展示）。数据是央行参考汇率中间价，每个交易日更新一次。
  */
 const API_BASE = 'https://api.frankfurter.dev/v2/rates'
 
@@ -27,8 +25,8 @@ export function buildExchangeUrl(base: string, quote: string): string {
 }
 
 /**
- * 解析成一条读数：v2 返回数组，从中找出目标货币对；
- * `rate` 必须是正的有限数、`date` 必须是字符串，找不到就抛错（由卡面提示获取失败）。
+ * 解析成一条读数：v2 返回数组，从中找出目标货币对；`rate` 必须是正的有限数、
+ * `date` 必须是字符串，找不到就抛错（由卡面提示获取失败）。
  */
 export function parseExchangeRate(
   payload: unknown,
@@ -74,8 +72,8 @@ export function fetchExchangeRate(base: string, quote: string): Promise<Exchange
     .catch((error: unknown) => {
       /*
        * 失败细节只进控制台：卡面上只在标题行留一个「获取失败」，不占版面。
-       * 记在这里而不是调用方 —— 同一 URL 的并发调用共用这一个 Promise，
-       * 一次真实请求只会打一条。
+       * 记在这里而不是调用方：同一 URL 的并发调用共用这一个 Promise，
+       * 一次真实请求只打一条。
        */
       console.error('[ffxiv-dash] 汇率获取失败', { base, quote, url, error })
       throw error

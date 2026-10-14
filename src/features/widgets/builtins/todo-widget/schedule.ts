@@ -1,15 +1,11 @@
 /**
  * 待办卡的纯时间逻辑：刷新周期 + 刷新时刻 → 「当前所在的刷新窗口」。
- *
- * 不导入 React、不碰 DOM，输入输出都是原始值 —— 可以脱离浏览器单独验证。
- *
- * 核心概念只有**窗口标识**一个：
- * 把「最近一次已经发生的刷新时刻」算出来，
- * 格式化成 `YYYY-MM-DD HH:mm` 当当前窗口的 id。勾选状态按这个 id 归档（见 `state.ts`），
- * 于是"过了刷新时刻就复原"不需要任何定时器与重置写盘 —— 窗口一变，id 不匹配，读出来就是空。
+ * 不导入 React、不碰 DOM，输入输出都是原始值，可脱离浏览器单独验证。
+ * 核心概念只有窗口标识一个：把「最近一次已发生的刷新时刻」格式化成 `YYYY-MM-DD HH:mm` 当窗口 id，
+ * 勾选状态按这个 id 归档（见 `state.ts`）。过了刷新时刻 id 即失配、读出来就是空，无需定时器与重置写盘。
  */
 
-/** 刷新周期。「不刷新」以外的取值就是"每周几"，`none` / `daily` 是另外两条路。 */
+/** 刷新周期。「不刷新」以外的取值就是每周几，`none` / `daily` 是另外两条路。 */
 export type TodoCycle = 'none' | 'daily' | 'sun' | 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat'
 
 /** 周期下拉的选项；顺序即展示顺序（周一在前，与中文习惯一致）。 */
@@ -79,11 +75,8 @@ export function formatHhMm(hour: number, minute: number): string {
 }
 
 /**
- * 某一天的某个时刻（本地）。
- *
- * 一律用构造函数而不是 `setHours` 这类字段 setter：跨夏令时的那一天字段 setter 会多加/少加一小时
- * （中国没有夏令时，但这里不该依赖这件事，倒数日的 `countdown.ts` 是同一套写法）。
- * `dayOfMonth` 允许超出当月范围，Date 会自己进位 —— 跨月跨年不必特判。
+ * 某一天的某个时刻（本地）。用构造函数而非 `setHours` 这类字段 setter：跨夏令时的那一天它会多加 / 少加一小时
+ * （中国没有夏令时，但不该依赖这件事，`countdown.ts` 同一写法）。`dayOfMonth` 允许超出当月范围，Date 自行进位、跨月跨年不必特判。
  */
 function atLocalTime(now: Date, dayOffset: number, hour: number, minute: number): Date {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate() + dayOffset, hour, minute, 0, 0)
@@ -97,12 +90,9 @@ export function formatWindowKey(at: Date): string {
 }
 
 /**
- * 最近一次**已经发生**的刷新时刻；「不刷新」或时刻认不出来时返回 null。
- *
- * - 每日：今天该时刻还没到就回退到昨天该时刻；
- * - 每周几：先看"本周的那一天"（今天就是这个星期几时就是今天），
- *   若那个时刻还没到则再往前退 7 天。用"今天减几天"而不是算周一起点，
- *   跨月跨年由 Date 自己进位。
+ * 最近一次已经发生的刷新时刻；「不刷新」或时刻认不出来时返回 null。
+ * 每日：今天该时刻没到就回退到昨天该时刻；每周几：先看本周的那一天（今天就是该星期几时是今天），时刻没到再往前退 7 天。
+ * 用「今天减几天」而不是算周一起点，跨月跨年由 Date 进位。
  */
 export function windowStartOf(cycle: TodoCycle, time: string, now: Date): Date | null {
   if (cycle === 'none') {
@@ -126,9 +116,8 @@ export function windowStartOf(cycle: TodoCycle, time: string, now: Date): Date |
 
 /**
  * 当前窗口的 id。
- *
- * 组件把它当 `useClockValue` 的快照：**它是字符串**，所以只在跨过刷新时刻那一秒才变
- * （周期为「不刷新」时恒为 `'none'`，一次都不会重渲染）。
+ * 组件把它当 `useClockValue` 的快照：它是字符串，只在跨过刷新时刻那一秒才变
+ * （周期为「不刷新」时恒为 `'none'`，一次都不重渲染）。
  */
 export function windowKeyOf(cycle: TodoCycle, time: string, now: Date): string {
   const start = windowStartOf(cycle, time, now)

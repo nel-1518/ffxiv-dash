@@ -28,7 +28,7 @@ export function normalizeStatsConfig(raw: unknown): StatsConfig {
   const name =
     typeof source.name === 'string' ? source.name.trim().slice(0, MAX_STATS_NAME_LENGTH) : ''
 
-  // 阶段：只收非空行。整体为空时回退默认三阶段，卡片永远不会"没有阶段可推进"
+  // 阶段：只收非空行。整体为空时回退默认三阶段，卡片永远有阶段可推进
   const stages = Array.isArray(source.stages)
     ? source.stages
         .filter((item): item is string => typeof item === 'string')
@@ -37,7 +37,7 @@ export function normalizeStatsConfig(raw: unknown): StatsConfig {
     : []
   const finalStages = stages.length > 0 ? stages : STATS_DEFAULT_CONFIG.stages
 
-  // 单阶段没有"推进"可言，下标恒为 0；多阶段夹取到 [0, length-1]
+  // 单阶段没有推进可言，下标恒为 0；多阶段夹取到 [0, length-1]
   const maxIndex = finalStages.length - 1
   const stageIndex = Math.min(maxIndex, Math.max(0, toIndex(source.stageIndex, 0)))
 

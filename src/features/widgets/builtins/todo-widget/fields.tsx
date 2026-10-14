@@ -1,13 +1,8 @@
 /**
  * 待办卡的配置字段与渲染。
- *
  * 卡面两段：一行小字（刷新规则 + 完成进度）→ 待办列表。
- * 列表**按列填充**：先把第一列从上往下填满「卡片能显示的行数」，装不下才开第二列 ——
- * 所以待办变多时先是纵向延长，到顶之后才往右铺，而不是把卡片一直顶高。
- * 列装不下时才出现滚动条。
- *
- * 勾选状态按「卡片 id + 当前刷新窗口」归档在 `state.ts` 里，**不进 config**；
- * 窗口一变（过了刷新时刻）读出来就是空的，全部自动回到未完成态。
+ * 列表按列填充：先纵向填满第一列，到顶才开第二列往右铺，列装不下才滚动。
+ * 勾选状态按「卡片 id + 当前刷新窗口」归档在 `state.ts` 里，不进 config；窗口一变读出来就是空，自动回到未完成态。
  */
 import { useMemo, useState } from 'react'
 import { Checkbox, Form, Input, Select, TimePicker } from 'antd'
@@ -45,7 +40,7 @@ export function TodoFormFields(): React.ReactNode {
   const form = Form.useFormInstance()
   /*
    * ⚠️ `useWatch` 拿不到 Form 的 `initialValues`（本仓有先例，见 `ItemForm` 的注释），
-   * 所以两个字段都要回落到默认值，否则一打开弹窗就会显示成"没选周期 / 没有待办"。
+   * 两个字段都要回落默认值，否则打开弹窗会显示成「没选周期 / 没有待办」。
    */
   const cycle = Form.useWatch<TodoCycle | undefined>(['config', 'cycle'], form) ?? DEFAULT_TODO_CYCLE
   const items = Form.useWatch<string | undefined>(['config', 'items'], form) ?? ''
@@ -70,15 +65,13 @@ export function TodoFormFields(): React.ReactNode {
             : '按本机时间判定，可以直接输入精确值。'
         }
         /*
-         * config 里存 `HH:mm` 字符串（要能原样进 localStorage），而 TimePicker 只吃 dayjs 对象 ——
-         * 转换就地做在这条 Form.Item 的两端，与倒数日的 DatePicker 同一做法。
+         * config 存 `HH:mm` 字符串（要原样进 localStorage），TimePicker 只吃 dayjs 对象——
+         * 转换就地做在这条 Form.Item 两端，与倒数日的 DatePicker 同一做法。
          */
         getValueProps={(value: string | undefined) => ({ value: value ? dayjs(value, 'HH:mm') : null })}
         normalize={(value: Dayjs | null | undefined) => (value ? value.format('HH:mm') : TODO_DEFAULT_CONFIG.time)}
       >
-        {/*
-         * `minuteStep={5}` 只改面板里那一列的候选（0 / 5 / 10…），不限制手动输入，直接敲 17:23 仍然能提交。
-         */}
+        {/* `minuteStep={5}` 只改面板里那一列的候选（0 / 5 / 10…），不限制手动输入，直接敲 17:23 仍能提交 */}
         <TimePicker
           format="HH:mm"
           minuteStep={5}
@@ -105,8 +98,8 @@ export function TodoFormFields(): React.ReactNode {
 /** 卡面渲染。 */
 export function TodoRender({ config, item }: WidgetRenderProps<TodoConfig>): React.ReactNode {
   /*
-   * 本卡唯一吃时钟的地方：快照是**当前刷新窗口的 id（字符串）**，
-   * 因此只在跨过刷新时刻那一秒变一次；周期为「不刷新」时恒为 `'none'`，一次都不会重渲染。
+   * 本卡唯一吃时钟的地方：快照是当前刷新窗口的 id（字符串），只在跨过刷新时刻那一秒变一次；
+   * 周期为「不刷新」时恒为 `'none'`，一次都不重渲染。
    */
   const windowKey = useClockValue((now) => windowKeyOf(config.cycle, config.time, now))
 

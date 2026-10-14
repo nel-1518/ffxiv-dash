@@ -3,12 +3,8 @@ import type { ThemeSpec } from '../types.ts'
 import './theme.css'
 
 /**
- * 金曦（Dawntrail）。
- *
- * 色值取自官方专题站 <https://na.finalfantasyxiv.com/dawntrail/> 的计算样式：
- * 暖黑底 `#1a1918` + 亮金 `#ffd966` + 古金 `#d9bf57` + 橙 `#e57e17`。
- *
- * ⚠️ 站点上最多的蓝 `#73bfe6` 是官网模板公共色，不属于本主题（取色甄别见 `docs/themes.md`）。
+ * 金曦（Dawntrail）。取色见 `docs/themes.md`（来源：官方专题站计算样式：暖黑底 + 亮金 / 古金 / 橙）。
+ * ⚠️ 站点上最多的蓝 `#73bfe6` 是官网模板公共色，不属于本主题。
  */
 export const dawntrailSpec: ThemeSpec = {
   key: 'dawntrail',

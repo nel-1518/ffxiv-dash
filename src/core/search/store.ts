@@ -66,7 +66,7 @@ const listeners = new Set<() => void>()
 
 /**
  * 归一化一份搜索引擎设置。读盘与备份导入共用：
- * 非数组一律回落到默认清单，数组里认不出来的项直接丢掉。
+ * 非数组回落默认清单，数组里认不出来的项直接丢。
  */
 export function normalizeSearchEngines(raw: unknown): SearchEngineConfig[] {
   if (!Array.isArray(raw)) {

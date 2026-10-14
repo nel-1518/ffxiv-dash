@@ -1,16 +1,10 @@
 /**
  * 公告活动卡的配置字段与渲染。
- *
- * 卡面两段：标题行（来源 + 数据新鲜度 / 获取失败）→ 公告标题列表。
- * 标题行与房屋售卖 / 物品价格 / 市场税率同一套写法：左侧加粗的来源名，
- * 右侧小号次级色的新鲜度读数（获取失败转警示色）。
- * 列表**按接口返回顺序**排，只有命中置顶规则的条目被拎到最前
- * （`highlightNews`，稳定分区，其余条目顺序不动）；置顶行用主色加粗并挂一个「顶」标记。
- * 每行只有标题 —— 卡面不显示日期，点条目到官网看详情。
- *
- * `limit` 就是请求的 `pageSize`（要几条取几条），因此**配置一改就按新配置重新请求一次**；
- * 首次打开则优先用缓存（1 小时内且条数对得上就不发请求）。
- * 「N 分钟前」跟着**分钟粒度**的全局时钟走，跨分钟才重渲染。
+ * 卡面两段：标题行（来源 + 数据新鲜度 / 获取失败，与房屋售卖、税率等卡同一套写法）→ 公告标题列表；
+ * 列表按接口返回顺序排，只有命中置顶规则的条目被拎到最前（highlightNews 稳定分区），
+ * 置顶行主色加粗挂「顶」标记，每行只有标题，点条目到官网看详情。
+ * limit 就是请求的 pageSize：配置一改就按新配置重新请求；首次打开优先用缓存；
+ * 「N 分钟前」跟着分钟粒度的全局时钟走。
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Button, Flex, Form, InputNumber, Select, Typography } from 'antd'
@@ -31,18 +25,10 @@ import type { NewsItem } from './api.ts'
 import type { NewsConfig } from './config.ts'
 import type { WidgetRenderProps } from '../../types.ts'
 
-/**
- * 拿到数据前先摆几行占位（同税率卡的破折号）：卡高稳定，数据回来时不会跳一下。
- * 取最小数量 5 —— 占位只求"有个列表的样子"，跟着配置摆满 20 行反而把卡撑高。
- */
+// 数据到手前摆几行破折号占位（同税率卡）：卡高稳定，数据回来时不跳；取最小数量 5，占位只求"有个列表的样子"。
 const SKELETON_ROWS = NEWS_LIMIT_MIN
 
-/**
- * 条目的悬停提示：标题一行，摘要在下一行；摘要是空串就不出这一行。
- *
- * 「摘要与标题相同」的判断在 `parseNewsItem` 里就做掉了（接口里大量条目是复读标题），
- * 这里只认空串，不再比一次字符串。
- */
+/** 条目悬停提示：标题一行、摘要在下一行（空串不显示）；「摘要与标题相同」已在 parseNewsItem 做掉。 */
 function hoverText(item: NewsItem): string {
   const lines = [item.title]
   if (item.summary !== '') {
@@ -91,9 +77,8 @@ export function NewsFormFields(): React.ReactNode {
         extra={`公告标题含其中任一个的条目会置顶高亮，默认：${NEWS_DEFAULT_KEYWORDS.join('、')}。`}
       >
         {/*
-         * tags 模式的 Select：值天然就是 `string[]`，回车即成标签，
-         * 粘一串「联动, 季节活动」也会按分隔符拆开（中英文逗号都认）。
-         * `open={false}` 关掉下拉面板 —— 关键字是自由输入，没有候选项可列。
+         * tags 模式的 Select：值天然是 string[]，回车即成标签，粘「联动, 季节活动」也按中英文逗号分隔符拆开；
+         * open={false} 关掉下拉面板 —— 关键字是自由输入，没有候选项可列。
          */}
         <Select mode="tags" placeholder="输入关键字后回车" tokenSeparators={[',', '，']} open={false} suffixIcon={null} />
       </Form.Item>
@@ -105,15 +90,15 @@ export function NewsRender({ config }: WidgetRenderProps<NewsConfig>): React.Rea
   const now = useClockAt('minute')
 
   /*
-   * 数据与错误都**连着自己那次请求的条数一起存**（同税率卡按服务器归档的写法）：
-   * 改了「公告数量」之后，旧条数的数据与错误自然失效，不必在 effect 里手动清空。
+   * 数据与错误都连着自己那次请求的条数一起存（同税率卡按服务器归档的写法）：
+   * 改了「公告数量」后旧条数的数据与错误自然失效，不必在 effect 里手动清空。
    */
   const [entry, setEntry] = useState<{ limit: number; data: NewsCache } | null>(null)
   const [failure, setFailure] = useState<{ limit: number; message: string } | null>(null)
 
   /*
-   * 渲染期读缓存（纯读、无副作用）：页面打开时命中缓存就立刻有数据可显示。
-   * 缓存连条数一起存，条数对不上的那份当作没缓存 —— 请求的 `pageSize` 就是条数。
+   * 渲染期读缓存（纯读、无副作用）：命中就立刻有数据可显示；缓存连条数一起存，
+   * 条数对不上的那份当作没缓存（请求的 pageSize 就是条数）。
    */
   const cached = useMemo(() => readNewsCache(), [])
   const cachedForLimit = cached !== null && cached.limit === config.limit ? cached : null
@@ -126,10 +111,8 @@ export function NewsRender({ config }: WidgetRenderProps<NewsConfig>): React.Rea
   const limit = config.limit
 
   /*
-   * 拉取 + 落盘 + 记账。
-   *
-   * 刻意写成**同步函数返回 Promise**（而不是 async 函数）：setState 全部落在
-   * then/catch 回调里，effect 同步阶段一次都不会触发渲染。
+   * 拉取 + 落盘 + 记账。刻意写成同步函数返回 Promise（而非 async）：setState 全落在
+   * then/catch 回调里，effect 同步阶段一次都不触发渲染。
    */
   const reload = useCallback((): Promise<void> => {
     return fetchNews(limit)
@@ -145,18 +128,14 @@ export function NewsRender({ config }: WidgetRenderProps<NewsConfig>): React.Rea
       })
   }, [limit])
 
-  /*
-   * 配置指纹：条数、高亮数、关键字任一变化都算"配置改了"。
-   */
+  // 配置指纹：条数、高亮数、关键字任一变化都算「配置改了」。
   const configKey = `${String(limit)}|${String(config.highlight)}|${JSON.stringify(config.keywords)}`
   const lastConfigKeyRef = useRef<string | null>(null)
 
   /*
-   * 打开 / 改配置时按配置请求一次：
-   * - 首次挂载：命中未过期缓存（1 小时内、条数也相同）就直接用，不发请求；
-   * - 之后每次配置变化：按**当前**配置重新请求一次（`limit` 进了 `pageSize`，
-   *   高亮数 / 关键字虽然不影响数据，但配置改动一律重取，行为可预期）；
-   * - 同一个指纹再进 effect（StrictMode 的双挂载）直接跳过 —— 单飞已经兜住了。
+   * 打开 / 改配置时按配置请求一次：首次挂载命中未过期缓存（1 小时内、条数相同）就直接用、不发请求；
+   * 之后每次配置变化按当前配置重取（limit 进了 pageSize，高亮 / 关键字虽不影响数据但一并重取，行为可预期）；
+   * 同一指纹再进 effect（StrictMode 双挂载）直接跳过 —— 单飞已兜住。
    */
   useEffect(() => {
     const previousKey = lastConfigKeyRef.current
@@ -198,18 +177,16 @@ export function NewsRender({ config }: WidgetRenderProps<NewsConfig>): React.Rea
           : '暂无数据'
 
   /*
-   * 先分区再截断：命中条目优先占掉「公告数量」的名额 ——
-   * 数量设 5 而命中 4 条时，应当是 4 条置顶 + 1 条普通，而不是先砍数据再把置顶挤掉。
-   * 数据本身就是按这个条数取回来的，`slice` 只是兜底（接口万一多给几条也不会越界）。
+   * 先分区再截断：命中条目优先占掉「公告数量」的名额 —— 数量设 5、命中 4 条时应是
+   * 4 条置顶 + 1 条普通，而不是先砍数据再把置顶挤掉；数据本就按此条数取回，slice 只是兜底。
    */
   const rows = data === null ? [] : highlightNews(data.items, config.highlight, config.keywords).slice(0, limit)
 
   return (
     <div className="dash-card-fill dash-news">
       {/*
-        * 标题行：与房屋售卖 / 物品价格 / 市场税率同一套写法 ——
-        * 左侧加粗 13px 的来源名（窄卡里先被省略号吃掉），
-        * 右侧 11px 的数据新鲜度；获取失败时转警示色，原因悬停可看。
+        * 标题行：与房屋售卖 / 物品价格 / 市场税率同一套写法 —— 左侧加粗 13px 来源名
+        * （窄卡先被省略号吃掉），右侧 11px 数据新鲜度；获取失败转警示色，原因悬停可看。
         */}
       <Flex className="dash-news-meta" align="baseline" justify="space-between" gap={8} style={{ minWidth: 0 }}>
         <Typography.Text strong ellipsis style={{ fontSize: 13 }}>

@@ -18,10 +18,7 @@ export type GroupFormProps = {
   formId: string
   /** 当前值；打开弹窗时自动填入，新建时用各类型的推荐默认值。 */
   initialValues: GroupFormValues
-  /**
-   * create：类型可选；
-   * edit：类型不可修改，因此窗口里根本不出现类型配置，只留名称与列数。
-   */
+  /** create：类型可选；edit：类型不可修改，窗口里不出现类型控件，只留名称与列数。 */
   mode: 'create' | 'edit'
   onFinish: (values: GroupFormValues) => void
 }
@@ -32,10 +29,10 @@ const COLUMN_OPTIONS = Array.from(
   (_, index) => GROUP_COLUMNS_MIN + index,
 ).map((value) => ({ label: `${value} 列`, value }))
 
-/** 分组表单：名称 + 列数（新建时多一项类型）。提交由 EditDialog 的保存按钮触发 form.submit()。 */
+/** 分组表单：名称 + 列数（新建时多一项类型）；提交由 EditDialog 的保存按钮触发 form.submit()。 */
 export function GroupForm({ form, formId, initialValues, mode, onFinish }: GroupFormProps): React.ReactNode {
   const isCreate = mode === 'create'
-  /** 上一次的类型，用来判断"新建时切换类型要不要顺手把列数换成新类型的默认值"。 */
+  /** 上一次的类型：判断「新建时切换类型要不要顺手把列数换成新类型的默认值」。 */
   const lastType = useRef<GroupType>(initialValues.type)
 
   useEffect(() => {
@@ -44,10 +41,7 @@ export function GroupForm({ form, formId, initialValues, mode, onFinish }: Group
     lastType.current = initialValues.type
   }, [form, initialValues])
 
-  /**
-   * 新建时切换分组类型，如果列数还停在旧类型的默认值上，就跟着换成新类型的默认值；
-   * 用户手动挑过列数则原样保留。
-   */
+  /** 新建时切换类型：列数还停在旧类型默认值上就跟着换成新类型默认值；用户手动挑过则保留。 */
   const handleValuesChange = (changed: Partial<GroupFormValues>) => {
     const nextType = changed.type
     if (!isCreate || !nextType) {
@@ -80,7 +74,7 @@ export function GroupForm({ form, formId, initialValues, mode, onFinish }: Group
           <Select options={GROUP_TYPE_OPTIONS} />
         </Form.Item>
       ) : (
-        // 编辑时类型不可修改：控件不展示，但字段保留在表单里，提交时带着原类型一起走
+        // 编辑时类型不可修改：控件不展示，字段保留在表单里，提交时带着原类型一起走
         <Form.Item name="type" hidden>
           <Input />
         </Form.Item>

@@ -1,23 +1,14 @@
 /**
  * 备份文件：导出 / 导入的唯一形状（纯逻辑，无 React、无 DOM）。
- *
- * 为什么单独一层：看板数据、跳转设置、搜索引擎、外观偏好各自住在自己的 localStorage 键里，
- * "一份文件带走全部、一份文件恢复全部"不属于其中任何一个 store，收在这里（core 层，
- * 不反向依赖 feature）。
- *
- * 文件形状（四段）：
- * - `board`      看板文档，走与读盘同一套校验（`parseBoardDocValue`）；
- * - `autoOpen`   自动跳转的链接原文（`lastOpenedOn` 是当日记账，不进文件）；
- * - `searchEngines` 搜索引擎清单；
- * - `appearance` 外观偏好。导出是全量（连上传图的文件名与大小；图片本体在 IndexedDB、
- *   永远不进文件），导入只取一部分：色调与槽位照搬，逐主题只搬模糊 / 亮度 / 卡片参数，
- *   背景来源与本机图片保持导入方现状（见 `importAppearance`）。
- *
- * ⚠️ 不兼容早期导出的"裸 BoardDoc"文件：没有 `board` 这一段，`parseBackup` 一律拒掉。
- *
- * 同一份形状还兼职「导入前快照」：导入覆盖前先把当时的四段数据原样存一份
- * （`saveImportUndo`），设置里据此亮出「恢复导入前的数据」按钮。
- * 快照是一次性的：恢复或再次导入都会重写它。
+ * 单独一层：看板、跳转、搜索引擎、外观各住一个 localStorage 键，「一份文件带走 / 恢复全部」
+ * 不属于任何一个 store，收在这里（core 层，不反向依赖 feature）。
+ * 文件形状（四段）：`board` 走与读盘同一套校验（`parseBoardDocValue`）；
+ * `autoOpen` 只带链接原文（`lastOpenedOn` 是当日记账，不进文件）；
+ * `searchEngines` 清单；`appearance` 导出全量（含上传图文件名与大小，本体在 IndexedDB 永不进文件），
+ * 导入只取一部分（见 `importAppearance`）。
+ * ⚠️ 不兼容早期导出的「裸 BoardDoc」文件：没有 `board` 段，`parseBackup` 一律拒掉。
+ * 同一形状兼职「导入前快照」：覆盖前先把四段原样存一份（`saveImportUndo`），
+ * 设置据此亮「恢复导入前的数据」按钮；快照一次性，恢复或再次导入都会重写。
  */
 import { getAppearance, normalizeAppearance } from '../appearance/store.ts'
 import type { AppearanceState } from '../appearance/store.ts'
@@ -42,9 +33,7 @@ export type BackupFile = {
 
 /**
  * 把四段数据拼成一份备份文件对象。
- *
- * ⚠️ 外观逐字段取而不是直接塞快照：快照里挂着 `systemScheme` 与 `imageUrls` 两个运行期字段，
- * 写进文件只会在导入方留下垃圾字段。导出与「导入前快照」共用这一份。
+ * ⚠️ 外观逐字段取而不塞快照：快照挂着 `systemScheme` / `imageUrls` 两个运行期字段，写进文件只会在导入方留垃圾字段。导出与「导入前快照」共用这份。
  */
 function buildBackup(doc: BoardDoc): BackupFile {
   const { colorMode, lightTheme, darkTheme, profiles } = getAppearance()
@@ -64,9 +53,8 @@ export function serializeBackup(doc: BoardDoc): string {
 
 /**
  * 导入：把备份文件的文本解析成四段数据。校验分两档：
- * - 整体拒绝（返回 `null`）：不是合法 JSON，或看板段认不出来 —— 一点现有数据都不动；
- * - 逐段回落默认：三个设置段各自走对应 store 的归一化，缺失 / 手改坏的部分按默认值处理，
- *   不该因为其中一段坏掉就拒绝整份备份。
+ * - 整体拒绝（返回 `null`）：不是合法 JSON、或看板段认不出来——现有数据一点都不动；
+ * - 逐段回落默认：三个设置段各自走对应 store 的归一化，缺失 / 手改坏按默认值处理，不因一段坏而拒整份。
  */
 export function parseBackup(text: string): BackupFile | null {
   let parsed: unknown
@@ -115,10 +103,8 @@ export type ImportUndo = {
 }
 
 /**
- * 导入覆盖前存一份快照。
- *
- * 失败（隐私模式 / 配额满）只告警并返回 false：撤销是锦上添花，不该因为它存不下
- * 就不让人导入 —— 调用方据此提示"没有恢复这一步"即可。
+ * 导入覆盖前存一份快照。失败（隐私模式 / 配额满）只告警并返回 false：
+ * 撤销是锦上添花，不能因此不让导入——调用方据此提示「没有恢复这一步」。
  */
 export function saveImportUndo(doc: BoardDoc): boolean {
   const undo: ImportUndo = { savedAt: Date.now(), file: buildBackup(doc) }

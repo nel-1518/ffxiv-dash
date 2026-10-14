@@ -2,10 +2,8 @@
 import { isWorldName } from '../../../../core/world.ts'
 
 /**
- * 缓存有效期 8 小时。
- *
- * 组件只在页面打开时看一次缓存，命中且未过期就直接用、不发请求；
- * 因此这个值同时也是"最长会看到多久以前的税率"。
+ * 缓存有效期 8 小时：只在页面打开时看一次缓存，命中且未过期就直接用、不发请求；
+ * 这个值同时也是"最长会看到多久以前的税率"。
  */
 export const TAX_CACHE_TTL_MS = 8 * 60 * 60 * 1000
 
@@ -20,8 +18,8 @@ export function normalizeTaxConfig(raw: unknown): TaxConfig {
   const source = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {}
 
   /*
-   * 服务器只认世界表里真实存在的名字：写错的、填成大区 / 全区的名字都当成没选
-   * （接口只接受单个 world id，大区与全区查不到数据），卡面提示去编辑弹窗选。
+   * 服务器只认世界表里真实存在的名字：写错、填成大区 / 全区名都当没选
+   * （接口只接受单个 world id，后者查不到数据），卡面提示去编辑弹窗选。
    */
   const rawServer = typeof source.server === 'string' ? source.server.trim() : ''
   return { server: isWorldName(rawServer) ? rawServer : '' }

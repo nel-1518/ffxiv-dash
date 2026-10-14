@@ -13,7 +13,6 @@ import type { ReactNode } from 'react'
  * ConfigProvider 在 App 之上（App 才能消费 Design Token）；BoardPersistence / AutoOpenLinks /
  * ErrorBoundary 在 App 之内（要用 App.useApp() 的提示）。ErrorBoundary 包住整个子树，
  * 渲染错误降级为错误页而非白屏（数据在 localStorage，见 app/ErrorBoundary.tsx）。
- *
  * 看板状态在模块级 store（state/board-store.ts），消费侧按需订阅，不需要 Provider；
  * BoardPersistence 只负责落盘、AutoOpenLinks 只负责启动跳转，都不向下传数据。
  */
@@ -22,9 +21,8 @@ export function AppProviders({ children }: { children: ReactNode }): ReactNode {
   const theme = useMemo(() => createAppTheme(themeKey), [themeKey])
 
   /*
-   * 主题 CSS 变量定义在 `[data-dash-theme='<key>']` 上，属性必须挂到 <html>：
-   * 这样 html/body 与 portal 弹窗都能命中。main.tsx 已在渲染前设过一次（避免闪默认配色），
-   * 这里负责后续切换。
+   * 主题 CSS 变量定义在 `[data-dash-theme='<key>']` 上，属性必须挂到 <html>：html/body 与 portal 弹窗都能命中。
+   * main.tsx 已在渲染前设过一次（避免闪默认配色），这里负责后续切换。
    */
   useEffect(() => {
     document.documentElement.dataset.dashTheme = themeKey

@@ -1,12 +1,8 @@
 /**
  * 全局秒级时钟（纯逻辑，无 React）。
- *
- * 全应用共享同一份「现在」：艾欧泽亚时间、PvP 轮换倒计时等都从这里取，读数天然同步 ——
- * 各自持有 setInterval 的话起点不同，会错开最多 1 秒。
- * 显示虽只到分钟，但轮换时刻需要"到点就翻"，所以仍按秒刷新。
- *
- * 订阅采用引用计数：有订阅者才起计时器，全部退订后自动停掉。
- * 消费侧走 useSyncExternalStore（见 ./hooks.ts），不需要 Provider。
+ * 全应用共享同一份「现在」（艾欧泽亚时间、PvP 轮换倒计时都从这里取），读数天然同步；
+ * 各自 setInterval 起点不同会错开最多 1 秒。显示只到分钟，但轮换要「到点就翻」，仍按秒刷新。
+ * 订阅引用计数：有订阅者才起计时器，全部退订自动停。消费侧走 useSyncExternalStore（./hooks.ts），不需要 Provider。
  */
 
 type Listener = () => void
@@ -67,9 +63,7 @@ export function subscribe(listener: Listener): () => void {
 
 /**
  * 当前时刻的毫秒时间戳。
- *
- * ⚠️ 必须返回这个稳定的模块级变量，不能写成 `Date.now()`：useSyncExternalStore
- * 每次渲染都比快照，现算会永远"变了"，直接无限重渲染。
+ * ⚠️ 必须返回稳定的模块级变量，不能现算 `Date.now()`：useSyncExternalStore 每次渲染都比快照，现算永远「变了」、无限重渲染。
  */
 export function getNow(): number {
   return now

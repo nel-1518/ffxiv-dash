@@ -14,7 +14,7 @@ import { describeBackground } from './background-layer.ts'
 export function AppShell(): React.ReactNode {
   const themeKey = useTheme()
   /*
-   * 上传图逐主题一份，外壳只取生效主题那一张。
+   * 上传图逐主题一份，外壳只取生效主题那张。
    * ⚠️ 不能拿 `useAppearance().imageUrls` 再取下标：那样任何外观变化都会让整棵看板重渲染。
    */
   const imageUrl = useThemeImageUrl(themeKey)
@@ -31,7 +31,7 @@ export function AppShell(): React.ReactNode {
           /*
            * 卡片透明度与毛玻璃经 CSS 变量下发给 global.css：卡片样式写在样式表里
            * （antd Card 规则优先级高于 inline style，且链接卡 / 组件卡要共用）。
-           * 模糊为 0 时给 `none` 而非 `blur(0px)`：后者仍会生成一次背景快照、留下层叠上下文。
+           * 模糊为 0 给 `none` 而非 `blur(0px)`：后者仍会生成一次背景快照、留下层叠上下文。
            */
           '--dash-card-alpha': String(profile.cardAlpha / 100),
           '--dash-card-backdrop': profile.cardBlur > 0 ? `blur(${profile.cardBlur}px)` : 'none',
@@ -44,7 +44,7 @@ export function AppShell(): React.ReactNode {
         </div>
       ) : null}
       <Layout.Content>
-        {/* 内容列（`.dash-container`）由页面自己包：顶栏要待在它外面才能铺满视口 */}
+        {/* 内容列（`.dash-container`）由页面自己包：顶栏要在它外面才能铺满视口 */}
         <DashboardPage />
       </Layout.Content>
     </Layout>

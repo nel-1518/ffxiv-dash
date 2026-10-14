@@ -1,9 +1,8 @@
 /**
- * 活动日历缓存（localStorage，纯逻辑无 React）。
- *
- * 与税率 / 物品价格 / 汇率同一套写法：这张卡**只有一份数据**（接口与参数都固定，默认本月），
- * 所以整个缓存就是一个键 —— 存 `fetchedAt` + 解析好的活动列表，写入即覆盖。
- * 网页打开时先看它：命中且未过期（8 小时内）就直接用、**不发请求**。
+ * 活动日历缓存（localStorage，纯逻辑无 React）。与税率 / 物品价格 / 汇率同一套写法，
+ * 这张卡**只有一份数据**（接口与参数都固定，默认本月），整个缓存就是一个键 ——
+ * 存 `fetchedAt` + 解析好的活动列表，写入即覆盖。网页打开时命中且未过期（8 小时内）
+ * 就直接用、**不发请求**。
  */
 import { ACTIVITY_CALENDAR_CACHE_TTL_MS } from './config.ts'
 import type { ActivityCalendarData } from './api.ts'

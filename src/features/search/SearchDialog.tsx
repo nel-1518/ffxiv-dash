@@ -8,16 +8,12 @@ import type { SearchRow } from './useLinkSearch.ts'
 
 export type SearchDialogProps = {
   keyword: string
-  /** 打开时是否全选已有内容；打字开窗时必须为 false。 */
+  /** 打开时是否全选已有内容；打字开窗时必须为 false（语义见 useLinkSearch）。 */
   selectAllOnOpen: boolean
-  /** 当前模式：普通链接搜索，或某个斜杠命令。 */
   mode: SearchMode
   rows: SearchRow[]
-  /** 命令模式的空态 / 状态提示。 */
   commandNotice: string | null
-  /** 刚复制成功的行 key，用于行内「已复制」反馈。 */
   copiedKey: string | null
-  /** 非空表示已钻入某项的动作面板，值为该项标题（用于表头）。 */
   drillTitle: string | null
   activeIndex: number
   onKeywordChange: (value: string) => void
@@ -35,12 +31,9 @@ function rowId(index: number): string {
 
 /**
  * 搜索弹窗：居中悬浮的结果卡片。
- *
- * 刻意**不用 antd 的 Modal**：自绘 overlay 才能按 visualViewport 调整移动端键盘弹出时的尺寸，
- * 并将搜索输入、结果列表与键盘导航作为一个整体控制。Esc 由 useLinkSearch 统一监听。
- *
- * 结果区按模式分发：links = 已保存链接 + 搜索引擎（原有）；command = 由命令产出的行。
- * 命令若有两层（如 /i），选中物品钻入动作面板，表头给出返回入口。
+ * 刻意不用 antd 的 Modal：自绘 overlay 才能按 visualViewport 调整移动端键盘弹出时的尺寸，
+ * 并把输入、结果列表与键盘导航作为一个整体控制（Esc 由 useLinkSearch 统一监听）。
+ * 结果区按模式分发：links = 已保存链接 + 搜索引擎；command = 命令产出的行，两层命令（如 /i）选中即钻取。
  */
 export function SearchDialog({
   keyword,
@@ -63,7 +56,7 @@ export function SearchDialog({
   const activeIndicatorRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<InputRef>(null)
 
-  // 跟踪可视视口：移动端键盘弹出时可视区会缩小，卡片要跟着缩，否则会被顶出屏幕
+  // 跟踪可视视口：移动端键盘弹出时可视区缩小，卡片要跟着缩，否则被顶出屏幕
   const [viewport, setViewport] = useState(() => ({
     height: window.visualViewport?.height ?? window.innerHeight,
     top: window.visualViewport?.offsetTop ?? 0,
@@ -74,7 +67,7 @@ export function SearchDialog({
     if (!vvp) {
       return
     }
-    // 只在事件里 setState；初始值已经由 useState 的惰性初始化读过了
+    // 只在事件里 setState：初始值已由 useState 惰性初始化读过
     const update = () => setViewport({ height: vvp.height, top: vvp.offsetTop })
     vvp.addEventListener('resize', update)
     vvp.addEventListener('scroll', update)
@@ -85,15 +78,9 @@ export function SearchDialog({
   }, [])
 
   /*
-   * 打开即聚焦输入框。
-   *
-   * 用 useLayoutEffect 而不是 useEffect：IME 的组合输入要求元素在本次按键处理里
-   * 就已经聚焦，等 paint 之后再聚焦会丢掉首键（配合 useLinkSearch 里的 flushSync）。
-   *
-   * 光标位置分两种：
-   * - 点击搜索框 / 按 Tab 打开：全选，直接输入即可替换旧关键词；
-   * - 打字打开：光标放末尾。这里**不能**全选，否则用户紧接着敲的下一个字符
-   *   会替掉整个选区，看起来就像丢了一个字母。
+   * 打开即聚焦输入框。用 useLayoutEffect：IME 的组合输入要求元素在本次按键处理里就已聚焦，
+   * 等 paint 之后再聚焦会丢首键（配合 useLinkSearch 的 flushSync）。
+   * 点击搜索框 / Tab 打开 → 全选；打字打开 → 光标放末尾，不能全选（否则下一个字符替掉整个选区）。
    */
   useLayoutEffect(() => {
     const el = inputRef.current
@@ -118,7 +105,7 @@ export function SearchDialog({
     el?.scrollIntoView({ block: 'nearest' })
   }, [activeIndex, rows, drillTitle])
 
-  // 共享高亮条随当前行移动，避免逐行切换 active 样式造成高亮闪跳
+  // 共享高亮条随当前行移动，避免逐行切 active 样式造成高亮闪跳
   useLayoutEffect(() => {
     const indicator = activeIndicatorRef.current
     const activeRow = listRef.current?.querySelector<HTMLElement>('.dash-search-item.is-active')
@@ -169,7 +156,7 @@ export function SearchDialog({
   }
 
   const trimmed = keyword.trim()
-  /** 当前命令（非命令模式为 null）；用它做显式收窄，避免在闭包里反复判 `mode.kind`。 */
+  /** 当前命令（非命令模式为 null）；显式收窄一次，避免闭包里反复判 mode.kind。 */
   const command = mode.kind === 'command' ? mode.command : null
 
   /** 跳转类结果行（已保存链接 / 搜索引擎）：点击即关窗跳转。 */
@@ -205,7 +192,7 @@ export function SearchDialog({
     </a>
   )
 
-  /** 物品行：回车 / 点击进入该物品的动作面板（键帽文案提示「操作」）。 */
+  /** 物品行：回车 / 点击进入该物品的动作面板（键帽提示「操作」）。 */
   const renderItemRow = (row: SearchRow, index: number) => {
     if (row.kind !== 'item') {
       return null
@@ -219,13 +206,13 @@ export function SearchDialog({
         tabIndex={-1}
         title="查看可用操作"
         onMouseEnter={() => onActivate(index)}
-        // 用 mousedown 阻止默认行为：点击不会把焦点从输入框抢走，键盘导航不中断
+        // mousedown 阻止默认行为：点击不把焦点从输入框抢走，键盘导航不中断
         onMouseDown={(event) => event.preventDefault()}
         onClick={() => onSelect(index)}
       >
         <span className="dash-search-item-text">
           <span className="dash-search-item-title">{row.title}</span>
-          {/* 不可交易的物品上不了市场，查价对它没意义 —— 由接口的 IsUntradable 得出 */}
+          {/* 不可交易的物品上不了市场，查价无意义 —— 由接口的 IsUntradable 得出 */}
           {row.item.untradable ? <span className="dash-search-item-abbr">不可交易</span> : null}
           <span className="dash-search-item-sub">#{row.item.id}</span>
         </span>
@@ -237,8 +224,8 @@ export function SearchDialog({
   }
 
   /**
-   * 动作行：`copy` 点击即复制（弹窗保持打开，可连续复制）并给出行内反馈；
-   * `open` 用真链接（可中键新标签），回车则由状态中枢统一 `window.open`。
+   * 动作行：copy 点击即复制（弹窗保持打开，可连续复制）并给行内反馈；
+   * open 用真链接（可中键新标签），回车统一交状态中枢 window.open。
    */
   const renderActionRow = (row: SearchRow, index: number) => {
     if (row.kind !== 'action') {
@@ -298,7 +285,7 @@ export function SearchDialog({
       <button
         type="button"
         className="dash-search-back"
-        // 与动作行同款处理：点击不把焦点从输入框抢走
+        // 与动作行同款：点击不抢走输入框焦点
         onMouseDown={(event) => event.preventDefault()}
         onClick={onBack}
       >
@@ -332,7 +319,7 @@ export function SearchDialog({
       )
     }
 
-    // 二层：动作面板；税率这类没有二层的命令直接列动作行
+    // 二层：动作面板；无二层的命令（税率）直接列动作行
     return (
       <>
         {drillTitle ? renderDrillHead() : <div className="dash-search-section">{command.resultTitle}</div>}
@@ -341,7 +328,7 @@ export function SearchDialog({
     )
   }
 
-  /** 链接模式结果区：保持原有「已保存的链接 + 搜索引擎」两段结构。 */
+  /** 链接模式结果区：保持「已保存的链接 + 搜索引擎」两段结构。 */
   const renderLinkResults = () => {
     if (trimmed === '') {
       // 空关键词时 rows 就是可用命令（fill 动作行），与普通结果一样可 ↑↓ 选中

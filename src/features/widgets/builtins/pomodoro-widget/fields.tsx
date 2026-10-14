@@ -1,14 +1,8 @@
 /**
  * 休息提醒卡的配置字段与渲染。
- *
  * 卡面（三段）：状态文字 + 一行小字 → 环形倒计时钟面 → 三个图标按钮（开始/暂停、结束、重置）。
- * 计时状态是组件自己的 local state（刷新即回到「准备专注」，不落盘、不进 config）；
- * 状态机接线集中在下面的 `useRestTimer`，`RestRender` 只负责画。
- *
- * ⚠️ **时钟粒度**：父组件只订阅一个**布尔快照**「是否已到点」——到点那一秒重渲染一次
- * （与待办卡"过点快照"同一套路）；每秒跳动的读数与环形进度全部落在 `<Countdown>` 那个叶子里。
- * 暂停与就绪时叶子的快照是常量，那两种状态下一次都不会重渲染。
- * 但**配置一变整个组件就重置**，见 `useRestTimer` 里那段说明。
+ * 计时状态是组件自己的 local state（刷新即回到「准备专注」，不落盘、不进 config）；接线集中在 `useRestTimer`，`RestRender` 只负责画。
+ * ⚠️ 时钟粒度：父组件只订阅一个布尔快照「是否已到点」且只在到点那一秒重渲染（与待办卡过点快照同一套路）；每秒读数与环形进度都落在 `<Countdown>` 叶子里，暂停 / 就绪时叶子快照是常量、一次都不重渲染。
  */
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { App, Button, Flex, Form, Input, InputNumber, Progress, Slider, Switch, Typography } from 'antd'
@@ -41,11 +35,9 @@ import type { WidgetItem } from '../../../../core/storage/types.ts'
 import type { WidgetRenderProps } from '../../types.ts'
 
 /**
- * 动作里的"现在"。
- *
- * ⚠️ 这里刻意用 `Date.now()` 而不是时钟的 `getNow()`。本仓"组件里不写 `Date.now()`"这条约定
- * 是为了**读数**不要各读各的（读数统一走秒级时钟）；而"这一段到点没有 / 新一段从什么时候开始"
- * 是**动作**：后台标签页里时钟那一跳可能被节流拖后近一分钟，拿缓存值算会把新一段凭空缩短。
+ * 动作里的「现在」。
+ * ⚠️ 刻意用 `Date.now()` 而非时钟的 `getNow()`：本仓「组件里不写 `Date.now()`」是为了读数统一走秒级时钟；
+ * 而「这段到点没有 / 新一段从何时开始」是动作：后台标签页里时钟那一跳可能被节流拖后近一分钟，拿缓存值会把新一段凭空缩短。
  */
 function actionNow(): number {
   return Date.now()
@@ -85,9 +77,7 @@ function MinutesField({
 
 /**
  * 通知测试。
- *
- * ⚠️ 权限申请**只在这里**发生（用户点了按钮才有手势）：打开页面就弹权限框会被浏览器记恨，
- * 也会让"只是来看看卡片"的人被迫做决定。
+ * ⚠️ 权限申请只在这里发生（用户点了按钮才有手势）：打开页面就弹权限框会被浏览器记恨，也让「只是来看看卡片」的人被迫做决定。
  */
 function NotifyTestField(): React.ReactNode {
   const { notification } = App.useApp()
@@ -101,7 +91,7 @@ function NotifyTestField(): React.ReactNode {
     setBusy(false)
     setStatus(next)
     if (!sent) {
-      // 发不出去就把原因摆在明面上，而不是让用户以为"点了没反应"
+      // 发不出去就把原因摆在明面上，而不是让用户以为「点了没反应」
       notification.warning({
         key: 'dash-rest-notify-test',
         placement: 'bottomRight',
@@ -131,7 +121,7 @@ export function RestFormFields(): React.ReactNode {
   const form = Form.useFormInstance()
   /*
    * ⚠️ `useWatch` 拿不到 Form 的 `initialValues`（本仓有先例，见 `ItemForm` 的注释），
-   * 所以每个字段都要回落到默认值，否则一打开弹窗就会显示成 0 分钟、没勾自动接续。
+   * 每个字段都要回落默认值，否则一打开弹窗就会显示成 0 分钟、没勾自动接续。
    */
   const focusMinutes = Form.useWatch<number | undefined>(['config', 'focusMinutes'], form) ?? REST_DEFAULT_CONFIG.focusMinutes
   const breakMinutes = Form.useWatch<number | undefined>(['config', 'breakMinutes'], form) ?? REST_DEFAULT_CONFIG.breakMinutes
@@ -190,11 +180,8 @@ export function RestFormFields(): React.ReactNode {
 
 /**
  * 环形倒计时：环内读数只写整分钟（`30min`），秒级的跳动只体现在环上。
- *
- * ⚠️ 秒级订阅**只在这一层**（父组件订阅的是"是否到点"那个布尔快照）。
- * 快照是整数秒（`remainingSecondsOf` 用 `ceil`），环靠它每秒走一格；
- * 数字那一处用 `displayMinutes` 收成整分钟（并夹到本段总时长，免得起点显示 31min），
- * 所以它每分钟才跳一次；暂停与就绪时快照是常量，那两种状态下这个叶子一次都不会重渲染。
+ * ⚠️ 秒级订阅只在这一层（父组件订阅的是「是否到点」布尔快照）：快照是整数秒（`remainingSecondsOf` 用 `ceil`），环靠它每秒走一格；
+ * 数字用 `displayMinutes` 收成整分钟并夹到本段总时长，每分钟才跳一次；暂停 / 就绪时快照是常量，这个叶子不重渲染。
  */
 function Countdown({ state, config }: { state: RestState; config: RestConfig }): React.ReactNode {
   const seconds = useClockValue((now) => remainingSecondsOf(state, config, now.getTime()))
@@ -240,9 +227,7 @@ type RestTimer = {
 
 /**
  * 计时接线：状态机 + 到点判定 + 提醒 + 恢复对账。
- *
- * 与"卡面长什么样"无关，抽出来是为了让 `RestRender` 只剩渲染。刻意**不导出**：
- * `fields.tsx` 的约定是只导出组件，导出 hook 会破坏 react-refresh 的边界。
+ * 抽出来是为了让 `RestRender` 只剩渲染，与卡面长相无关；刻意不导出：`fields.tsx` 只导出组件，导出 hook 会破坏 react-refresh 边界。
  */
 function useRestTimer(item: WidgetItem, config: RestConfig): RestTimer {
   const { notification } = App.useApp()
@@ -253,17 +238,10 @@ function useRestTimer(item: WidgetItem, config: RestConfig): RestTimer {
   const [reconcile, forceReconcile] = useReducer((count: number) => count + 1, 0)
 
   /*
-   * 配置一变就重置计时。
-   *
-   * 时长一改，`endsAt`（这一段的结束时刻）这个冻结值就与新配置脱节了 —— 而环的分母、
-   * 读数的夹取都取自 config，继续跑只会显示出对不上的读数（例如把 30 分钟的专注改成 10 分钟
-   * 后，读数会一直冻在「10min」）。回到「准备专注」让用户按新设置重新开始最诚实。
-   *
-   * ⚠️ 用**值**比较而不是引用：`normalizeConfig` 每次返回新对象，编辑弹窗点「确定」时
-   * 一个字段都没改也会换掉 config 的引用，比引用会把正在跑的计时平白重置。
-   * ⚠️ 走"渲染期调整状态"而不是 effect：effect 在绘制之后才跑，会先在屏幕上画一帧
-   * 与新配置对不上的旧读数再跳回初始态（看得见的闪动）；渲染期 setState 会让 React
-   * 直接丢弃这一帧重来，用户看不到中间态。
+   * 配置一变就重置计时：时长一改，`endsAt` 冻结值就与新配置脱节，而环的分母、读数的夹取都取自 config，继续跑只会显示对不上的读数；
+   * 回到「准备专注」让用户按新设置重新开始最诚实。
+   * ⚠️ 用值比较而不是引用：`normalizeConfig` 每次返回新对象，编辑弹窗点「确定」即使没改字段也会换掉 config 引用，比引用会把正在跑的计时平白重置。
+   * ⚠️ 走渲染期调整状态而不是 effect：effect 在绘制之后才跑，会先画一帧与新配置对不上的旧读数再跳回初始态（看得见的闪动）；渲染期 setState 让 React 直接丢弃这一帧重来，用户看不到中间态。
    */
   const [syncedConfig, setSyncedConfig] = useState(config)
   if (!isSameRestConfig(syncedConfig, config)) {
@@ -272,8 +250,8 @@ function useRestTimer(item: WidgetItem, config: RestConfig): RestTimer {
   }
 
   /*
-   * 父组件只订阅"是否已到点"这个**布尔快照**：到点那一秒重渲染一次。
-   * 上面 `state.kind === 'running'` 的短路让暂停/就绪时它恒为 false，连快照比较都不用做重活。
+   * 父组件只订阅「是否已到点」布尔快照：到点那一秒重渲染一次；
+   * `state.kind === 'running'` 的短路让暂停 / 就绪时恒为 false，连快照比较都不用做。
    */
   const expired = useClockValue((now) => state.kind === 'running' && now.getTime() >= state.endsAt)
 
@@ -300,7 +278,7 @@ function useRestTimer(item: WidgetItem, config: RestConfig): RestTimer {
     if (state.kind !== 'running') {
       return
     }
-    // `expired` 来自秒级时钟；`actionNow()` 兜住"后台被节流、时钟还没跳"的那种情况
+    // `expired` 来自秒级时钟；`actionNow()` 兜住后台被节流、时钟还没跳的那种情况
     if (!expired && actionNow() < state.endsAt) {
       return
     }
@@ -320,8 +298,8 @@ function useRestTimer(item: WidgetItem, config: RestConfig): RestTimer {
 
   /*
    * 切回前台立刻对账：后台标签页的定时器会被节流（Chrome 隐藏几分钟后可能压到每分钟一次），
-   * 回到前台时时钟那一跳可能还没补上 —— 强制再判一次，保证"回来就看到正确的状态"。
-   * `pageshow` 是给 bfcache 的：从前进 / 后退恢复本页时**不会**触发 `visibilitychange`。
+   * 回到前台时钟那一跳可能还没补上——强制再判一次。
+   * `pageshow` 是给 bfcache 的：从前进 / 后退恢复本页时不会触发 `visibilitychange`。
    */
   useEffect(() => {
     const reconcileIfVisible = (): void => {
@@ -362,13 +340,13 @@ function useRestTimer(item: WidgetItem, config: RestConfig): RestTimer {
   }
 }
 
-/** 卡面渲染。计时接线在 `useRestTimer`，这里只管"画成什么样"。 */
+/** 卡面渲染。计时接线在 `useRestTimer`，这里只管画。 */
 export function RestRender({ config, item }: WidgetRenderProps<RestConfig>): React.ReactNode {
   const { state, pending, running, paused, start, togglePause, finish, reset } = useRestTimer(item, config)
 
   /*
-   * 状态文字读的是"此刻这件事"：跑着 / 暂停的是当前段，刚结束的 `awaiting` 要看**上一段**
-   * —— 它记的 `next` 指向还没开始的那一段，所以这里要取反。`ready` 还没有段。
+   * 状态文字读的是「此刻这件事」：跑着 / 暂停的是当前段；刚结束的 `awaiting` 要看上一段
+   * —— 它记的 `next` 指向还没开始的那一段，故取反。`ready` 还没有段。
    */
   let phaseText = '准备专注'
   let phaseTone = 'is-idle'
@@ -382,7 +360,7 @@ export function RestRender({ config, item }: WidgetRenderProps<RestConfig>): Rea
     phaseTone = phase === 'focus' ? 'is-focus' : 'is-break'
   }
 
-  // 提醒发不出去的时候，卡面上留一句"为什么"（能用就不占地方）
+  // 提醒发不出去时，卡面上留一句「为什么」（能用就不占地方）
   const notify = notifyStatus()
   const notifyBlocked = notify === 'denied' || notify === 'insecure' || notify === 'unsupported'
   const hint = notifyBlocked ? '通知未授权' : config.autoNext ? '自动接续' : '手动接续'

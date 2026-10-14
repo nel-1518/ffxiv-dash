@@ -1,14 +1,9 @@
 /**
  * 公告活动缓存（localStorage，纯逻辑无 React）。
- *
- * 与税率 / 物品价格 / 房屋卡同一套写法，只是这里**只有一份数据**
- * （接口与参数都固定，不像税率按服务器分条目），所以整个缓存就是一个键：
- * 存 `fetchedAt` + 条目数组，写入即覆盖。
- * 网页打开时先看它：命中且未过期就直接用、**不发请求**。
- *
- * ⚠️ 缓存要连**当时的条数**（`limit`）一起存：请求的 `pageSize` 就是它，
- * 5 条的那份数据给不了 20 行的卡。条数对不上就当作没缓存 —— 正好也是
- * "改了「公告数量」就按新条数重取一次"的落点（见 `fields.tsx` 的 effect）。
+ * 与税率 / 物品价格 / 房屋卡同一套写法，只是接口与参数固定、只有一份数据：
+ * 整个缓存就是一个键，存 `fetchedAt` + 条目数组，写入即覆盖；打开先看它，命中且未过期就不发请求。
+ * ⚠️ 缓存要连当时的条数（limit）一起存：请求的 pageSize 就是它，5 条的数据给不了 20 行的卡；
+ * 条数对不上当作没缓存 —— 「改了公告数量就按新条数重取」的落点（见 fields.tsx 的 effect）。
  */
 import { NEWS_CACHE_TTL_MS } from './config.ts'
 import type { NewsItem } from './api.ts'
@@ -16,10 +11,7 @@ import type { NewsItem } from './api.ts'
 /** 整个公告缓存只占这一个键。 */
 const CACHE_KEY = 'ffxiv-dash-cache:news:v1'
 
-/**
- * 内部结构版本。结构一变就升它，旧数据自然被当成空缓存丢掉。
- * v4：条目去掉 `weighted`（高亮不再看官网的 SortIndex）、缓存头加上 `limit`（请求条数）。
- */
+/** 内部结构版本：结构一变就升它，旧数据被当成空缓存丢掉（v4：条目去 weighted、缓存头加 limit）。 */
 const CACHE_VERSION = 4
 
 type NewsCacheFile = {

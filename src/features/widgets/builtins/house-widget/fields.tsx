@@ -1,9 +1,8 @@
 /**
  * 房屋售卖卡的配置字段与渲染。
- *
  * 卡面三段：标题行（服务器 + 数据新鲜度）→ 抽签时期（纯时钟推算）→ M / L / S 合计。
- * 房区与用途都只是**筛选条件**（数据是整服一次拿回来的），所以改它们不会重新请求，
- * 合计在渲染期用 `sumCounts` 现算。正文整块可点，跳到售楼中心。
+ * 房区与用途都只是**筛选条件**（数据整服一次拿回来），改它们不重新请求，合计渲染期
+ * 用 `sumCounts` 现算。正文整块可点，跳到售楼中心。
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, Flex, Form, Select, Typography } from 'antd'
@@ -78,18 +77,14 @@ function TotalCell({ size, value }: { size: 'm' | 'l' | 's'; value: number | und
 }
 
 export function HouseRender({ config }: WidgetRenderProps<HouseConfig>): React.ReactNode {
-  /*
-   * 时钟取**分钟粒度**：时期条与「N 分钟前」都只准到分钟（换期时刻落在整点上）。
-   */
+  // 时钟取分钟粒度：时期条与「N 分钟前」都只准到分钟（换期时刻落在整点上）
   const now = useClockAt('minute')
 
   const serverName = config.server
   const serverId = findWorldByName(serverName)?.id
 
-  /*
-   * ⚠️ WidgetRenderer 每次渲染都会重新 normalizeConfig，config.areas 的引用不稳定，
-   * 先拼成字符串再还原：数组因此有了稳定引用，可以安全地进依赖。
-   */
+  // ⚠️ WidgetRenderer 每次渲染都会重新 normalizeConfig，config.areas 引用不稳定；
+  // 先拼字符串再还原，数组才有稳定引用，可以安全进依赖。
   const areasKey = config.areas.join(',')
   const areas = useMemo(
     () => HOUSE_AREAS.filter((area) => areasKey.split(',').includes(String(area.id))).map((area) => area.id),
@@ -98,20 +93,17 @@ export function HouseRender({ config }: WidgetRenderProps<HouseConfig>): React.R
   /** 当前请求的唯一标识：数据与错误都按它归档，切参数时旧数据自然失效。 */
   const requestKey = `${String(serverId ?? 0)}|${areasKey}`
 
-  /*
-   * 数据与错误都**连着自己那份请求标识一起存**，而不是在 effect 里手动清空：
-   * 渲染期拿 key 一比就知道这条数据是不是当前参数的，不必"先置空再请求"。
-   */
+  // 数据与错误都**连着请求标识一起存**（不在 effect 里手动清空）：渲染期拿 key 一比即知
+  // 这条数据属于当前参数，不必"先置空再请求"。
   const [entry, setEntry] = useState<{ key: string; data: HouseData } | null>(null)
   const [failure, setFailure] = useState<{ key: string; message: string } | null>(null)
 
   /*
    * 渲染期读缓存（纯读、无副作用）：页面打开时命中缓存就立刻有数据可显示。
-   *
-   * ⚠️ 快照必须**连请求标识一起记**，靠它让下面那份 `entry` 与"缓存里现在有什么"用同一套判定。
-   * 只 memo 在 serverId 上会死锁：改了房区之后 requestKey 变了、entry 不再匹配，而 effect 发现
-   * 缓存还新鲜就直接 return 不写状态，渲染期又只有这次改动之前读到的 null —— 卡会永远停在
-   * 「正在获取…」。带上 requestKey 之后，改房区 / 换服务器都会重读一次，正好对上那次判定。
+   * ⚠️ 快照必须**连请求标识一起记**，让下面的 `entry` 与"缓存里现在有什么"用同一套判定：
+   * 只 memo 在 serverId 上会死锁 —— 改房区后 requestKey 变了、entry 不再匹配，而 effect
+   * 发现缓存还新鲜就直接 return 不写状态，渲染期用的又是改动前读到的 null，卡会永远停在
+   * 「正在获取…」。带上 requestKey 后改房区 / 换服务器都会重读一次，正好对上那次判定。
    * （缓存本身仍按服务器存：整服数据一次到手，换房区只是换显示哪几行。）
    */
   const cached = useMemo((): { key: string; data: HouseData } | null => {
@@ -127,12 +119,8 @@ export function HouseRender({ config }: WidgetRenderProps<HouseConfig>): React.R
   // 没有数据也没有错误 = 还在等第一次结果，不需要单独维护一个 loading 状态
   const pending = serverId !== undefined && data === null && error === null
 
-  /*
-   * 拉取 + 落盘 + 记账。
-   *
-   * 刻意写成**同步函数返回 Promise**（而不是 async 函数）：setState 全部落在
-   * then/catch 回调里，effect 同步阶段一次都不会触发渲染。
-   */
+  // 拉取 + 落盘 + 记账。刻意写成**同步函数返回 Promise**（而不是 async 函数）：
+  // setState 全部落在 then/catch 回调里，effect 同步阶段一次都不触发渲染。
   const reload = useCallback((): Promise<void> => {
     if (serverName === '') {
       return Promise.resolve()
@@ -152,10 +140,8 @@ export function HouseRender({ config }: WidgetRenderProps<HouseConfig>): React.R
       })
   }, [requestKey, serverName])
 
-  /*
-   * 打开 / 换服务器时请求一次，**只此一次**：命中未过期缓存（8 小时内）就直接用、不发请求。
-   * 换房区只是换了要显示哪几行，数据是整服一起回来的，所以它同样只走缓存这一关。
-   */
+  // 打开 / 换服务器时请求一次，**只此一次**：命中未过期缓存（8 小时内）直接用、不发请求；
+  // 换房区只是换要显示哪几行（数据整服一起回来），同样只走缓存这一关。
   useEffect(() => {
     if (serverId === undefined) {
       return
@@ -203,10 +189,7 @@ export function HouseRender({ config }: WidgetRenderProps<HouseConfig>): React.R
           : '暂无数据'
 
   return (
-    /*
-     * 正文整块可点，跳到售楼中心。链接只包住读数区：**标题栏**里有编辑/删除按钮，
-     * 交互元素不能嵌在 <a> 里。
-     */
+    // 正文整块可点跳售楼中心。链接只包读数区：**标题栏**里有编辑/删除按钮，交互元素不能嵌在 <a> 里。
     <a
       className="dash-card-link dash-card-fill"
       href={HOUSE_SITE_URL}
@@ -238,7 +221,7 @@ export function HouseRender({ config }: WidgetRenderProps<HouseConfig>): React.R
         </div>
 
         {/*
-          合计块外面套一层：`container-type: inline-size` 只能声明在**容器自己**身上，
+          合计块外面套一层：`container-type: inline-size` 只能声明在容器自己身上，
           而字号缩放要作用到里面的数字（`cqi` 量的是这一层的宽度），所以两者必须分开。
         */}
         <Flex vertical gap={4} style={{ minWidth: 0, flex: '1 1 auto' }}>

@@ -7,19 +7,16 @@ import { AURORA_ZONE_OPTIONS } from './config.ts'
 import type { AuroraConfig } from './config.ts'
 
 /**
- * 每个区域列出几次极光窗口（两列排布）：
- * 「全部」时两地并列、每地 6 次（三行两列）；单选一个地图时 14 次（七行两列）。
- * ⚠️ 这两个数是**算出来填满卡高**的（见 `fields.tsx` 顶部的常量注释与 CSS 里的 164px 预算）：
- * 全部模式每块 3 行，两块共 161.6px；单区模式 7 行，靠 `--single` 放宽的行距凑到 159.8px。
- * 都在 164px 上限之内且不出滚动条。改行高 / 头部高度 / 块间距就要重量，
- * 否则要么留一大截空白、要么顶破上限出滚动条。
+ * 每个区域列出几次极光窗口（两列排布）：「全部」时两地并列、每地 6 次（三行两列）；
+ * 单选一个地图时 14 次（七行两列）。
+ * ⚠️ 两个数是算出来填满卡高的（见 CSS 里的 164px 预算）：全部模式每块 3 行共约 161.6px，
+ * 单区模式 7 行靠 --single 放宽的行距凑到约 159.8px，都在 164px 上限内且不出滚动条；
+ * 改行高 / 头部高度 / 块间距就要重新配平，否则留一大截空白或顶出滚动条。
  */
 const AURORA_WINDOW_COUNT_ALL = 6
 const AURORA_WINDOW_COUNT_SINGLE = 14
 
-/**
- * 两个极光区域的识别色（只用在头部那根 3px 竖条上）。
- */
+/** 两个极光区域的识别色（只用在头部那根 3px 竖条上）。 */
 const ZONES: { id: AuroraZoneId; label: string; accent: string }[] = [
   { id: 'old-sharlayan', label: '旧萨雷安', accent: '#bdbdb7' },
   { id: 'coerthas-western', label: '库尔札斯西部高地', accent: '#578dc8' },
@@ -27,7 +24,7 @@ const ZONES: { id: AuroraZoneId; label: string; accent: string }[] = [
 
 /*
  * 本地时间格式化器：⚠️ 实例建一次复用 —— 时钟每次触发都可能调它格式化，
- * 而 `Intl.DateTimeFormat` 贵在构造。不指定 timeZone，按用户本地时区显示。
+ * 且 `Intl.DateTimeFormat` 贵在构造；不指定 timeZone，按用户本地时区显示。
  */
 const localFormatter = createLocalFormatter()
 
@@ -67,10 +64,7 @@ function formatDuration(ms: number): string {
   return `${Math.floor(totalSeconds / 60)}分${totalSeconds % 60}秒`
 }
 
-/**
- * 从现在到窗口开始的粗粒度时长：`3小时12分` / `12分`。
- * 超过一天改用「X天Y小时」——「39小时50分」既长又不直观（时钟是分钟粒度，四舍五入到分）。
- */
+/** 从现在到窗口开始的粗粒度时长：`3小时12分` / `12分`；超过一天改用「X天Y小时」——「39小时50分」既长又不直观（时钟是分钟粒度，四舍五入到分）。 */
 function formatCountdown(ms: number): string {
   const totalMinutes = Math.max(0, Math.round(ms / 60_000))
   if (totalMinutes >= 1440) {
@@ -139,18 +133,12 @@ export function AuroraFormFields(): React.ReactNode {
 }
 
 /**
- * 极光预报卡片。
- *
- * 排的是「区域头部 + 两列读数网格」，与税率卡同一种语言：头部左侧是 accent
- * 竖条 + 区域名，右侧贴一行最近一次窗口的倒计时；下方窗口排成两列，
- * 每格左侧相对日期（今天 / 明天 / 后天 / 周X / MM-DD）、右侧开始时刻（本地时间，
- * 等宽数字、半粗），两端对齐 —— 一列读数的右缘自然对齐，不必再用底色包装。
- *
- * 地图范围由配置决定：选「全部」时上下两块各 4 次；选单个地图时只渲染那块，
- * 排 8 次。正在进行的窗口整格转主色（同税率卡「减」字的位置与克制）。
- *
- * 时钟取「分钟」粒度：列表内容只跟窗口起止（全部落在整 700 秒倍数上，即
- * 整分整秒）有关，本地时间与倒计时也只精确到分钟 —— 整秒订阅只会白渲染 59 次。
+ * 极光预报卡片：区域头部 + 两列读数网格（与税率卡同一语言）。
+ * 头部左侧 accent 竖条 + 区域名、右侧最近一次窗口的倒计时；下方两列读数 —— 左侧相对日期、
+ * 右侧开始时刻（本地时间，等宽半粗）两端对齐，一列读数右缘自然对齐，不必再用底色包装。
+ * 选「全部」时上下两块并列，选单图只渲染那块；进行中的窗口整格转主色。
+ * 时钟取「分钟」粒度：列表内容只跟窗口起止（都落在整 700 秒倍数上）有关，
+ * 本地时间与倒计时也只精确到分钟 —— 整秒订阅只会白渲染 59 次。
  */
 export function AuroraRender({ config }: WidgetRenderProps<AuroraConfig>): React.ReactNode {
   const now = useClockAt('minute')

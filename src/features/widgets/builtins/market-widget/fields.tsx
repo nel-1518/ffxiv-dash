@@ -14,14 +14,10 @@ import type { MarketConfig, MarketItemMeta } from './config.ts'
 import type { WidgetRenderProps } from '../../types.ts'
 
 /**
- * 物品库的加载状态。
- *
- * `enabled` 为 false 时**完全不碰物品库**（不请求、也不读模块级状态）。
- * 卡片平时就属于这一档 —— 物品名称与 HQ 标志已经随配置存了下来（`config.itemMeta`）；
- * 若无条件加载，几 MB 的 item-db.json 会在每次进网页时被重新拉一遍。
- *
- * 库本身只有一份（`items.ts` 里的模块级 Promise），多个调用方共享同一个请求，
- * 这里只负责把它映射成"能搜了 / 还在读 / 读失败"三态。
+ * 物品库的加载状态；`enabled` 为 false 时**完全不碰物品库**（不请求、不读模块级状态）：
+ * 卡片平时名称与 HQ 已随配置存下（`config.itemMeta`），无条件加载会让几 MB 的
+ * item-db.json 每次进网页重拉。库只有一份（`items.ts` 的模块级 Promise，多调用方共享
+ * 同一请求），这里只映射成"能搜了 / 还在读 / 读失败"三态。
  */
 function useItemDb(enabled: boolean): ItemDbStatus {
   const [status, setStatus] = useState<ItemDbStatus>(getItemDbStatus)
@@ -53,14 +49,9 @@ function useItemDb(enabled: boolean): ItemDbStatus {
 }
 
 /**
- * 物品选择器。
- *
- * config 里存的是数组（给将来的多选留位置），当前 UI 只允许选一个，
- * 所以这里做一层「数组 ↔ 单个 id」的转换。
- *
- * 选项完全来自物品库的实时检索 —— 库里没有的物品根本选不出来，
- * 这就是「不存在于 json 的物品不可使用」的落地方式。
- * 同时，选中那一刻会把物品快照（名称 + HQ）写进配置，卡片以后就不必再读物品库了。
+ * 物品选择器。config 存数组（给将来多选留位）、UI 目前只选一个，这里做「数组 ↔ 单个 id」转换。
+ * 选项完全来自物品库实时检索 —— 库里没有的根本选不出（「不在 json 的物品不可用」的落地）；
+ * 选中那一刻把物品快照（名称 + HQ）写进配置，卡片以后不必再读物品库。
  */
 function ItemPicker({
   value,
@@ -75,13 +66,11 @@ function ItemPicker({
   const [query, setQuery] = useState('')
   const selected = value?.[0]
 
-  // 不 memo：物品库是**模块级状态**，加载完成时靠组件重渲才带上真正的数据，
-  // 用 memo 反而会把"还没加载完"的空结果缓存住（依赖里写 db.status 也只是补偿）。
-  // 一次过滤就是几毫秒，直接算最直白。
+  // 不 memo：物品库是**模块级状态**，靠组件重渲才带上真正的数据，memo 会把"还没加载完"的
+  // 空结果缓存住；一次过滤就是几毫秒，直接算最直白。
   const results = searchItems(query)
   const known = new Set(results.map((item) => item.id))
-  // 已选项必须始终留在列表里：否则编辑已有条目时值还在、标签却找不到，
-  // 回显会退化成一串裸 id，而且用户一下拉就像"被清空"了
+  // 已选项必须始终留在列表里：否则编辑已有条目时值还在、标签找不到，回显退化成裸 id。
   const pinned: ItemEntry[] =
     selected === undefined || known.has(selected)
       ? []
@@ -117,11 +106,9 @@ function ItemPicker({
         setQuery('')
         onChange?.(next === undefined ? [] : [next])
         /*
-         * 顺手把物品快照写进配置（`itemMeta`）：卡片以后只看它，
-         * 带来看价的人不必为了"这个 id 叫什么"再拉一次几 MB 的物品库。
-         * 选项本来就来自物品库，理论上必然查得到；真查不到就什么都不写，
-         * 宁可留着旧快照，也别写个空名把卡片的标题弄丢。
-         * UI 目前单选，所以整份替换；将来开放多选时这里要改成「按 id 合并」。
+         * 顺手把物品快照写进配置（`itemMeta`）：卡片以后只看它，看价的人不必再拉几 MB 物品库。
+         * 选项本来就来自物品库理论上必查得到；查不到就什么都不写，宁留旧快照不写空名。
+         * UI 目前单选整份替换；将来开放多选要改成「按 id 合并」。
          */
         if (next === undefined) {
           form.setFieldValue(['config', 'itemMeta'], [])
@@ -189,11 +176,7 @@ export function MarketFormFields(): React.ReactNode {
 // 金币只显示整数：接口的平均售价带小数（如 47.15475960236723），小数点后几位没有意义
 const gilFormat = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 0 })
 
-/**
- * 与基准价比较：**只有低于基准价**（= 便宜）返回 `'below'`，改用主题强调色。
- *
- * 高于 / 等于基准价、没填基准价、没有数据一律返回 `null` —— 不着色，
- */
+/** 与基准价比较：**只有低于基准价**（= 便宜）返回 `'below'`（主题强调色）；高于 / 等于、没填基准价、没数据一律 `null` 不着色。 */
 function priceTone(price: number, basePrice: number | undefined): 'below' | null {
   if (basePrice === undefined || price <= 0) {
     return null
@@ -234,12 +217,8 @@ function QualityBlock({
   scope: string
 }): React.ReactNode {
   const minListing = readings?.minListing
-  /*
-   * 最低价格下方的出处行：
-   * - 查大区/全区：价格可能出自任意服务器，用接口给的 worldName（最低价所在的那个服）。
-   * - 查单个服务器：价格就是这个服的，直接写区服名 —— 接口在这一档**不返回 worldId**，
-   *   不补上就只剩大区/全区才有出处行，两种粒度下读数行数不一致。
-   */
+  // 价格下方的出处行：查大区/全区时用接口给的 worldName（最低价所在的服，可能出自任意服务器）；
+  // 查单个服务器直接写区服名 —— 接口在这一档**不返回 worldId**，不补上两种粒度读数行数不一致。
   const origin = minListing?.hasData
     ? resolveTier(scope) === 'world'
       ? scope
@@ -256,8 +235,7 @@ function QualityBlock({
           {/* 只给最低价格上色，且只在「低于基准价」时：三项都比会满屏彩字，反而看不出重点 */}
           <ReadingValue reading={minListing} tone={priceTone(minListing?.price ?? 0, basePrice)} />
         </Flex>
-        {/* 与价格分行：挤在一行会压窄数字。两者贴成一组（gap 1）—— 出处是给最低价格做注解的，
-            中间不该再留一道行距，否则会像另一项读数 */}
+        {/* 出处与价格分行、贴成一组（gap 1）：挤一行会压窄数字，但再留行距又像另一项读数 */}
         {origin ? <span className="dash-market-origin">{origin}</span> : null}
       </Flex>
 
@@ -279,37 +257,28 @@ export function MarketRender({
   config,
   item: widgetItem,
 }: WidgetRenderProps<MarketConfig>): React.ReactNode {
-  /*
-   * 时钟取**分钟粒度**：这张卡只有「N 分钟前」那一行吃时钟，而它一分钟才变一次。
-   */
+  // 时钟取分钟粒度：只有「N 分钟前」那一行吃时钟，而它一分钟才变一次
   const now = useClockAt('minute')
 
   const scope = config.scope
-  /*
-   * ⚠️ WidgetRenderer 每次渲染都会重新 normalizeConfig，config.itemIds 的引用不稳定，
-   * 先拼成字符串再还原：数组因此有了稳定引用，可以安全地进 effect 依赖。
-   */
+  // ⚠️ WidgetRenderer 每次渲染都会重新 normalizeConfig，config.itemIds 引用不稳定；
+  // 先拼成字符串再还原，数组才有稳定引用，可以安全进 effect 依赖。
   const itemsKey = config.itemIds.join(',')
   const itemIds = useMemo(() => (itemsKey === '' ? [] : itemsKey.split(',').map(Number)), [itemsKey])
   const itemId = itemIds[0]
   /** 当前请求的唯一标识：数据与错误都按它归档，切参数时旧数据自然失效。 */
   const requestKey = `${scope}|${itemsKey}`
 
-  /*
-   * 物品快照：选物品时就跟着配置一起存了下来，卡片**优先用它**，此时连物品库都不需要加载。
-   * 只有老数据（`itemMeta` 出现之前存的配置）才会落回"现查物品库"那条路。
-   */
+  // 物品快照选物品时已随配置存下，卡片**优先用它**，此时连物品库都不必加载；
+  // 只有老数据（`itemMeta` 出现前存的配置）才落回"现查物品库"那条路。
   const snapshot = config.itemMeta.find((meta) => meta.id === itemId)
   const db = useItemDb(snapshot === undefined)
   const item: MarketItemMeta | undefined =
     snapshot ?? (itemId !== undefined && db.status === 'ready' ? findItem(itemId) : undefined)
 
-  /*
-   * 数据与错误都**连着自己那份请求标识一起存**，而不是在 effect 里手动清空。
-   * 好处有二：① 渲染期拿 key 一比就知道这条数据是不是当前参数的，
-   * 不必"先置空再请求"（那会多触发一轮渲染）；
-   * ② 切区服时不会把上一个区服的价格挂在新区服的标题下面。
-   */
+  // 数据与错误都**连着请求标识一起存**（不在 effect 里手动清空）：渲染期拿 key 一比即知
+  // 数据是否属于当前参数，不必"先置空再请求"多一轮渲染；切参数时旧数据自动失效，
+  // 不会把上一个区服的价格挂在新区服标题下。
   const [entry, setEntry] = useState<{ key: string; data: MarketData } | null>(null)
   const [failure, setFailure] = useState<{ key: string; message: string } | null>(null)
 
@@ -321,16 +290,10 @@ export function MarketRender({
   // 没有数据也没有错误 = 还在等第一次结果，不需要单独维护一个 loading 状态
   const pending = itemIds.length > 0 && data === null && error === null
 
-  /*
-   * 取数 + 记账。
-   *
-   * 请求交给合并器（`requestMarket`）：它会等同一轮的其它卡片一起，按区服合并成一次请求，
-   * 再把这批结果里属于本卡的物品分回来 —— 落盘也由它统一做（缓存按物品拆条，见 cache.ts），
-   * 卡片这边只认「记账」，不再各自写缓存。
-   *
-   * 刻意写成**同步函数返回 Promise**（而不是 async 函数）：setState 全部落在
-   * then/catch 回调里，effect 同步阶段一次都不会触发渲染。
-   */
+  // 取数 + 记账：请求交给合并器（`requestMarket`）等同轮其它卡片到齐后按区服合并请求，
+  // 再把结果里属于本卡的物品分回来 —— 落盘由它统一做（缓存按物品拆条见 cache.ts），
+  // 卡片只认「记账」不各自写缓存。刻意写成**同步函数返回 Promise**（非 async）：
+  // setState 全落在 then/catch 回调里，effect 同步阶段一次都不触发渲染。
   const reload = useCallback((): Promise<void> => {
     if (itemIds.length === 0) {
       return Promise.resolve()
@@ -349,11 +312,8 @@ export function MarketRender({
       })
   }, [itemIds, requestKey, scope])
 
-  /*
-   * 打开 / 换物品 / 换区服时请求一次，**只此一次**：
-   * 命中未过期缓存（1 小时内）就直接用、不发请求；
-   * 停留期间不做任何轮询，页面一直开着看到的就是这次拿到的价格。
-   */
+  // 打开 / 换物品 / 换区服时请求一次，**只此一次**：命中未过期缓存（1 小时内）直接用、
+  // 不发请求；停留期间不轮询，看到的就是这次拿到的价格。
   useEffect(() => {
     if (itemIds.length === 0) {
       return
@@ -365,13 +325,8 @@ export function MarketRender({
     void reload()
   }, [itemIds, reload, scope])
 
-  /*
-   * 老数据还没有物品快照：物品库一读出结果就把名称 / HQ 写回配置。
-   *
-   * 这是本组件唯一一处"改自己的配置"（走模块级 `boardActions`，见 widgets/types.ts 的约定）。
-   * 只写一次 —— 写回后配置里就有快照了，下次进网页这张卡不再碰物品库。
-   * 切勿搬进渲染期：渲染期不允许有副作用。
-   */
+  // 老数据还没有物品快照：物品库一读出结果就把名称 / HQ 写回配置（走模块级 `boardActions`，
+  // 见 widgets/types.ts 的约定）。只写一次，写回后下次进网页不再碰物品库；勿搬进渲染期。
   useEffect(() => {
     if (itemId === undefined || snapshot !== undefined || db.status !== 'ready') {
       return
@@ -429,8 +384,8 @@ export function MarketRender({
   return (
     <Flex className="dash-card-fill" vertical gap={10} style={{ minWidth: 0 }}>
       {/*
-        正文整块可点，跳到 Universalis 的物品页。
-        链接只包住读数区：**标题栏**里有编辑/删除按钮，交互元素不能嵌在 <a> 里。
+        正文整块可点，跳到 Universalis 物品页。链接只包住读数区：
+        **标题栏**里有编辑/删除按钮，交互元素不能嵌在 <a> 里。
       */}
       <a
         className="dash-card-link"
@@ -445,8 +400,8 @@ export function MarketRender({
               {item?.name ?? `物品 #${itemId}`}
             </Typography.Text>
             {/*
-              区服与更新时间挤在标题行右侧，不独占一行；获取失败时这里转警示色。
-              这里是纯文本 —— 它位于 <a> 内部，不能放按钮。
+              区服与更新时间挤在标题行右侧，不独占一行；获取失败时转警示色。
+              这里是纯文本 —— 位于 <a> 内部，不能放按钮。
             */}
             <Typography.Text
               type={error === null ? 'secondary' : 'warning'}

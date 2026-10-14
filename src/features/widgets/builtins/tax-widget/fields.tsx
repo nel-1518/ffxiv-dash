@@ -1,6 +1,5 @@
 /**
  * 市场税率卡的配置字段与渲染。
- *
  * 卡面三段：标题行（服务器 + 数据新鲜度）→ 减税市场（一行列出）→ 金额输入框 + 含税估算。
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -43,10 +42,7 @@ export function TaxFormFields(): React.ReactNode {
 }
 
 export function TaxRender({ config }: WidgetRenderProps<TaxConfig>): React.ReactNode {
-  /*
-   * 时钟取**分钟粒度**：这张卡只有「N 分钟前」那一行吃时钟，而它一分钟才变一次。
-   * （缓存 8 小时，读数最多显示到「N 小时前」。）
-   */
+  // 时钟取分钟粒度：只有「N 分钟前」那一行吃时钟，一分钟才变一次（缓存 8 小时，读数最多「N 小时前」）
   const now = useClockAt('minute')
 
   const serverName = config.server
@@ -54,16 +50,12 @@ export function TaxRender({ config }: WidgetRenderProps<TaxConfig>): React.React
   /** 当前请求的唯一标识：数据与错误都按它归档，换服务器时旧数据自然失效。 */
   const requestKey = String(serverId ?? 0)
 
-  /*
-   * 数据与错误都**连着自己那份请求标识一起存**，而不是在 effect 里手动清空：
-   * 渲染期拿 key 一比就知道这条数据是不是当前服务器的，不必"先置空再请求"。
-   */
+  // 数据与错误都**连着请求标识一起存**（不在 effect 里手动清空）：
+  // 渲染期拿 key 一比即知数据属于当前服务器，不必"先置空再请求"。
   const [entry, setEntry] = useState<{ key: string; data: TaxRates } | null>(null)
   const [failure, setFailure] = useState<{ key: string; message: string } | null>(null)
 
-  /*
-   * 渲染期读缓存（纯读、无副作用）：页面打开时命中缓存就立刻有数据可显示。
-   */
+  // 渲染期读缓存（纯读、无副作用）：页面打开时命中缓存就立刻有数据可显示。
   const cached = useMemo(() => (serverId === undefined ? null : readTaxCache(serverId)), [serverId])
 
   const data = (entry?.key === requestKey ? entry.data : null) ?? cached
@@ -71,10 +63,8 @@ export function TaxRender({ config }: WidgetRenderProps<TaxConfig>): React.React
   // 没有数据也没有错误 = 还在等第一次结果，不需要单独维护一个 loading 状态
   const pending = serverId !== undefined && data === null && error === null
 
-  /*
-   * 金额输入：存**格式化后的文本**（千分位随输入即时生效），计算时再去掉逗号。
-   * 只保留数字、最多 9 位 —— 前导零顺手被 Number 归一掉（"00100" → "100"）。
-   */
+  // 金额存**格式化后的文本**（千分位随输入即时生效），计算时再去掉逗号；
+  // 只保留数字、最多 9 位，前导零顺手被 Number 归一掉（"00100" → "100"）。
   const [amountText, setAmountText] = useState('')
   const amount = amountText === '' ? 0 : Number(amountText.replace(/,/g, ''))
   const hasAmount = amount > 0
@@ -84,12 +74,8 @@ export function TaxRender({ config }: WidgetRenderProps<TaxConfig>): React.React
     setAmountText(digits === '' ? '' : formatGil(Number(digits)))
   }
 
-  /*
-   * 拉取 + 落盘 + 记账。
-   *
-   * 刻意写成**同步函数返回 Promise**（而不是 async 函数）：setState 全部落在
-   * then/catch 回调里，effect 同步阶段一次都不会触发渲染。
-   */
+  // 拉取 + 落盘 + 记账。刻意写成**同步函数返回 Promise**（而不是 async 函数）：
+  // setState 全部落在 then/catch 回调里，effect 同步阶段一次都不会触发渲染。
   const reload = useCallback((): Promise<void> => {
     if (serverName === '') {
       return Promise.resolve()
@@ -109,10 +95,8 @@ export function TaxRender({ config }: WidgetRenderProps<TaxConfig>): React.React
       })
   }, [requestKey, serverName])
 
-  /*
-   * 打开 / 换服务器时请求一次，**只此一次**：命中未过期缓存（8 小时内）就直接用、不发请求；
-   * 停留期间不做任何轮询 —— 这正是"每次进入页面判断一次即可"的落地方式。
-   */
+  // 打开 / 换服务器时请求一次，**只此一次**：命中未过期缓存（8 小时内）直接用、不发请求，
+  // 停留期间不轮询 —— "每次进入页面判断一次即可"的落地方式。
   useEffect(() => {
     if (serverId === undefined) {
       return
@@ -139,8 +123,8 @@ export function TaxRender({ config }: WidgetRenderProps<TaxConfig>): React.React
   const rows = data === null ? [] : data.rates.filter(isDiscounted)
 
   /*
-   * 减税地点按税率分组：税率只有 5% / 3% 两档，一组一行列出城市（顿号分隔、超宽自动折行），
-   * 比逐城一行省下大半版面。分组顺序沿用 `TAX_CITIES` 的顺序（Map 保持插入顺序）。
+   * 减税地点按税率分组：税率只有 5% / 3% 两档，一组一行列出城市（顿号分隔、超宽折行），
+   * 比逐城一行省下大半版面；分组顺序沿用 `TAX_CITIES`（Map 保持插入顺序）。
    */
   const groups = new Map<number, string[]>()
   for (const row of rows) {
@@ -152,17 +136,14 @@ export function TaxRender({ config }: WidgetRenderProps<TaxConfig>): React.React
     }
   }
 
-  /*
-   * 含税估算只算三档：卖出 5%（正常税）→ 卖出各减税档（如 3%）→ 买入 5%。
-   * **税额一律向下取整**，卖出 = 金额 − 税额，买入 = 金额 + 税额。
-   * 金额未填时读数为 null（显示破折号）：格子常驻，版面高度不随输入跳变。
-   */
+  // 含税估算只算三档：卖出 5%（正常税）→ 卖出各减税档（如 3%）→ 买入 5%；**税额一律向下取整**，
+  // 卖出 = 金额 − 税额、买入 = 金额 + 税额；金额未填时读数 null（破折号）：格子常驻，版面高度不跳。
   const discountedRates = Array.from(new Set(rows.map((row) => row.rate))).sort((a, b) => a - b)
 
   /**
    * 金额 `amount` 在税率 `rate`（百分比）下的税额，向下取整。
-   * ⚠️ 先乘整数再除 100（而不是乘 `rate / 100`）：后者在 0.05 / 0.03 这类
-   * 二进制表示不精确的浮点数上会漂出 1 分（如 3333 × 0.05 = 166.64999999999998）。
+   * ⚠️ 先乘整数再除 100（不要乘 `rate / 100`）：0.05 / 0.03 这类二进制表示不精确的
+   * 浮点数会漂出 1 分（如 3333 × 0.05 = 166.64999999999998）。
    */
   const taxOf = (rate: number): number => Math.floor((amount * rate) / 100)
 
@@ -200,7 +181,7 @@ export function TaxRender({ config }: WidgetRenderProps<TaxConfig>): React.React
   return (
     /*
      * 正文不可点，纯读数 + 一个输入框（不套 `.dash-card-link`，flex 规则自己给，同汇率卡）。
-     * 这一层撑满卡面正文区，好把富余高度交给中间的减税地点区（上限 `.dash-card-fill` 的 164px）。
+     * 这层撑满卡面正文区，把富余高度交给中间的减税地点区（上限 `.dash-card-fill` 的 164px）。
      */
     <div className="dash-card-fill dash-tax">
       <Flex align="baseline" justify="space-between" gap={8} style={{ minWidth: 0 }}>
@@ -245,9 +226,9 @@ export function TaxRender({ config }: WidgetRenderProps<TaxConfig>): React.React
       )}
 
       {/*
-       * 计算器：输入框 + 含税估算，包成一组 —— 内部间距收紧到 6px，
-       * 与卡里其他区块（10px）拉开层次，读作「一个功能的两个部分」。
-       */}
+        计算器（输入框 + 含税估算）包成一组：内部间距收紧到 6px，与卡里其他区块
+        （10px）拉开层次，读作「一个功能的两个部分」。
+      */}
       <div className="dash-tax-calc">
         <Input
           className="dash-tax-input"
@@ -260,9 +241,9 @@ export function TaxRender({ config }: WidgetRenderProps<TaxConfig>): React.React
         />
 
         {/*
-         * 含税估算：浅底网格一列一档（同房屋合计块的排版语言），标签在上、读数在下。
-         * 列数随档位数走（没有减税时只有两列），写在 inline style 里。
-         */}
+          含税估算：浅底网格一列一档（同房屋合计块的排版语言），标签在上、读数在下；
+          列数随档位数走（没有减税时只有两列），写在 inline style 里。
+        */}
         <div
           className="dash-tax-results"
           style={{ gridTemplateColumns: `repeat(${String(estimates.length)}, minmax(0, 1fr))` }}

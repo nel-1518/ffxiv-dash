@@ -1,7 +1,6 @@
 /**
  * 活动日历卡的配置类型、默认值与归一化（纯数据，无组件）。
- *
- * 唯一可配项：`emphasisDays` —— 剩余不超过多少天时，倒计时用强调色显示（默认 3 天）。
+ * 唯一可配项：`emphasisDays` —— 剩余不超过多少天时倒计时用强调色（默认 3 天）；
  * 活动名称、起止时间、专属色与专题页链接都来自接口，不可配。
  */
 export const ACTIVITY_CALENDAR_API_URL = 'https://ffxiv-api.neeeel.com/api/getActiveCalendarMonth'
@@ -11,8 +10,7 @@ export const ACTIVITY_CALENDAR_EMPHASIS_MIN = 0
 export const ACTIVITY_CALENDAR_EMPHASIS_MAX = 30
 
 /**
- * 前端缓存有效期 8 小时。
- * 重开页面命中缓存就直接用、**不发请求**，停留期间不轮询。
+ * 前端缓存有效期 8 小时：重开页面命中缓存就直接用、**不发请求**，停留期间不轮询。
  */
 export const ACTIVITY_CALENDAR_CACHE_TTL_MS = 8 * 60 * 60 * 1000
 

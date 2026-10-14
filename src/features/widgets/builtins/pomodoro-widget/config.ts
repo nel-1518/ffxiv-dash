@@ -1,8 +1,8 @@
 /**
  * 休息提醒卡的配置类型、默认值与归一化（纯数据，无组件）。
  *
- * config 里只放**用户设置**：两个时长、是否自动接续、两条提醒语。
- * 计时状态既不跟着看板导出走，也不该让每秒的读数写进落盘数据，刷新页面就回到「准备专注」。
+ * config 里只放用户设置：两个时长、是否自动接续、两条提醒语。
+ * ⚠️ 计时状态不落盘：不跟看板导出走、每秒读数也不写进落盘数据，刷新页面就回到「准备专注」。
  */
 
 export type RestConfig = {
@@ -41,10 +41,8 @@ function clampMinutes(value: unknown, range: { min: number; max: number; default
 }
 
 /**
- * 提醒语：认不出来的值回落默认文案，能认出来的**原样保留**（含空串）。
- *
- * 空串是合法值（= 通知只显示标题）—— 不能像"认不出来"那样补回默认值，
- * 否则用户清空之后它又会自己冒出来（与主题档案里"空 url 是合法值"同一个道理）。
+ * 提醒语：认不出来的值回落默认文案，能认出来的原样保留（含空串）。
+ * 空串是合法值（= 通知只显示标题），不能像「认不出来」那样补回默认值，否则用户清空后它又自己冒出来。
  */
 function normalizeNotice(raw: unknown, fallback: string): string {
   if (typeof raw !== 'string') {
@@ -66,11 +64,9 @@ export function normalizeRestConfig(raw: unknown): RestConfig {
 }
 
 /**
- * 两份配置在**值**上是否相同。
- *
- * ⚠️ 必须逐字段比，不能比引用：`normalizeConfig` 每次都返回新对象，编辑弹窗点「确定」时
- * 即使一个字段都没改也会换掉 config 的引用 —— 拿引用当"用户改了设置"的信号，会把正在跑的
- * 计时平白重置。新增字段时记得同步加到这里。
+ * 两份配置在值上是否相同。
+ * ⚠️ 必须逐字段比、不能比引用：`normalizeConfig` 每次都返回新对象，编辑弹窗点「确定」时即使一个字段没改也会换掉 config 引用，
+ * 拿引用当「用户改了设置」的信号会把正在跑的计时平白重置。新增字段时记得同步加到这里。
  */
 export function isSameRestConfig(a: RestConfig, b: RestConfig): boolean {
   return (

@@ -1,13 +1,12 @@
 /**
  * 活动日历卡的配置字段与渲染。
  *
- * 卡面自上而下两段：标题行（月份 + 活动数 / 获取失败）→ 可滚动的活动列表。
- * 每行活动：名称（带该活动的专属色下划线） + 右侧倒计时读数，下面一行是生效区间；
- * 整行可点，新标签页打开活动专题页。列表**按剩余时间升序**（最紧急的在前，已结束排最后），
+ * 卡面两段：标题行（月份 + 活动数 / 获取失败）→ 可滚动的活动列表。
+ * 每行活动：名称（带该活动的专属色下划线）+ 右侧倒计时读数，下面一行是生效区间；
+ * 整行可点，新标签页打开活动专题页。列表**按剩余时间升序**（最紧急在前，已结束排最后），
  * 距结束不超过 `config.emphasisDays` 天（默认 3）的读数转强调色（只看结束时间）。
- *
- * 数据在挂载时取一次（前端缓存 8 小时，命中即不发请求；服务端另缓存 97 分钟），
- * 停留期间不轮询；倒计时跟着**分钟粒度**的全局时钟走，跨分钟才重渲染。
+ * 数据挂载时取一次（前端缓存 8 小时命中不发请求，服务端另缓存 97 分钟），不轮询；
+ * 倒计时跟**分钟粒度**的全局时钟走。
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, Button, Flex, Form, InputNumber, Typography } from 'antd'
@@ -69,18 +68,16 @@ export function ActivityCalendarRender({
   const [failure, setFailure] = useState<string | null>(null)
 
   /*
-   * 渲染期读缓存（纯读、无副作用）：页面打开时命中缓存就立刻有数据可显示。
+   * 渲染期读缓存（纯读、无副作用）：页面打开时命中缓存就立刻有数据可显示；
    * 缓存 8 小时，命中即不发请求（见下面的 effect）。
    */
   const cached = useMemo(() => readActivityCalendarCache(), [])
   const data = entry ?? cached
 
   /*
-   * 拉取 + 落盘 + 记账。
-   *
-   * 刻意写成**同步函数返回 Promise**（而不是 async 函数）：setState 全部落在
-   * then/catch 回调里，effect 同步阶段一次都不会触发渲染。
-   * 请求本身在 `api.ts` 里按 URL 单飞，StrictMode 双挂载也只发一条。
+   * 拉取 + 落盘 + 记账。刻意写成**同步函数返回 Promise**（不是 async 函数）：
+   * setState 全落在 then/catch 回调里，effect 同步阶段一次都不会触发渲染；
+   * 请求在 `api.ts` 里按 URL 单飞，StrictMode 双挂载也只发一条。
    */
   const reload = useCallback((): Promise<void> => {
     return fetchActivityCalendar()
@@ -126,10 +123,8 @@ export function ActivityCalendarRender({
 
   return (
     <div className="dash-card-fill dash-calendar">
-      {/*
-        * 标题行：与官网公告 / 物品价格同一套写法 —— 左侧加粗 13px 的月份标签
-        * （接口默认返回当前月），右侧 11px 的活动数 / 状态；获取失败时转警示色。
-        */}
+      {/* 标题行同官网公告 / 物品价格卡：左侧加粗 13px 月份标签（接口默认返回当前月），
+          右侧 11px 活动数 / 状态；获取失败时转警示色。 */}
       <Flex
         className="dash-calendar-meta"
         align="baseline"

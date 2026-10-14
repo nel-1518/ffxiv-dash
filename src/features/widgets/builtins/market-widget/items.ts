@@ -1,15 +1,9 @@
 /**
  * 物品库（`public/data/item-db.json`）的按需加载与检索（纯逻辑，无 React）。
- *
- * 文件有几 MB 且是单行，**不打包进 bundle**，只在非它不可时才拉一次，之后挂在模块级
- * Promise 上、全应用共用同一份：
- * ① 打开编辑弹窗选物品（检索本身就需要全量数据）；
- * ② 更早版本的配置里还没有物品快照（见 `config.ts` 的 `itemMeta`），卡片得现查一次名称。
- * 新存的卡片不会走第 ② 条 —— 名称与 HQ 已经随配置一起落盘，
- * 所以**进网页时不会因为这张卡拉物品库**（`useItemDb` 的 `enabled` 参数把这件事钉在调用点）。
- *
- * 模块级状态而不是每次传数组：调用方（下拉与卡片）只要问「现在能搜了吗」，
- * 不必把几万条数据当参数传来传去。
+ * 文件有几 MB 且单行，**不打包进 bundle**，只在非它不可时拉一次、之后挂模块级 Promise
+ * 全应用共用：① 打开编辑弹窗检索（必须全量）；② 老配置还没有物品快照（`config.ts` 的
+ * `itemMeta`），卡片得现查名称。新存的卡片两条都不走，**进网页不会因这张卡拉物品库**。
+ * 模块级状态而非传数组：调用方（下拉与卡片）只问「现在能搜了吗」，不必把几万条传来传去。
  */
 
 import { assetUrl } from '../../../../core/asset-url.ts'
@@ -75,8 +69,7 @@ export function loadItemDb(): Promise<void> {
 }
 
 /**
- * 按名称或 ID 检索，最多 `limit` 条，**按 id 倒序**。
- *
+ * 按名称或 ID 检索，最多 `limit` 条、**按 id 倒序**。
  * ID 走前缀匹配：输入「1602」能直接定位到 1602 与 16020，比只认完整 ID 好用。
  */
 export function searchItems(query: string, limit = MAX_ITEM_SUGGESTIONS): ItemEntry[] {

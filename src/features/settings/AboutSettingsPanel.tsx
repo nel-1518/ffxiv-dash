@@ -3,10 +3,9 @@ import { Flex, Tag, Typography } from 'antd'
 
 /**
  * 项目用到的外部接口。
- *
- * `endpoint` 是**请求地址的模板**（占位符沿用接口自身的写法），只作展示、不渲染成链接：
- * 模板带上真实的物品 / 服务器 ID 才有响应，点开只会 404。想访问的是 `site`。
- * `site` 留空表示数据不来自外部服务（随项目一起分发）。
+ * `endpoint` 是请求地址模板（沿用接口自身占位符写法），只作展示、不渲染成链接：
+ * 模板需带上真实物品 / 服务器 ID 才有响应，点开只会 404，入口是 `site`。
+ * `site` 留空表示数据不来自外部服务（随项目分发）。
  */
 type EndpointEntry = {
   name: string
@@ -222,10 +221,7 @@ export function AboutSettingsPanel(): React.ReactNode {
 
         <Flex className="dash-about-tags" gap={6} wrap>
           {TECH_STACK.map((tech) => (
-            /*
-             * 跳转交给外层 <a>（整块标签都是命中区，也保住中键新标签、右键复制链接），
-             * Tag 只负责外观 —— 长按拖动等浏览器默认行为照旧走原生链接这一套。
-             */
+            /* 跳转交给外层 <a>：整块标签都是命中区，保住中键新标签与右键复制链接；Tag 只管外观 */
             <a
               key={tech.name}
               className="dash-about-tech"

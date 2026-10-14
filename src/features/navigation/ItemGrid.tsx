@@ -10,40 +10,26 @@ export type ItemGridProps = {
   /** 所属分组，作为卡片的拖拽归属信息下发。 */
   groupId: string
   items: Item[]
-  /**
-   * 列数与分组类型收的是**原始值**而不是整个 `Group` 对象。
-   * 传对象的话，分组里任何一张卡片变化都会让本组所有网格判定为"变了"，
-   * 下面的 `memo` 就白套了。
-   */
+  /** 列数与类型收原始值而非 `Group` 对象：否则组内任一卡变化会让本组所有网格判定「变了」，memo 白套。 */
   columns: number
   groupType: GroupType
-  /** 是否处于编辑模式：关闭时不渲染拖拽手柄，卡片也就无法拖拽。 */
+  /** 是否编辑模式：关闭时不渲染拖拽手柄，卡片无法拖拽。 */
   editMode: boolean
   /**
-   * 打开某张卡片的编辑弹窗。
-   *
-   * 传「卡片 id」而不是「无参闭包」是刻意的：这样所有卡片拿到的是**同一个函数引用**，
-   * 外层 `memo(SortableCard)` 才能真正拦住未变化的卡片。同一个槽位里 `groupId` 不会变，
-   * 所以调用方（`BoardGroupSlot`）能把它 `useCallback` 成一个稳定引用。
+   * 打开编辑弹窗。传「卡片 id」而非无参闭包：所有卡片共用**同一函数引用**，
+   * 外层 memo(SortableCard) 才拦得住（同槽位 groupId 不变，调用方能 useCallback 成稳定引用）。
    */
   onEditItem: (itemId: string) => void
 }
 
 /**
  * 分组内的卡片网格。
- *
- * 排布用 CSS Grid 而不是 antd 的 Row/Col：列数可由用户按 1-6 配置，
- * 而 24 栅格切不出 5 列这种整数之外的份数。列数通过自定义属性下发，
- * 窄屏由 navigation.css 的媒体查询自动降列（列数越多降得越狠）；间距也由 navigation.css
- * 按分组类型给（网页导航 8px、组件 12px）。
- *
- * 这里还给本组卡片套了一层 SortableContext：卡片的"让位动画"需要
- * dnd-kit 知道它们同属一个可排序列表（activeIndex / overIndex 都取自这里）。
- * 没有它，拖拽中的卡片不会跟随指针，落位也不会有过渡。
- *
- * `memo` 的意义：本组某张卡片的配置变化会让 `group` / `items` 换引用，本组件必然重渲染；
- * 但同组其它卡片的 `item` 对象引用没变，`memo(SortableCard)` 会把它们全部拦下 ——
- * 于是"点一下 +1"只重渲染那一张卡。
+ * 排布用 CSS Grid 而非 antd Row/Col：列数可 1-6 配置、24 栅格切不出 5 列；列数经自定义属性下发，
+ * 窄屏由 navigation.css 降列，间距（导航 8px / 组件 12px）也按分组类型由它给。
+ * SortableContext 让 dnd-kit 知道组内卡片同属一个可排序列表——「让位动画」的 activeIndex/overIndex
+ * 取自这里；没有它，拖拽中的卡片不跟指针、落位也无过渡。
+ * memo 的意义：本组某卡变化让 `items` 换引用、本组件必然重渲染，但其它卡的 item 引用没变、
+ * memo(SortableCard) 全拦下——「点一下 +1」只重渲染那一张卡。
  */
 export const ItemGrid = memo(function ItemGrid({
   groupId,
@@ -53,7 +39,7 @@ export const ItemGrid = memo(function ItemGrid({
   editMode,
   onEditItem,
 }: ItemGridProps): React.ReactNode {
-  // ⚠️ 必须在提前 return 之前调用（Hooks 规则）；它同时是 dnd-kit 不误伤同组卡片的前提
+  // ⚠️ 必须在提前 return 之前调用（Hooks 规则）；它同时是 dnd-kit 不误伤同组卡片的前提（见 useStableIdList）
   const ids = useStableIdList(items)
 
   if (items.length === 0) {

@@ -3,10 +3,9 @@ import { linkFieldsFromMetadata, normalizeLinkUrl, type LinkMetadata } from '../
 import type { LinkItem } from '../../core/storage/types.ts'
 
 /**
- * 「批量添加链接」专属的纯逻辑：多行文本 → 去重后的链接列表 → `LinkItem[]`。
+ * 「批量添加链接」专属纯逻辑：多行文本 → 去重后的链接列表 → `LinkItem[]`。
  *
- * ⚠️ 接口请求与元数据字段提取**不在这里**，它们在 `core/link-metadata.ts`：
- * 编辑弹窗的「自动获取数据」也要用同一份实现（含按 URL 在飞去重）。
+ * ⚠️ 接口请求与元数据字段提取不在这里，在 `core/link-metadata.ts`：编辑弹窗「自动获取数据」共用同一份实现（含按 URL 在飞去重）。
  */
 
 const MAX_INPUT_LINES = 20
@@ -69,7 +68,7 @@ export function metadataToLinkItem(url: string, metadata: LinkMetadata): LinkMet
       url,
       ...(fields.desc ? { desc: fields.desc } : {}),
       ...(fields.icon ? { icon: fields.icon } : {}),
-      // 缩写刻意留空：它只能由用户手填，不猜、不从标题或域名推导
+      // 缩写只能用户手填，不猜、不推导，留空
     },
     safetyTags: fields.safetyTags,
   }

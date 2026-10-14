@@ -8,12 +8,9 @@ import type { ReactNode } from 'react'
 const PERSIST_DEBOUNCE_MS = 300
 
 /**
- * 落盘闸门：订阅 store，把变更防抖后写进 localStorage。
- *
- * ⚠️ 刻意用命令式 `subscribeBoard` 而不是 `useSyncExternalStore`：它渲染的是 `children`
- * （整棵应用），一旦自己因 `doc` 变化而重渲染，细粒度订阅的收益会被全部抵消。
- * 订阅只用来"知道该写盘了"，与渲染无关。
- *
+ * 落盘闸门：订阅 store，把变更防抖写进 localStorage。
+ * ⚠️ 刻意用命令式 `subscribeBoard` 而不是 `useSyncExternalStore`：本组件渲染的是 children
+ * （整棵应用），自己因 `doc` 变化重渲染会抵消细粒度订阅的全部收益——订阅只用来「知道该写盘了」。
  * 需要 `App.useApp()` 的 message 提示写入失败，因此必须挂在 `<App>` 内部。
  */
 export function BoardPersistence({ children }: { children: ReactNode }): ReactNode {
@@ -36,7 +33,7 @@ export function BoardPersistence({ children }: { children: ReactNode }): ReactNo
           return
         }
         notified = false
-        // 写盘成功 = 本机存着的已经是当前这份看板了：启动时那句"数据读不出来"的提示到此为止
+        // 写盘成功＝本机存着的已是当前这份看板：启动时那句「数据读不出来」的提示到此为止
         clearBootFailure()
       }, PERSIST_DEBOUNCE_MS)
     })

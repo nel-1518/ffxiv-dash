@@ -22,7 +22,7 @@ export type EditDialogProps = {
   onClose: () => void
   onSaveGroup: (groupId: string | null, values: GroupFormValues) => void
   onSaveItem: (groupId: string, itemId: string | null, item: Item) => void
-  /** 删除分组；分组表头已经不放删除按钮了，入口统一在编辑弹窗里。 */
+  /** 删除分组：分组表头已不放删除按钮，入口统一收在编辑弹窗里。 */
   onRemoveGroup: (groupId: string) => void
 }
 
@@ -30,13 +30,8 @@ const GROUP_FORM_ID = 'ffxiv-dash-group-form'
 const ITEM_FORM_ID = 'ffxiv-dash-item-form'
 
 /**
- * 编辑弹窗外壳。
- *
- * 1. `Modal` 在 `state` 为 null 时整个不渲染；`useForm` 等 hook 都住在下面的
- *    `EditDialogSession` 里 —— 会话不存在时它们不需要被调用，没有"hook 数量变化"的问题。
- * 2. 会话用 `key` 按"编辑对象"重挂：每次打开都是干净的临时状态（「下一步」进度、
- *    请求中标记、错误文案），不必写 effect 比对上一次是谁。
- *
+ * 编辑弹窗外壳：`Modal` 在 `state` 为 null 时整体不渲染，`useForm` 等都住在下面的 `EditDialogSession`
+ * 里（没有 hook 数量问题）；会话用 `key` 按「编辑对象」重挂，每次打开都是干净临时状态。
  * destroyOnHidden + Form 的 clearOnDestroy / preserve={false} 保证每次打开都是干净表单。
  */
 export function EditDialog(props: EditDialogProps): React.ReactNode {
@@ -53,15 +48,10 @@ export function EditDialog(props: EditDialogProps): React.ReactNode {
 type EditDialogSessionProps = Omit<EditDialogProps, 'state'> & { state: ModalState }
 
 function EditDialogSession({ state, onClose, onSaveGroup, onSaveItem, onRemoveGroup }: EditDialogSessionProps): React.ReactNode {
-  /*
-   * 刻意不给 `useForm` 传类型参数：同一个实例要服务分组表单与卡片表单两套字段形状，
-   * 钉死成 `ItemFormValues` 会让 `GroupForm` 那侧不兼容（TS2322）。
-   */
+  // 刻意不给 `useForm` 传类型参数：同一实例服务两套字段形状，钉死成 `ItemFormValues` 会让 `GroupForm` 不兼容（TS2322）
   const [form] = Form.useForm()
 
-  /*
-   * 弹窗自己订阅要编辑的分组：调用方（`DashboardPage`）不必为了弹窗去读整份看板。
-   */
+  // 弹窗自己订阅要编辑的分组：调用方（`DashboardPage`）不必为了弹窗去读整份看板
   const group = useBoardGroup(state.groupId ?? '')
 
   const item = useMemo<Item | undefined>(() => {
@@ -76,7 +66,7 @@ function EditDialogSession({ state, onClose, onSaveGroup, onSaveItem, onRemoveGr
     return {
       title: group?.title ?? '',
       type,
-      // 打开即填入当前值；新建时按类型的推荐列数起步
+      // 打开即填当前值；新建按类型的推荐列数起步
       columns: group?.columns ?? DEFAULT_GROUP_COLUMNS[type],
     }
   }, [group?.columns, group?.title, group?.type])
@@ -84,18 +74,15 @@ function EditDialogSession({ state, onClose, onSaveGroup, onSaveItem, onRemoveGr
   const isGroupMode = state.mode === 'group'
   const isEditing = isGroupMode ? Boolean(state.groupId) : Boolean(state.itemId)
 
-  /**
-   * 「自动获取数据」只服务新建网页链接：编辑时字段已填好；`link` 分组的 `allowedKinds`
-   * 只有 `link`，所以"在 link 分组里新建"就等于"新建链接"，不必再判断内容种类。
-   */
+  // 「自动获取数据」只服务新建链接：编辑时字段已填好；link 分组 allowedKinds 只有 link，「在此分组新建」＝新建链接
   const isNewLink = state.mode === 'item' && !state.itemId && group?.type === 'link'
   const [autoFetch, setAutoFetch] = useState(true)
-  // 元数据已经取回来（或用户取消了自动获取）：此时才展示完整字段
+  // 元数据已取回（或用户取消自动获取）：此时才展示完整字段
   const [fetched, setFetched] = useState(false)
   const [fetching, setFetching] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
 
-  /** 第一步：只填网址 + 自动获取。取消勾选后这一步就不再出现（用户选了手填）。 */
+  /** 第一步：只填网址 + 自动获取；取消勾选后这一步不再出现（用户选了手填）。 */
   const urlStep = isNewLink && autoFetch && !fetched
   const linkLayout: LinkFormLayout = urlStep ? 'url-only' : isNewLink ? 'url-first' : 'default'
 

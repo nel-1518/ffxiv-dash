@@ -15,20 +15,17 @@ import type { Item } from '../core/storage/types.ts'
 
 /**
  * 仪表盘页面：组装顶栏、分组看板与编辑弹窗。
- *
- * ⚠️ 这一层刻意不订阅任何看板数据：订阅全部下沉（结构在 `BoardSurface`，卡片在各自槽位，
- * 弹窗在 `EditDialog` 自身），这里只留本地界面状态与稳定回调 —— 否则任何一次卡片改动
- * 都会让顶栏、搜索框、设置入口一起重渲染。
+ * ⚠️ 刻意不订阅任何看板数据：订阅全部下沉（结构在 `BoardSurface`、卡片在各自槽位、弹窗在 `EditDialog`），
+ * 这里只留本地界面状态与稳定回调——否则任何一次卡片改动都会让顶栏、搜索框、设置入口一起重渲染。
  */
 export function DashboardPage(): React.ReactNode {
   const { modal } = App.useApp()
 
   const [modalState, setModalState] = useState<ModalState | null>(null)
   /**
-   * 设置弹窗开着时记的是**当前分区**，关着是 null。
-   *
-   * 记分区而不是布尔：读盘失败的提示条要能把用户直接送到「数据管理」，
-   * 而"打开哪一页"是设定值，不该由弹窗自己再推一遍（见 `initialSection`）。
+   * 设置弹窗开着时记的是当前分区，关着是 null。
+   * 记分区而不是布尔：读盘失败的提示条要能把用户直接送到「数据管理」，而「打开哪一页」
+   * 是设定值，不该由弹窗自己再推一遍（见 `initialSection`）。
    */
   const [settingsSection, setSettingsSection] = useState<SettingsSectionKey | null>(null)
   /** 编辑模式：刻意不持久化，刷新后回到干净的浏览态，避免误拖误删。 */
@@ -38,8 +35,8 @@ export function DashboardPage(): React.ReactNode {
   const search = useLinkSearch({ suspended: modalState !== null || settingsSection !== null })
 
   /*
-   * 这批回调全部引用稳定（只依赖 setState 或模块级常量）：它们会被透传到
-   * `memo(BoardGroupSlot)` / `memo(SortableCard)` 的 props 比较里，每次渲染新建闭包会让 memo 失效。
+   * 这批回调全部引用稳定（只依赖 setState 或模块级常量）：会被透传进 `memo(BoardGroupSlot)` /
+   * `memo(SortableCard)` 的 props 比较，每次渲染新建闭包会让 memo 失效。
    */
   const confirmRemoveGroup = useCallback(
     (groupId: string) => {
@@ -115,7 +112,7 @@ export function DashboardPage(): React.ReactNode {
 
       {/*
        * 看板整块交给 `BoardSurface`：它自己订阅分组结构，看板数据的变化到不了这一层。
-       * 顶栏不在里面 —— 它要铺满视口宽度（`.dash-container` 的居中限宽由 BoardSurface 负责）。
+       * 顶栏不在里面——它要铺满视口宽度（`.dash-container` 的居中限宽由 BoardSurface 负责）。
        */}
       <BoardSurface
         editMode={editMode}

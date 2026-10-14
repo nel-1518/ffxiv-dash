@@ -10,11 +10,8 @@ const MODES: readonly { value: ColorMode; label: string; icon: React.ReactNode }
 ]
 
 /**
- * 色调模式三选一。
- *
- * 只改 `AppearanceState.colorMode` —— 两个槽位（各自用哪套主题）不动，
- * 因此切回原来的色调时，那套主题与它自己的档案都还在。
- * 样式沿用设置面板里那套"大按钮"（`.dash-settings-option`），比下拉更好点。
+ * 色调模式三选一。只改 `AppearanceState.colorMode`，两个槽位不动：
+ * 切回原色调时，那套主题与它的档案都还在。
  */
 export function ColorModePicker(): React.ReactNode {
   const { colorMode } = useAppearance()

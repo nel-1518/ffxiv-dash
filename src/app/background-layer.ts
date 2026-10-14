@@ -10,9 +10,7 @@ import type { ThemeBackground } from './themes/types.ts'
 
 /**
  * 把一张图 + 两个显示参数翻成背景层样式（铺法固定「铺满裁切」，见 `.dash-bg-image`）。
- *
- * ⚠️ 地址必须过一遍 `assetUrl`：主题预设与用户填的地址都可能是 `/bg/x.jpg` 这种
- * public 根相对路径（Vite 不改写 TS 里的字符串），基础路径只在这里补一次。
+ * ⚠️ 地址必须过 `assetUrl`：主题预设与用户地址都可能是 `/bg/x.jpg` 这种 public 根相对路径（Vite 不改写 TS 字符串），基础路径只在这里补一次。
  */
 function imageLayer(url: string, blur = 0, brightness = 100): React.CSSProperties {
   const image: React.CSSProperties = {
@@ -28,13 +26,11 @@ function imageLayer(url: string, blur = 0, brightness = 100): React.CSSPropertie
 }
 
 /**
- * 把生效主题档案 + 主题预设翻译成背景层样式；返回 null 表示不需要背景层（外壳照旧用 colorBgLayout）。
- *
- * ⚠️ `imageUrl` 单独传：上传图的 object URL 是运行期才有（图片本体在 IndexedDB，启动时异步读回），
- * 不进档案；且逐主题一份，调用方必须传生效主题那一张（`useThemeImageUrl(themeKey)`）。
- *
- * 档案与预设的关系（见 `themes/appearance-sync.ts`）：出厂档案把预设写进「图片链接」（走 `url` 分支，
- * 用户可接着调）；「来源 = 无」时回落到预设图，用户手动选「无」仍能看到主题自带背景。
+ * 把生效主题档案 + 主题预设翻译成背景层样式；返回 null = 不需要背景层（外壳照旧 colorBgLayout）。
+ * ⚠️ `imageUrl` 单独传：上传图的 object URL 是运行期才有（本体在 IndexedDB，启动时异步读回），不进档案；
+ * 且逐主题一份，调用方必须传生效主题那张（`useThemeImageUrl(themeKey)`）。
+ * 档案与预设的关系（见 `themes/appearance-sync.ts`）：出厂档案把预设写进「图片链接」（走 `url` 分支，用户可接着调）；
+ * 「来源 = 无」回落预设图，用户手动选「无」仍能看到主题自带背景。
  */
 export function describeBackground(
   profile: ThemeProfile,

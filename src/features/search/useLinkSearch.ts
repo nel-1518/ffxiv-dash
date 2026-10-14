@@ -23,13 +23,11 @@ type RemoteState =
 export type LinkRow = {
   key: string
   kind: 'link'
-  /** 主文案。链接是名称。 */
   title: string
   /** 链接的缩写（没设就不渲染）。 */
   abbreviation?: string
   /** 次文案：链接显示描述（缺省回退网址）。 */
   subtitle?: string
-  /** 点击 / 回车要打开的地址。 */
   url: string
 }
 
@@ -37,25 +35,16 @@ export type LinkRow = {
 export type EngineRow = {
   key: string
   kind: 'engine'
-  /** 「用 xxx 搜索 …」。 */
   title: string
-  /** 点击 / 回车要打开的地址。 */
   url: string
   icon?: React.ReactNode
 }
 
-/**
- * 结果列表里的一行。
- *
- * 两种原有形态（跳转链接 / 搜索引擎）+ 命令产出的两种（动作行 / 物品行）。
- */
+/** 结果列表里的一行：跳转链接 / 搜索引擎，或命令产出的动作行、物品行。 */
 export type SearchRow = LinkRow | EngineRow | CommandRow
 
 export type UseLinkSearchOptions = {
-  /**
-   * 为 true 时完全不接管快捷键。
-   * 编辑弹窗打开时必须传 true：那时 Tab 要留给表单字段之间的移动。
-   */
+  /** 为 true 时完全不接管快捷键（编辑弹窗打开时须传 true：Tab 要留给表单字段移动）。 */
   suspended: boolean
 }
 
@@ -95,15 +84,12 @@ function isImeStart(event: KeyboardEvent): boolean {
   return (event as KeyboardEvent & { keyCode: number }).keyCode === 229
 }
 
-/** 清除 FF14 物品名称中的特殊字符。 */
+/** 清除 FF14 私有区字符（物品名称自带，粘贴接管前先剔除）。 */
 function cleanPastedText(text: string): string {
   return text.replace(/[\uE03C\uE0BB]/g, '')
 }
 
-/**
- * 剪贴板兜底：非安全上下文（http）下 `navigator.clipboard` 可能不可用，
- * 退回到隐藏 textarea + `execCommand('copy')`。返回是否成功。
- */
+/** 剪贴板兜底：非安全上下文（http）下 `navigator.clipboard` 可能不可用，退回隐藏 textarea + `execCommand('copy')`，返回是否成功。 */
 function copyTextFallback(text: string): boolean {
   const area = document.createElement('textarea')
   area.value = text
@@ -124,15 +110,10 @@ function copyTextFallback(text: string): boolean {
 }
 
 /**
- * 搜索弹窗的状态中枢：关键词、模式、结果行、高亮下标，以及全局键盘。
- *
- * 键盘行为对齐 how-much 的 SearchCard 方案：
- * - `Esc` 关窗（在动作面板里先退回一层）；`Tab` 无条件开关（编辑弹窗打开时整体让位）；
- * - 页面任意空白处敲字母/数字/`/`、或用输入法起手，都会开窗并接管后续输入；
- * - `↑`/`↓` 移动高亮（首尾循环回绕），`Enter` 执行当前行。
- *
- * 斜杠命令（如 `/t `、`/i `）在这里统一接入；命令若提供 `buildActions`，
- * 选中其可钻取的行就进入二级动作面板 —— 这一层逻辑对具体命令完全无感知。
+ * 搜索弹窗的状态中枢：关键词、模式、结果行、高亮下标，以及全局键盘（对齐 how-much 的 SearchCard）。
+ * 键盘契约：Esc 先退钻取层再关窗；Tab 无条件开/关窗（suspended 时让位给表单字段）；空白处敲字母、
+ * 数字、`/` 或 IME 起手都开窗并接管输入；↑↓ 循环回绕移高亮，Enter 执行当前行。
+ * 斜杠命令与二级动作面板在这里统一接入，本层对具体命令无感知。
  */
 export function useLinkSearch({ suspended }: UseLinkSearchOptions): LinkSearch {
   const { message } = App.useApp()
@@ -147,11 +128,8 @@ export function useLinkSearch({ suspended }: UseLinkSearchOptions): LinkSearch {
   const [remote, setRemote] = useState<RemoteState | null>(null)
   const searchEngines = useSearchEngines()
 
-  /*
-   * 搜索只关心链接，所以订阅拍平后的索引而不是整份 doc：
-   * 索引在链接集合未变时引用不变（见 link-index.ts），
-   * 因此组件卡片的任何改动都不会惊动这里的调用方（`DashboardPage`）。
-   */
+  // 订阅拍平索引而非整份 doc：索引在链接集合未变时引用不变（见 link-index.ts），
+  // 组件卡的其他改动不会惊动这里的调用方（DashboardPage）。
   const links = useSyncExternalStore(subscribeBoard, getLinkIndex)
 
   // 解析命令前缀：命中即进入命令模式（`parsed` 为 null 则是普通链接搜索）
@@ -162,14 +140,10 @@ export function useLinkSearch({ suspended }: UseLinkSearchOptions): LinkSearch {
   )
 
   /*
-   * 异步命令（如 /i 走远程接口）由这里统一驱动：防抖 → 请求 → 判废。
-   *
-   * 三个要点：
-   * ① 结果**连着查询串一起存**，渲染时比对当前查询串即可判废，
-   *    不必在 effect 里手动清空（那会多一轮渲染，也会闪一下旧结果）；
-   * ② `AbortController` 在依赖变化/卸载时中止上一次请求，失败回调再看一眼 `aborted`
-   *    就不会把取消当成错误报出来；
-   * ③ 查询为空直接不请求（也避免了 effect 里同步 setState）。
+   * 异步命令统一驱动：防抖 → 请求 → 判废。三要点：
+   * ① 结果连查询串存，渲染时比对查询串即可判废，不在 effect 里手动清空；
+   * ② AbortController 在依赖变化/卸载时中止上一次请求，失败回调先看 aborted 再报错；
+   * ③ 查询为空直接不请求（避免了 effect 里同步 setState）。
    */
   const loadRows = parsed?.command.loadRows
   const commandQuery = parsed?.query ?? ''
@@ -248,15 +222,9 @@ export function useLinkSearch({ suspended }: UseLinkSearchOptions): LinkSearch {
   )
 
   /**
-   * 开窗并同步交出焦点。
-   *
-   * `flushSync` 是刻意的：IME 的 composition 事件必须落在"已经聚焦"的元素上，
-   * 而焦点得在本次按键处理里就交出去；等 effect 再聚焦就晚了，
-   * 中文会打不进弹窗输入框。
-   *
-   * `selectAll` 只在"点击搜索框 / 按 Tab"时为 true。打字开窗时必须传 false：
-   * 弹窗输入框挂载后如果全选，用户紧接着敲的下一个字符会替掉整个选区，
-   * 看起来就像吞了一个字母。
+   * 开窗并同步交焦点：flushSync 保证焦点在本次按键处理内交出 —— IME 的 composition 事件
+   * 必须落在已聚焦元素上，异步（effect）聚焦会导致中文打不进输入框；
+   * selectAll 仅「点击搜索框 / Tab」为 true，打字开窗必须 false（否则全选会替掉下一个字符）。
    */
   const openDialog = useCallback((selectAll: boolean) => {
     flushSync(() => {
@@ -305,8 +273,7 @@ export function useLinkSearch({ suspended }: UseLinkSearchOptions): LinkSearch {
   const primaryRows = useMemo<SearchRow[]>(() => {
     // 命令模式：整块结果由命令产出，链接与引擎行让位
     if (parsed) {
-      // 远程命令：结果按查询串判废 —— 没回来（或回来的是上一次的）就先空着，
-      // 由「搜索中…」提示接管，绝不闪一下旧结果
+      // 远程命令：按查询串判废 —— 未回来（或回来的是上一次的）就先空着，不闪旧结果
       if (parsed.command.loadRows) {
         return remote && remote.query === parsed.query && !('error' in remote) ? remote.rows : []
       }
@@ -315,10 +282,7 @@ export function useLinkSearch({ suspended }: UseLinkSearchOptions): LinkSearch {
 
     const trimmed = keyword.trim()
 
-    /*
-     * 空关键词时列出可用命令，让开窗即见、且和普通结果一样能用 ↑↓/Enter 选。
-     * 选中就把「/<命令> 」填进输入框（`fill` 动作），直接切到该命令模式。
-     */
+    // 空关键词时列出可用命令（开窗即见、可 ↑↓/Enter 选中），选中即 fill「/<命令> 」切入命令模式
     if (trimmed === '') {
       return COMMANDS.map<ActionRow>((item) => ({
         key: `command:${item.key}`,
@@ -354,10 +318,7 @@ export function useLinkSearch({ suspended }: UseLinkSearchOptions): LinkSearch {
     return [...linkRows, ...engineRows]
   }, [parsed, links, keyword, searchEngines, remote])
 
-  /**
-   * 二层动作面板：只有「已钻取 + 命令实现了 buildActions + 动作非空」时成立。
-   * 泛化点在这里 —— 状态中枢不需要认识任何具体命令。
-   */
+  /** 二层动作面板：仅「已钻取 + 命令实现 buildActions + 动作非空」时成立；状态中枢不认识具体命令（泛化点）。 */
   const drillActions = useMemo<ActionRow[] | null>(() => {
     if (!drillRow || !parsed?.command.buildActions) {
       return null
@@ -395,9 +356,8 @@ export function useLinkSearch({ suspended }: UseLinkSearchOptions): LinkSearch {
     return command.notice?.(parsed.query, rows.length) ?? command.hint
   }, [parsed, remote, rows.length])
 
-  // 结果条数变化时把高亮收回范围内。
-  // 用"渲染期间调整 state"而不是 effect：effect 里同步 setState 会被
-  // react-hooks/set-state-in-effect 拦下（本仓库已有先例）。
+  // 结果条数变化时把高亮收回范围内；在渲染期间调整 state 而非 effect ——
+  // effect 里同步 setState 会被 react-hooks/set-state-in-effect 拦下。
   const [prevRowCount, setPrevRowCount] = useState(0)
   if (prevRowCount !== rows.length) {
     setPrevRowCount(rows.length)
@@ -413,8 +373,7 @@ export function useLinkSearch({ suspended }: UseLinkSearchOptions): LinkSearch {
         if (count === 0) {
           return 0
         }
-        // 循环回绕：最后一条再往下回到第一条，第一条再往上跳到最一条。
-        // 取模两次是为了让负的 delta 也落在 [0, count) 里
+        // 取模两次：负 delta 也落回 [0, count)，实现首尾循环回绕
         return (((prev + delta) % count) + count) % count
       })
     },
@@ -434,7 +393,7 @@ export function useLinkSearch({ suspended }: UseLinkSearchOptions): LinkSearch {
           handleCopy(row.key, row.run.text)
           return
         }
-        // 把文本补进输入框（选一条命令 = 自动输入「/<命令> 」），弹窗原地不动
+        // fill：把文本补进输入框（选一条命令 = 自动输入「/<命令> 」），弹窗原地不动
         if (row.run.type === 'fill') {
           handleKeywordChange(row.run.text)
           return
@@ -444,7 +403,7 @@ export function useLinkSearch({ suspended }: UseLinkSearchOptions): LinkSearch {
         return
       }
 
-      // 物品行：有二级动作就钻进去，否则退回「打开 wiki」这一默认行为
+      // 物品行：有二级动作就钻入动作面板，否则退回「打开 wiki」默认行为
       if (row.kind === 'item') {
         const actions = parsed?.command.buildActions?.(row) ?? []
         if (actions.length > 0) {
@@ -512,17 +471,15 @@ export function useLinkSearch({ suspended }: UseLinkSearchOptions): LinkSearch {
         return
       }
 
-      // IME 组合首键：只开窗并把焦点交出去，**不**阻止默认行为，
-      // 让后续的 composition 事件直接落在弹窗输入框里
+      // IME 组合首键：只开窗交焦点、不阻止默认行为，让后续 composition 事件直接落进弹窗输入框
       if (isImeStart(event)) {
         openDialog(false)
         return
       }
 
-      // 字母、数字，以及命令前缀 `/`：都能直接开窗并从这里接管输入
+      // 字母、数字、命令前缀 `/`：直接开窗并从这里接管输入
       if (event.key.length === 1 && /[a-zA-Z0-9/]/.test(event.key)) {
-        // 这里必须阻止默认行为：开窗后焦点已经移到弹窗输入框，
-        // 不拦住的话浏览器会把同一个字符再插一遍，变成两个字母
+        // 必须 preventDefault：开窗后焦点已移到弹窗输入框，不拦住同一字符会被再插一遍
         event.preventDefault()
         openDialog(false)
         setKeyword(event.key)

@@ -3,14 +3,8 @@ import type { ThemeSpec } from '../types.ts'
 import './theme.css'
 
 /**
- * 红莲（Stormblood）。
- *
- * 色值取自官方专题站的样式表，是"深红打底 + 金"的成套配色：
- * 区块/导航底 `#801111` + 浮层 `#660a0a` + 强调块 `#990f0f`，
- * 压在红底上的文字用明金 `#ffdf5d` / `#ffcc33`。
- *
- * ⚠️ 红色主色压在深红卡上天然对比不足，这里让主色只服务实心图形、
- * 可点的文字一律走金色的 `colorLink`（见 `docs/themes.md`）。
+ * 红莲（Stormblood）。取色见 `docs/themes.md`（来源：官方专题站样式表，「深红打底 + 金」成套配色）。
+ * ⚠️ 红色主色压深红卡对比不足：主色只服务实心图形，可点文字一律走金色的 `colorLink`。
  */
 export const stormbloodSpec: ThemeSpec = {
   key: 'stormblood',

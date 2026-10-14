@@ -28,22 +28,18 @@ function formatUndoTime(savedAt: number): string {
 }
 
 /**
- * 数据管理：把看板 + 三项设置（跳转 / 搜索引擎 / 外观）整体导出为一份 JSON，或导入覆盖。
+ * 数据管理：看板 + 三项设置（跳转 / 搜索引擎 / 外观）整体导出为 JSON，或导入覆盖。
  *
- * 文件形状见 `core/storage/backup.ts`：看板那一段走 `parseBoardDocValue`，
- * 与启动时读 localStorage 是同一套校验，因此解析不出来的文件直接拒绝、不动现有数据。
- *
- * ⚠️ 导入**不是**一律覆盖：外观的粒度更细 —— 只有色调、槽位与各主题的模糊 / 亮度 /
- * 卡片参数会跟过来，每个主题的背景来源与本机图片保持不变（见 `importAppearance`）。
- * 确认弹窗里把这条说清楚，别让用户以为自己的背景图会被别人的备份冲掉。
+ * 文件形状见 `core/storage/backup.ts`，与启动读 localStorage 同一套校验，解析不出的文件直接拒绝、不动现有数据。
+ * ⚠️ 导入不是一律覆盖：外观只带来色调 / 槽位 / 模糊 / 亮度 / 卡片参数，各主题的背景图保持本机不变（见 `importAppearance`），确认弹窗里已对此说明。
  */
 export function DataSettingsPanel(): React.ReactNode {
-  // 面板只在设置弹窗打开时挂载，且要展示"当前有几个分组/几项内容"，所以直接订整份文档
+  // 面板仅在设置弹窗打开时挂载，需展示分组 / 内容计数，直接订整份文档
   const doc = useBoardDoc()
   const { message, modal } = App.useApp()
 
   const itemCount = doc.groups.reduce((total, group) => total + group.items.length, 0)
-  // 有快照才亮「恢复」按钮。导入 / 恢复都会换掉整份看板 → 面板重渲染 → 这里自然跟着刷新
+  // 有快照才亮「恢复」按钮；导入 / 恢复换掉整份看板后面板会重渲染，自然刷新
   const undo = loadImportUndo()
 
   const handleRestore = (snapshot: ImportUndo) => {
@@ -57,9 +53,9 @@ export function DataSettingsPanel(): React.ReactNode {
         boardActions.replaceDoc(snapshot.file.board)
         setAutoOpenLinks(snapshot.file.autoOpen.links)
         setSearchEngines(snapshot.file.searchEngines)
-        // 外观走整体替换：快照来自本机，档案里引用的就是本机那批图，整份搬回即恢复原状
+        // 外观走整体替换：快照来自本机，档案引用的就是本机那批图，整份搬回即恢复原状
         restoreAppearance(snapshot.file.appearance)
-        // 快照一次性：恢复完就清掉，不提供"撤销的撤销"
+        // 快照一次性：恢复完即清，不提供「撤销的撤销」
         clearImportUndo()
         message.success('已恢复导入前的数据')
       },
@@ -75,11 +71,9 @@ export function DataSettingsPanel(): React.ReactNode {
   }
 
   /**
-   * 导出看板原始数据：本机存着的那份文本，**一字不改**（不校验、不补默认值、不包成备份文件）。
-   *
-   * 与"导出备份"的区别：备份是给人恢复用的（四段数据、结构规整），这一份是给**排查 / 抢救**用的 ——
-   * 看板读不出来时，提示条上那个同名按钮导的就是它；用户没在提示条上及时点，也能来这里补上。
-   * 只导看板那一段：读盘失败的是看板，而设置各住各的键、各有各的导出方式。
+   * 导出看板原始数据：本机存着的那份文本一字不改（不校验、不补默认值、不包成备份文件）。
+   * 与「导出备份」的区别：这是给看板读不出来时的排查 / 抢救用的（提示条同名按钮导的就是它）。
+   * 只导看板那一段：读盘失败的是看板，设置各住各的键、另有导出方式。
    */
   const handleExportRaw = () => {
     const raw = readStoredBoardText()
@@ -92,11 +86,8 @@ export function DataSettingsPanel(): React.ReactNode {
   }
 
   /**
-   * 恢复默认看板。
-   *
-   * 它是"看板读不出来"时那条提示的落点：把本机存着的那份坏数据明确覆盖掉，
-   * 用户不必去开发者工具里手动清 localStorage。只动看板 —— 跳转 / 搜索引擎 / 外观
-   * 都是另一批键，读盘失败的是看板，没理由顺手把设置也清了。
+   * 恢复默认看板：把本机存着的坏数据明确覆盖掉，用户不必手清 localStorage。
+   * 只动看板——跳转 / 搜索引擎 / 外观是另一批键，读盘失败的是看板，不顺手清设置。
    */
   const handleResetDefault = () => {
     modal.confirm({
@@ -133,7 +124,7 @@ export function DataSettingsPanel(): React.ReactNode {
           okButtonProps: { danger: true },
           cancelText: '取消',
           onOk: () => {
-            // 覆盖前先把"导入前"存成一份快照；存不进去也只是少了撤销这一步，不拦导入
+            // 覆盖前先把「导入前」存成快照；存不进去只少撤销这一步，不拦导入
             const undoSaved = saveImportUndo(doc)
             boardActions.replaceDoc(backup.board)
             setAutoOpenLinks(backup.autoOpen.links)
@@ -152,7 +143,7 @@ export function DataSettingsPanel(): React.ReactNode {
         message.error('文件读取失败')
       })
 
-    // 返回 false：阻止 antd 自己发起上传，这次导入由我们全权处理
+    // 返回 false：阻止 antd 自行上传，本次导入由我们全权处理
     return false
   }
 
@@ -167,9 +158,7 @@ export function DataSettingsPanel(): React.ReactNode {
         </Typography.Text>
       </section>
 
-      {/*
-       * 三组按钮按"用户此刻想干什么"分开：整理数据（备份搬进搬出）与修数据
-       */}
+      {/* 三组按钮按「用户此刻想干什么」分开：整理数据（备份搬进搬出）与修数据 */}
       <section>
         <Typography.Title className="dash-settings-label" level={5}>
           备份与恢复

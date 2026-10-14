@@ -4,8 +4,7 @@ import { HOUSE_AREAS, isHouseArea, isHouseUse } from './constants.ts'
 import type { HouseUse } from './constants.ts'
 
 /**
- * 缓存有效期 8 小时。
- * 组件只在页面打开 / 换服务器时看一次缓存，命中且未过期就直接用、不发请求。
+ * 缓存有效期 8 小时。只在页面打开 / 换服务器时看一次缓存，命中且未过期就直接用、不发请求。
  */
 export const HOUSE_CACHE_TTL_MS = 8 * 60 * 60 * 1000
 
@@ -43,13 +42,12 @@ function toAreas(raw: unknown): number[] {
 export function normalizeHouseConfig(raw: unknown): HouseConfig {
   const source = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {}
 
-  // 服务器只认世界表里真实存在的名字：拼错的话接口要的是一个不存在的 id，
-  // 与其每次都报一次错，不如当成没选（卡面会提示去编辑弹窗选）
+  // 服务器只认世界表真实存在的名字：拼错接口要的是不存在的 id，当成"没选"由卡面提示
   const rawServer = typeof source.server === 'string' ? source.server.trim() : ''
   const server = isWorldName(rawServer) ? rawServer : ''
 
   /*
-   * 房区**不自动补全**：空数组就是「一个都没选」，卡面提示去勾选。
+   * 房区**不自动补全**：空数组就是「一个都没选」，卡面提示去勾选；
    * 悄悄补回全部会让这一项永远清不空，用户以为选择没生效。
    */
   // 用途认不出就当「不限」：这是最宽的筛选，不会把数据藏起来

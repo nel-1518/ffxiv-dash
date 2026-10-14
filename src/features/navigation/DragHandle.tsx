@@ -7,21 +7,13 @@ export type DragHandleProps = {
   listeners?: DraggableSyntheticListeners
   attributes?: DraggableAttributes
   label?: string
-  /**
-   * 惰性手柄：只画外观、不绑任何拖拽行为，也不接收指针事件。
-   * 拖拽预览里用它，避免预览中的手柄抢走指针或重新触发拖拽。
-   */
+  /** 惰性手柄：只画外观、不绑拖拽行为也不接收指针事件，拖拽预览里避免手柄抢指走指针或重新触发拖拽。 */
   inert?: boolean
 }
 
 /**
- * 拖拽手柄。
- *
- * 只有手柄绑定 dnd-kit 的 listeners（而不是整张卡片），
- * 这样卡片内的链接点击、图标按钮点击都不会触发拖拽，
- * 触屏与键盘也都能用手柄激活（键盘：聚焦后按 Space）。
- *
- * `inert` 模式下渲染成一个不可聚焦、不响应指针的图标，仅用于拖拽预览。
+ * 拖拽手柄。只有手柄（而非整张卡片）绑 dnd-kit 的 listeners：卡内链接、按钮点击不触发拖拽；
+ * 触屏与键盘（聚焦后按 Space）也能激活。`inert` 模式只画外观、不可聚焦不响应指针，拖拽预览用。
  */
 export function DragHandle({
   setActivatorNodeRef,

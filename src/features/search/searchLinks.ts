@@ -10,13 +10,7 @@ export type LinkHit = {
   groupTitle: string
 }
 
-/**
- * 命中档位：越小越靠前。
- *
- * 缩写排在最前，因为它是用户专门为"快速搜索"设的短名字；
- * 名称命中紧随其后（用户输入的绝大多数情况就是在找"叫什么"的那个站点）；
- * 描述与网址命中并列最后一档。
- */
+/** 命中档位：越小越靠前。缩写最前（用户专为快速搜索设的短名字）→ 名称 → 描述/网址并列最后。 */
 const RANK_ABBREVIATION_EXACT = 0
 const RANK_ABBREVIATION_PREFIX = 1
 const RANK_ABBREVIATION_CONTAINS = 2
@@ -28,8 +22,8 @@ const RANK_COUNT = RANK_OTHER + 1
 
 function rankOf(item: LinkItem, keyword: string): number {
   /*
-   * 缩写按存储原样参与匹配，只把"比较用"的这一份小写化，不回写数据。
-   * 空缩写直接跳过 —— 别让它参与 `includes`，否则任何关键词都会命中一个空串。
+   * 缩写按存储原样参与匹配，只把"比较用"的一份小写化，不回写数据。
+   * 空缩写必须跳过：参与 includes 的话任何关键词都会命中空串。
    */
   const abbreviation = item.abbreviation?.toLowerCase() ?? ''
   if (abbreviation !== '') {
@@ -56,14 +50,9 @@ function rankOf(item: LinkItem, keyword: string): number {
 }
 
 /**
- * 在**已保存的链接**里检索关键词。
- *
- * 入参是已经拍平的链接索引（见 `link-index.ts`），因此这里只包含
- * `kind === 'link'` 的条目：组件卡片的标题与配置项不是"链接"，混进来只会稀释结果。
- *
- * 排序：缩写精确 → 缩写前缀 → 缩写包含 → 名称命中 → 描述/网址命中，
- * 同档内保持看板里的文档顺序，因此每次输入的结果顺序都是稳定可预期的；
- * 最后按 limit 截断。
+ * 在已保存的链接里检索关键词（入参是拍平的链接索引，见 link-index.ts；组件卡片的标题与
+ * 配置不是「链接」，不混入检索）。排序：缩写精确 → 缩写前缀 → 缩写包含 → 名称 → 描述/网址；
+ * 同档内保持看板文档顺序，结果顺序稳定，最后按 limit 截断。
  */
 export function searchLinks(
   links: readonly LinkHit[],

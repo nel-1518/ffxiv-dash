@@ -17,16 +17,10 @@ export type WidgetRendererProps = {
 }
 
 /**
- * 组件卡片外壳：标题（左上角带拖拽手柄）与右上角操作（编辑、删除）。
- *
- * 手柄与删除都收进 Card 内部：卡片上方不再单独占一行，同组的组件因此
- * 能对齐到同一条顶边。删除按钮排在编辑之后，两个操作同处右上角。
- *
- * **标题栏默认隐藏**：标题（含拖拽手柄）与右上角操作（编辑、删除）都只在
- * 编辑模式下渲染 —— 浏览时 antd Card 的 title 与 extra 均为 undefined，
- * 整个 `.ant-card-head` 不渲染，卡片只剩正文内容。正文（children）的
- * 渲染路径不受影响；拖拽只在编辑模式发生，虚影（DragPreview）也按
- * editMode=true 绘制，与实体卡片的外观保持一致。
+ * 组件卡片外壳：标题（左上角拖拽手柄）与右上角操作（编辑、删除）都收进 Card 内部，
+ * 卡片上方不再单独占一行，同组组件能对齐到同一条顶边；删除排在编辑之后。
+ * **标题栏默认隐藏**：浏览模式 title/extra 均为 undefined，`.ant-card-head` 整条不渲染，
+ * 卡片只剩正文；拖拽只在编辑模式发生，虚影（DragPreview）也按 editMode=true 绘制。
  */
 function WidgetShell({
   item,
@@ -64,11 +58,8 @@ function WidgetShell({
       // 内容区留白固定 16px：antd size="small" 的默认是 12px，组件卡用更松的一档
       styles={{ body: { padding: 16 } }}
       title={
-        /*
-         * 标题栏只在编辑模式渲染：浏览时传 undefined，antd Card 就不会挂
-         * `.ant-card-head`，标题栏整条不占位。手柄也只在这时随标题一起出现
-         * （SortableCard 本来就只在编辑模式注入 handle，两边条件一致）。
-         */
+        // 标题栏只在编辑模式渲染：浏览时传 undefined，antd 不挂 `.ant-card-head`，整条不占位；
+        // 手柄同条件出现（SortableCard 只在编辑模式注入 handle，两边一致）。
         editMode ? (
           <Flex align="center" gap={4} style={{ minWidth: 0 }}>
             {handle}
@@ -128,10 +119,7 @@ function UnknownWidget({
   )
 }
 
-/**
- * 已注册组件的统一外壳：负责标题与右上角操作，
- * 再把归一化后的 config 交给 spec.Render（由注册表统一套过 `memo`）。
- */
+/** 已注册组件的统一外壳：负责标题与右上角操作，再把归一化后的 config 交给 spec.Render（注册表统一套过 `memo`）。 */
 export function WidgetRenderer({
   item,
   editMode,
@@ -148,10 +136,9 @@ export function WidgetRenderer({
   return (
     <WidgetShell item={item} editMode={editMode} handle={handle} onEdit={onEdit} onRemove={onRemove}>
       {/*
-       * 内容单独拆一层再渲染：归一化要 memo（见下），而 `useMemo` 不能出现在
-       * 上面那个提前 return 之后（Hooks 规则）。
-       * 外面再套一层错误边界：单卡抛错降级成警告，不拖垮看板。
-       */}
+        归一化要 memo（见下），而 useMemo 不能出现在提前 return 之后（Hooks 规则），故拆一层。
+        外面再套一层错误边界：单卡抛错降级成警告，不拖垮看板。
+      */}
       <WidgetErrorBoundary item={item}>
         <WidgetContent spec={spec} item={item} />
       </WidgetErrorBoundary>
@@ -160,14 +147,9 @@ export function WidgetRenderer({
 }
 
 /**
- * 单卡错误边界：某张组件卡的正文抛错时，只把这一张卡降级成警告，
- * 看板其余部分照常（在此之前的任何渲染异常都会白屏整站）。
- *
- * 降级 UI 刻意长在 `WidgetShell` 之内：标题、编辑与删除按钮仍在，
- * 用户可以修配置或删掉坏卡，而不是面对一张动不了的页面。
- *
- * 不从 app/ErrorBoundary.tsx 引入通用边界，是为了守住分层方向
- * （features 不 import app）；这里的逻辑只有十几行，复制一份更划算。
+ * 单卡错误边界：某张组件卡的正文抛错时只降级这一张卡，看板其余部分照常。
+ * 降级 UI 刻意长在 `WidgetShell` 之内：标题、编辑与删除按钮仍在，可修配置或删卡。
+ * 不从 app/ErrorBoundary.tsx 引通用边界是为守住分层方向（features 不 import app），逻辑只有十几行。
  */
 type WidgetErrorBoundaryProps = { item: WidgetItem; children: React.ReactNode }
 type WidgetErrorBoundaryState = { error: unknown; prevItem: WidgetItem | undefined }
@@ -184,11 +166,9 @@ class WidgetErrorBoundary extends Component<WidgetErrorBoundaryProps, WidgetErro
     state: WidgetErrorBoundaryState,
   ): Partial<WidgetErrorBoundaryState> | null {
     /*
-     * item 换引用（config 被 patch、卡片被编辑）就自动重试一次：
-     * "坏配置修好了"是最常见的恢复路径，不必再让用户点重试。
-     * 同一张卡没变就保留错误态，避免随看板重渲染反复重试。
-     * 在渲染期对齐 prev 值，而不是 `componentDidUpdate` 里 `setState`：
-     * 同样的效果少跑一帧，也不触发 react/no-did-update-set-state。
+     * item 换引用（config 被 patch、卡片被编辑）就自动重试一次："坏配置修好了"是最常见的
+     * 恢复路径；同一张卡没变则保留错误态，避免随看板重渲染反复重试。
+     * 在渲染期对齐 prev 值而不是 componentDidUpdate 里 setState：同样效果少跑一帧。
      */
     if (state.prevItem !== props.item) {
       return { prevItem: props.item, error: undefined }
@@ -197,7 +177,7 @@ class WidgetErrorBoundary extends Component<WidgetErrorBoundaryProps, WidgetErro
   }
 
   componentDidCatch(error: unknown, info: React.ErrorInfo): void {
-    // widget key 一起打出来：九个内置组件 + 历史数据里的未知 key，日志里先分清是谁
+    // widget key 一起打出来：内置组件多、历史数据里还有未知 key，日志里先分清是谁
     console.error('[ffxiv-dash] 组件卡渲染出错', this.props.item.widget, error, info.componentStack)
   }
 
@@ -234,13 +214,9 @@ class WidgetErrorBoundary extends Component<WidgetErrorBoundaryProps, WidgetErro
 
 /**
  * 组件正文。
- *
- * ⚠️ `spec.normalizeConfig` **每次调用都返回新对象**（它就是"校验并补默认值"），
- * 直接把它塞给 `Render` 会让注册表里那层 `memo` 永远失效 ——
- * 表现为"什么都没改，组件却跟着整块看板重渲染"。
- *
- * `item.config` 只在它自己被 patch 时才换引用（reducer 按 id 精确替换），
- * 所以按它 memo 是准确且稳定的。
+ * ⚠️ `spec.normalizeConfig` **每次调用都返回新对象**（它就是"校验并补默认值"），直接塞给
+ * `Render` 会让注册表那层 `memo` 永远失效（表现为"什么都没改却跟着看板重渲染"）。
+ * `item.config` 只在它被 patch 时换引用（reducer 按 id 精确替换），按它 memo 稳定。
  */
 function WidgetContent({ spec, item }: { spec: WidgetSpec; item: WidgetItem }): React.ReactNode {
   const { Render } = spec

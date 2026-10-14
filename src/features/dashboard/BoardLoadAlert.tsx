@@ -3,9 +3,7 @@ import { Alert, Button } from 'antd'
 import { readBootFailure, subscribeBoard } from '../../state/board-store.ts'
 import type { BoardLoadFailure } from '../../core/storage/persistent.ts'
 
-/**
- * 每档失败原因对应一句人话：用户该知道的不是"出错了"，而是"什么坏了、现在看到的是什么"。
- */
+/** 每档失败原因对应一句人话：用户该知道的不是「出错了」，而是「什么坏了、现在看到的是什么」。 */
 const FAILURE_TEXT: Record<BoardLoadFailure, string> = {
   storage:
     '浏览器不允许访问本地存储（隐私模式，或站点权限被禁）：这次载入的是默认看板，改动也无法保存，请先检查浏览器的站点设置。',
@@ -16,14 +14,9 @@ const FAILURE_TEXT: Record<BoardLoadFailure, string> = {
 }
 
 /**
- * 启动读盘失败时的页面提示条。
- *
- * 存在的理由：回退默认数据是"界面永远可用"的兜底，但**静默**回退会让用户以为自己的
- * 看板凭空没了 —— 必须把"读不出来"这件事说出来，并给下一步：按钮直接进「设置 → 数据管理」，
- * 那里的三个动作（导出看板原始数据 / 导入 / 恢复默认数据）才是真正的处理手段。
- *
- * 自己订阅失败原因，而不是由 `DashboardPage` 透传：父层刻意不订阅任何看板数据
- * （见该文件的说明），这里多一个订阅，换来的是"任何卡片改动都不会惊动整页"。
+ * 启动读盘失败时的页面提示条。回退默认数据是「界面永远可用」的兜底，但静默回退会让用户以为看板凭空没了
+ * —— 必须把「读不出来」说出来并给下一步：按钮直接进「设置 → 数据管理」（那里的三个动作是真正的处理手段）。
+ * ⚠️ 自己订阅失败原因而非由 `DashboardPage` 透传：父层刻意不订阅任何看板数据，多一个订阅换来「卡片改动不惊动整页」。
  */
 export function BoardLoadAlert({
   onOpenDataSettings,
@@ -31,7 +24,7 @@ export function BoardLoadAlert({
   onOpenDataSettings: () => void
 }): React.ReactNode {
   const failure = useSyncExternalStore(subscribeBoard, readBootFailure)
-  /** 用户可以关掉它：提示过就够了，不该一直占着页面顶部。 */
+  /** 提示可关：提示过就够了，不该一直占着页面顶部。 */
   const [dismissed, setDismissed] = useState(false)
 
   if (failure === null || dismissed) {

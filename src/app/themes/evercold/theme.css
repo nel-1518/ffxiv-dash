@@ -1,9 +1,8 @@
 /*
  * 银海（Evercold）—— antd 令牌管不到的那部分（取色来源见 index.ts）。
- * 卡片是"深色页面 + 浅色玻璃"：白 → 淡蓝的磨砂玻璃、纯白外发光、不对称圆角。
+ * 卡片是"深色页面 + 浅色玻璃"：白 → 淡蓝磨砂、纯白外发光、不对称圆角；
  * ⚠️ 发光/圆角按我们的卡片尺寸与密度折算过，不能照搬站点的 32px / 24px。
- * 卡内 antd 组件的深色翻色与 endwalker 共用一套（见 light-card.css，随主题变化的
- * 取值只有下面 --dash-lightcard-* 那几个）。
+ * 卡内 antd 组件的深色翻色与 endwalker 共用（见 light-card.css，随主题变化的只有 --dash-lightcard-*）。
  */
 
 [data-dash-theme='evercold'] {

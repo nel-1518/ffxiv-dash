@@ -1,18 +1,10 @@
 /**
- * 价格缓存（localStorage，纯逻辑无 React）。
- *
- * **整个缓存只占一个键**，内部按「区服 + 物品」分条目。
- * 换几个物品/区服就会在 localStorage 里散落一串键；合成一条之后既好数，
- * 也能在**每次写入时顺手把过期条目一起清掉**，不会随时间无限堆积。
- *
- * 条目**按单个物品拆开存**（而不是按"这一批查过哪几个物品"整存）：看板上的卡片随时会
- * 增删、改物品，批量请求的物品组合因而每次都不同 —— 整存的话组合一变就整条对不上、
- * 缓存全 miss。拆成一件一条后，只要某个物品查过且没过期，谁来问它都命中。
- *
- * 网页打开时先看它：命中且未过期就直接用、**不发请求** —— 这正是「有缓存就不请求」的落地方式。
- *
- * 写法对齐其它 localStorage 缓存（如 `core/search/store.ts`）：localStorage 在隐私模式 / 配额超限时会抛，
- * 一律 try/catch 掉，缓存失败不影响功能。
+ * 价格缓存（localStorage，纯逻辑无 React）。**整个缓存只占一个键**，内部按「区服 + 物品」
+ * 分条目 —— 换几个物品/区服就散落一串键，合成一条既好数，也能**每次写入时顺手清过期条目**
+ * （不随时间堆积）。条目**按单个物品拆开存**：卡片随时增删、改物品，批量请求的物品组合
+ * 每次都不同，整存组合一变就全 miss，拆成一件一条后谁查过且没过期，谁来问都命中。
+ * 网页打开时命中未过期缓存就直接用、**不发请求**。localStorage 在隐私模式 / 配额超限会抛
+ * （写法对齐 `core/search/store.ts`），一律 try/catch，缓存失败不影响功能。
  */
 import { MARKET_CACHE_TTL_MS } from './config.ts'
 import type { ItemMarket, MarketData } from './universalis.ts'
@@ -30,11 +22,9 @@ type MarketCacheFile = {
 }
 
 /**
- * 条目的 key = 区服 + 物品组合。
- * 物品顺序不影响接口结果，排序后再拼，[3,5] 与 [5,3] 才能共用同一条。
- *
- * 实际写入时组合恒为单个物品（见 `splitByItem`），key 即 `区服:物品id`；
- * 保留数组形态只是为了让读取端能按多个物品拼 key，将来开放多选不必改结构。
+ * 条目的 key = 区服 + 物品组合；物品顺序不影响接口结果，排序后拼，[3,5] 与 [5,3] 共用同一条。
+ * 实际写入组合恒为单个物品（见 `splitByItem`），key 即 `区服:物品id`；保留数组形态只是让
+ * 读取端能按多个物品拼 key，将来开放多选不必改结构。
  */
 function entryKey(scope: string, itemIds: number[]): string {
   return `${scope}:${[...itemIds].sort((left, right) => left - right).join(',')}`
@@ -81,10 +71,9 @@ function readFile(): MarketCacheFile {
 
 /**
  * 读取这几个物品的缓存。过期与否由调用方用 `isFresh` 判断 —— 过期数据仍可用于先渲染后刷新。
- *
- * 条目按物品拆开存，这里逐个物品取再拼回一份 `MarketData`：**有一个物品没缓存就整体算 miss**
- * （返回 null），交给调用方重新请求 —— 半份数据的意义不大，而且会导致"有的物品有价、
- * 有的空白"这种半吊子状态。`fetchedAt` 取各条里**最早**的那个：有效期按最旧的数据算，宁早不晚。
+ * 条目按物品拆开存，这里逐个物品取再拼回一份 `MarketData`：**有一个物品没缓存就整体 miss**
+ * （返回 null，交给调用方重新请求）—— 半份数据会出现"有的有价、有的空白"；
+ * `fetchedAt` 取各条里**最早**的那个：有效期按最旧的数据算，宁早不晚。
  */
 export function readMarketCache(scope: string, itemIds: number[]): MarketData | null {
   if (itemIds.length === 0) {
@@ -115,7 +104,6 @@ export function isFresh(data: MarketData, now: number): boolean {
 
 /**
  * 把一次批量请求的结果**按物品拆条**写入，并**顺手清掉所有已过期条目**。
- *
  * 清理和写入共用 `MARKET_CACHE_TTL_MS`：缓存只有"还能用"与"该删了"两种状态，
  * 过期数据留在盘上不会有人读，只会白占地方。
  */
@@ -144,9 +132,8 @@ export function writeMarketCache(data: MarketData): void {
 
 /**
  * 把一份（可能含多个物品的）结果切成「一件一条」。
- *
- * `items` 里有的物品各成一条；只在 `failedItems` 里出现的物品也补一条（内容为空）——
- * 不补的话，这类"接口明确说查不到"的物品因为盘上没有条目，每次进网页都会再请求一次。
+ * 是 `failedItems` 独有的物品也补一条（内容为空）：不补的话，这类"接口明确说查不到"的
+ * 物品因盘上没有条目，每次进网页都会再请求一次。
  */
 function splitByItem(data: MarketData): MarketData[] {
   const failed = new Set(data.failedItems)

@@ -5,13 +5,8 @@ import '../light-card.css'
 import './theme.css'
 
 /**
- * 银海（Evercold）。
- *
- * 色值取自官方专题站 <https://na.finalfantasyxiv.com/evercold/> 的计算样式：
- * 近黑的冷底 `#18191a` + 冰蓝 `#73bfe6` + 正文 `#cccccc` + 钢蓝标题 `#6b83b3`。
- *
- * ⚠️ 卡片是**亮色玻璃**（站点的「信息卡」），卡内文字整体翻深色（见 `theme.css`）；
- * 顶栏另走一条半透明白玻璃 + 白字的路。
+ * 银海（Evercold）。取色见 `docs/themes.md`（来源：官方专题站计算样式：近黑冷底 + 冰蓝 + 钢蓝标题）。
+ * ⚠️ 卡片是亮色玻璃（站点的「信息卡」），卡内文字整体翻深色（见 `theme.css`）；顶栏另走半透明白玻璃 + 白字。
  */
 export const evercoldSpec: ThemeSpec = {
   key: 'evercold',

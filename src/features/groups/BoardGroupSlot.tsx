@@ -7,7 +7,7 @@ import type { GroupMove } from './group-types.ts'
 
 export type BoardGroupSlotProps = {
   groupId: string
-  /** 是否处于编辑模式，透传给表头与卡片。 */
+  /** 编辑模式关闭时隐藏手柄、分组操作与卡片的编辑/删除（透传给表头与卡片）。 */
   editMode: boolean
   canMoveUp: boolean
   canMoveDown: boolean
@@ -19,12 +19,10 @@ export type BoardGroupSlotProps = {
 }
 
 /**
- * 看板里的一个分组槽位：「分组」这一层的订阅点。
- * props 全是原始值或稳定引用（见 `GroupBoard`），`memo` 之后只有自己的数据变化才重渲染。
- *
- * 订阅粒度刻意分两层：本组件订表头需要的（标题、类型、项数），卡片数据交给 `GroupItems`。
- * 改某张卡片的配置时表头那几样都没变，`memo(SortableGroup)` / `memo(GroupPanel)`
- * 直接跳过整块表头 —— 真正重渲染的只有那张卡片。
+ * 看板里的一个分组槽位：「分组」层的订阅点；props 全是原始值或稳定引用（见 `GroupBoard`），
+ * memo 后只有自己的数据变化才重渲染。订阅粒度分两层：本组件订表头所需（标题/类型/项数），
+ * 卡片数据交给 `GroupItems`——改某张卡配置时表头几样没变，memo(SortableGroup) / memo(GroupPanel)
+ * 跳过整块表头，真正重渲染的只有那张卡。
  */
 export const BoardGroupSlot = memo(function BoardGroupSlot({
   groupId,
@@ -39,8 +37,8 @@ export const BoardGroupSlot = memo(function BoardGroupSlot({
   const group = useBoardGroup(groupId)
 
   /*
-   * 这些回调都必须固定引用：它们被透传到 `memo(GroupPanel)` 的比较里，
-   * 每次渲染新建闭包会让表头重新渲染。四个位置按钮共用同一个 `onMove`，各自预绑移动方式。
+   * 这些回调都必须固定引用：透传进 memo(GroupPanel) 的比较，每次渲染新建闭包会让表头重渲染；
+   * 四个位置按钮共用同一个 `onMove`，各自预绑移动方式。
    */
   const handleMoveToTop = useCallback(() => onMove(groupId, 'top'), [onMove, groupId])
   const handleMoveUp = useCallback(() => onMove(groupId, 'up'), [onMove, groupId])
@@ -50,8 +48,8 @@ export const BoardGroupSlot = memo(function BoardGroupSlot({
   const handleEdit = useCallback(() => onEditGroup(groupId), [onEditGroup, groupId])
 
   /*
-   * ⚠️ 这个 children 必须是引用稳定的元素：它是"表头不重渲染"的另一半条件。
-   * `GroupItems` 自己订阅卡片数据；元素引用不变，卡片变化就不会沿 children 传染到表头。
+   * ⚠️ children 必须引用稳定：「表头不重渲染」的另一半条件——GroupItems 自己订阅卡片数据，
+   * children 引用不变时卡片变化不会沿 children 传染到表头。
    */
   const grid = useMemo(
     () => (
@@ -60,7 +58,7 @@ export const BoardGroupSlot = memo(function BoardGroupSlot({
     [groupId, editMode, onEditItem],
   )
 
-  // 分组已被删除（结构快照与当前数据短暂不同步）：这一格先空着，父层马上会重排
+  // 分组已被删除（结构快照与当前数据短暂不同步）：这一格先空着，父层马上重排
   if (!group) {
     return null
   }
@@ -93,9 +91,8 @@ type GroupItemsProps = {
 }
 
 /**
- * 分组内的卡片网格。自己订阅所属分组：卡片数据变化时只重渲染这一块，表头不受影响。
- * `handleEditItem` 预绑分组 id，让组内所有卡片共用同一个函数引用，`memo(SortableCard)`
- * 才能拦住未变化的卡片。
+ * 分组内的卡片网格：自己订阅所属分组，卡片变化只重渲染这一块、表头不受影响。
+ * handleEditItem 预绑分组 id，让组内所有卡片共用同一个函数引用，memo(SortableCard) 才能拦住未变化的卡片。
  */
 function GroupItems({ groupId, editMode, onEditItem }: GroupItemsProps): React.ReactNode {
   const group = useBoardGroup(groupId)

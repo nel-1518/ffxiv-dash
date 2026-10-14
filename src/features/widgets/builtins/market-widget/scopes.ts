@@ -1,6 +1,5 @@
 /**
  * 区服选择与「三级 → 接口档位」映射（纯逻辑，无 React）。
- *
  * 世界表本身在 `core/world.ts`（通用数据）；这里只放 Universalis 相关的东西：
  * 下拉怎么分组、某个区服该读 aggregated 响应里的哪一档。
  */
@@ -11,9 +10,7 @@ import {
   worldNameById,
 } from '../../../../core/world.ts'
 /**
- * 区服对应 aggregated 响应里的档位。
- *
- * 选整个中国区 → `region`，选大区 → `dc`，选单个服务器 → `world`。
+ * 区服对应 aggregated 响应里的档位：整个中国区 → `region`，大区 → `dc`，单个服务器 → `world`。
  */
 export type ScopeTier = 'world' | 'dc' | 'region'
 
@@ -26,9 +23,8 @@ type ScopeOptionGroup = {
 
 /**
  * 区服下拉的选项。
- *
- * 大区既要当分组标题、又要能被选中，所以在分组**内部**再放一条
- * 「XX（大区）」—— antd 的分组标题本身不可选，不这样会漏掉大区粒度。
+ * 大区既要当分组标题、又要能被选中，所以在分组**内部**再放一条「XX（大区）」——
+ * antd 分组标题本身不可选，不这样会漏掉大区粒度。
  */
 export function scopeOptions(): ScopeOptionGroup[] {
   return [

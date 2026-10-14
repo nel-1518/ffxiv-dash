@@ -1,8 +1,7 @@
 /*
  * 晓月（Endwalker）—— antd 令牌管不到的那部分（取色来源见 index.ts）。
- * 层次是"暗页面 + 暗顶栏 + 亮卡片"：卡片纯色 `#F5F5FA`。
- * 卡内 antd 组件的深色翻色与 evercold 共用一套（见 light-card.css，随主题变化的
- * 取值只有下面 --dash-lightcard-* 那几个）。
+ * 层次是"暗页面 + 暗顶栏 + 亮卡片"（卡片纯色 #F5F5FA）；卡内 antd 组件的深色翻色与
+ * evercold 共用一套（见 light-card.css，随主题变化的只有下面 --dash-lightcard-* 那几个）。
  */
 
 [data-dash-theme='endwalker'] {

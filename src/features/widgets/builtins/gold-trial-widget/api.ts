@@ -1,19 +1,12 @@
 /**
- * 黄金的试炼接口（纯逻辑，无 React；可以脱离浏览器单独验证）。
- *
- * 接口：`GET https://ffxiv-api.neeeel.com/api/goldTrial` →
- * HTTP 200，`Content-Type: text/plain`，**body 是一串 JSON**（上游盛趣活动接口原样透传），
- * 所以这里必须 `res.text()` + `JSON.parse`，不能 `res.json()`。
- * 响应头 `X-GoldTrial-Cache` 说明这份数据是命中服务端缓存还是刚回源，前端不关心。
- *
- * 数据形状（字段名沿用上游风格，只取卡面要用的部分）：
- * - `currentActive` / `nextActive`：本期 / 下一期的各阶段时间窗口，时间串形如 `2026/9/25 13:00:00`
- * - `vTerri[0]`：本周挑战副本（`territory_detail` 名称、`territory_level` 等级）
- * - `vTerriItem[0]`：登记奖励（`ItemName`，如「金碟币铜卡X2」）
- *
- * 阶段区间与活动规则的对应关系：
- * 挑战期（周五 13:00 ~ 周日 23:59）= `StartTime_Terri ~ EndTime_Terri`；
- * 登记期（截止下周四 13:00）= `~ EndTime_Reward`；结算 / 发奖期 = `~ EndTime_Result`。
+ * 黄金的试炼接口（纯逻辑，无 React；可脱离浏览器单独验证）。
+ * 接口 `GET https://ffxiv-api.neeeel.com/api/goldTrial` 返回 HTTP 200、
+ * `Content-Type: text/plain`、**body 是一串 JSON**（上游盛趣活动接口原样透传）——
+ * 必须 `res.text()` + `JSON.parse`，不能 `res.json()`；响应头 `X-GoldTrial-Cache` 前端不关心。
+ * 数据形状（字段名沿用上游，只取卡面要用的部分）：`currentActive` / `nextActive` 是
+ * 本期 / 下期各阶段时间窗口（时间串形如 `2026/9/25 13:00:00`）；`vTerri[0]` 本周挑战副本；
+ * `vTerriItem[0]` 登记奖励。阶段区间对应规则：挑战期（周五 13:00 ~ 周日 23:59）=
+ * `StartTime_Terri ~ EndTime_Terri`；登记期（截止下周四 13:00）= `~ EndTime_Reward`；结算 / 发奖期 = `~ EndTime_Result`。
  */
 import { GOLD_TRIAL_API_URL } from './config.ts'
 
@@ -55,10 +48,8 @@ export type GoldTrialData = {
 const ACTIVITY_TIME_PATTERN = /^(\d{4})\/(\d{1,2})\/(\d{1,2}) (\d{1,2}):(\d{2}):(\d{2})$/
 
 /**
- * 解析上游时间串为本地时间戳。
- *
- * 刻意**手写 `new Date(y, m-1, d, ...)`** 而不是 `new Date(str)`：斜杠日期串属于
- * 实现相关的兜底解析，各浏览器行为不完全一致；这里只认上游那一种格式，认不出就返回 null。
+ * 解析上游时间串为本地时间戳。刻意**手写 `new Date(y, m-1, d, …)`** 而不是 `new Date(str)`：
+ * 斜杠日期串属于实现相关的兜底解析，各浏览器行为不完全一致；这里只认上游那一种格式，认不出返回 null。
  */
 export function parseActivityTime(value: unknown): number | null {
   if (typeof value !== 'string') {
@@ -145,11 +136,10 @@ export const GOLD_TRIAL_PHASE_LABELS: Record<GoldTrialPhase, string> = {
 }
 
 /**
- * 按本地时钟判定当前阶段。
- *
- * 顺序即优先级：先看挑战期（含未开始），再看登记期（截止下周四 13:00），最后是结算期。
- * 区间字段缺失时不会误判成"进行中"——`upcoming` 与 `finished` 分别兜住两端，
- * 卡面只显示期号与副本名，不会出现倒计时钟往负数走的读数。
+ * 按本地时钟判定当前阶段，顺序即优先级：先看挑战期（含未开始），再看登记期
+ * （截止下周四 13:00），最后是结算期。
+ * 区间字段缺失时不会误判成"进行中" —— `upcoming` 与 `finished` 分别兜住两端，
+ * 卡面只显示期号与副本名，不出现往负数走的倒计时。
  */
 export function resolvePhase(activity: GoldTrialActivity | null, now: number): GoldTrialPhaseInfo {
   if (!activity) {
@@ -182,10 +172,8 @@ export function formatDayTime(at: number): string {
 }
 
 /**
- * 剩余时长：`2天3时` / `3时20分` / `45分`。
- *
- * 0 值一律省略，最小单位是分（卡面按分钟粒度刷新，显示秒只会白渲染）；
- * 已过期的时刻夹到 `0分`，不会出现负数读数。
+ * 剩余时长：`2天3时` / `3时20分` / `45分`。0 值一律省略，最小单位是分
+ * （卡面按分钟粒度刷新，显示秒只会白渲染）；已过期的时刻夹到 `0分`，不出现负数读数。
  */
 export function formatCountdown(until: number, now: number): string {
   const totalMinutes = Math.max(0, Math.floor((until - now) / 60_000))

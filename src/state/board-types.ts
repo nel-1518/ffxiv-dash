@@ -3,19 +3,13 @@ import type { BoardDoc, GroupType, Item } from '../core/storage/types.ts'
 /** state 层支持的全部操作。 */
 export type BoardAction =
   | { type: 'addGroup'; title: string; groupType: GroupType; columns: number }
-  /**
-   * 改分组只改名称与列数：刻意不接受 groupType，让"创建后不能改类型"
-   * 成为数据层的硬约束，而不只是界面上的禁用。
-   */
+  /** 改分组只改名称与列数：刻意不收 groupType，让「创建后不能改类型」成为数据层硬约束。 */
   | { type: 'updateGroup'; groupId: string; title: string; columns: number }
   | { type: 'removeGroup'; groupId: string }
   | { type: 'reorderGroups'; orderedIds: string[] }
   | { type: 'addItem'; groupId: string; item: Item }
   | { type: 'updateItem'; groupId: string; item: Item }
-  /**
-   * 只改某个组件自己的 config。
-   * 组件内部只知道自己的 item.id，因此这里按 id 定位所属分组（用于统计卡 +1 这类就地修改）。
-   */
+  /** 只改某组件自己的 config：组件只知道自己的 item.id，按 id 反查所属分组（统计卡 +1 这类就地修改）。 */
   | { type: 'updateItemConfig'; itemId: string; patch: Record<string, unknown> }
   | { type: 'removeItem'; groupId: string; itemId: string }
   | { type: 'reorderItems'; groupId: string; orderedIds: string[] }
@@ -27,10 +21,7 @@ export type BoardAction =
       /** 目标分组内的参照卡片；缺省则追加到末尾。 */
       overItemId?: string
     }
-  /**
-   * 整体替换看板。目前唯一的调用方是设置里的「导入」；传入的 doc 必须已经过
-   * `parseBoardDocValue` 校验（reducer 是纯函数，不做 IO 也不抛错）。
-   */
+  /** 整体替换看板（唯一调用方＝「导入」）；doc 必须已过 `parseBoardDocValue` 校验（reducer 纯函数，不做 IO 不抛错）。 */
   | { type: 'replaceDoc'; doc: BoardDoc }
 
 /** 供 UI 使用的语义化操作集合。 */

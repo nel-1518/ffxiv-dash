@@ -5,9 +5,8 @@
 
 /**
  * 本地日历日的 `YYYY-MM-DD`。
- *
- * ⚠️ 不要用 `toISOString().slice(0, 10)`：那是按 UTC 切的，东八区晚上会少一天。
- * 比较"是不是同一天"、把日期存进 localStorage 都走这里（本地 0 点为界）。
+ * ⚠️ 不要用 `toISOString().slice(0, 10)`：按 UTC 切，东八区晚上会少一天。
+ * 比较「是不是同一天」、把日期存进 localStorage 都走这里（本地 0 点为界）。
  */
 export function formatDateKey(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, '0')

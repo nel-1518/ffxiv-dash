@@ -1,50 +1,37 @@
 /**
  * 公告活动卡的配置类型、默认值与归一化（纯数据，无组件）。
- *
- * 三个可配项：`limit`（展示几条，**同时就是请求的 `pageSize`**）、
- * `highlight`（最多几条置顶高亮）、`keywords`（哪些词算重点条目）。
- *
- * `limit` 进了请求参数，所以任何配置改动都按当前配置**重新请求一次**
- * （见 `fields.tsx` 的 effect）；缓存也按条数对账，条数对不上就作废重取。
+ * 三个可配项：limit（展示几条，同时就是请求的 pageSize）、highlight（最多几条置顶高亮）、
+ * keywords（哪些词算重点条目）。limit 进了请求参数，配置改动一律按当前配置重取；
+ * 缓存按条数对账，对不上就作废重取。
  */
 
 /**
  * 数据来源：盛趣官方新闻列表接口。
- *
- * ⚠️ **只支持 JSONP**：响应带了一堆 CORS 头却**没有 `Access-Control-Allow-Origin`**，
- * 浏览器里的 fetch / XHR 会被直接拦掉（实测）；官网自己也是用 JSONP 调的。
+ * ⚠️ 只支持 JSONP：响应有一堆 CORS 头却没有 Access-Control-Allow-Origin，浏览器里的
+ * fetch / XHR 会被直接拦掉；官网自己也是用 JSONP 调的。
  */
 export const NEWS_API_BASE_URL = 'https://cqnews.web.sdo.com/api/news/newsList'
 
 /**
- * 请求地址：游戏固定 ff，分类取综合 / 活动 / 公告（5313 当前无数据，一并带上不影响），
- * 第一页；**`pageSize` 就是要展示的条数** —— 要几条取几条，不取多余的。
- * 返回顺序即卡面顺序的基准（卡面**不重排**，只做置顶分区）。
+ * 请求地址：游戏固定 ff，分类取综合 / 活动 / 公告（5313 当前无数据，一并带上不影响），第一页。
+ * pageSize 就是要展示的条数 —— 要几条取几条，不取多余的。
+ * 返回顺序即卡面顺序的基准（卡面不重排，只做置顶分区）。
  */
 export function newsListUrl(limit: number): string {
   return `${NEWS_API_BASE_URL}?gameCode=ff&CategoryCode=5310,5311,5312,5313&pageIndex=0&pageSize=${String(limit)}`
 }
 
-/**
- * 新闻详情页前缀：官网是 hash 路由，`#/newstab/newscont/<Id>`。
- * （从官网 web8 的路由表确认：`path: "newscont/:itemId"`。）
- */
+/** 新闻详情页前缀：官网是 hash 路由，`#/newstab/newscont/<Id>`（自官网 web8 路由表确认）。 */
 export const NEWS_DETAIL_BASE_URL = 'https://ff.web.sdo.com/web8/index.html#/newstab/newscont/'
 
 /**
- * 缓存有效期 1 小时。
- *
- * 组件只在页面打开时看一次缓存，命中且未过期就直接用、不发请求；
- * 因此这个值同时也是"最长会看到多久以前的公告"。
+ * 缓存有效期 1 小时；组件只在页面打开时看一次缓存，命中且未过期就不发请求，
+ * 因此这也是「最长会看到多久以前的公告」。
  */
 export const NEWS_CACHE_TTL_MS = 60 * 60 * 1000
 
-/**
- * 默认的高亮关键字：标题里出现任一个即"命中"，会被拎到列表最前并用强调色显示
- * （季节活动 / 联动 / 莫古莫古这类"有时效、错过就没了"的活动）。
- *
- * 用户可在编辑弹窗里整份替换（`config.keywords`）。
- */
+/** 默认高亮关键字：标题里出现任一个即「命中」，置顶并用强调色显示（季节活动 / 联动 / 莫古莫古
+ *  这类有时效、错过就没了的活动）；用户可在编辑弹窗整份替换。 */
 export const NEWS_DEFAULT_KEYWORDS = ['季节活动', '联动', '莫古莫古'] as const
 
 /** 展示条数 / 请求条数的下限与上限。 */
@@ -84,10 +71,8 @@ function clampInt(value: unknown, min: number, max: number, fallback: number): n
 }
 
 /**
- * 关键字列表归一化：只留非空字符串、去掉首尾空白，并按首次出现去重（保留用户给的顺序）。
- *
- * ⚠️ 字段缺失（没配过的卡）与"显式空数组"是两回事：
- * 前者退回默认三词，后者是用户主动清空 —— 尊重它，一条都不高亮。
+ * 关键字列表归一化：只留非空字符串、去首尾空白，按首次出现去重（保留用户给的顺序）。
+ * ⚠️ 字段缺失（没配过的卡）退回默认三词；「显式空数组」是用户主动清空，尊重它，一条都不高亮。
  */
 function normalizeKeywords(value: unknown): string[] {
   if (!Array.isArray(value)) {

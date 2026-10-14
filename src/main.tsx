@@ -21,8 +21,8 @@ window.addEventListener('unhandledrejection', (event) => {
 })
 
 /*
- * 必须早于首次渲染注册：看板 store 在首次渲染时惰性读取 localStorage
- * （见 state/board-store.ts），那一刻需要用注册表归一化各组件配置。
+ * 必须早于首次渲染注册：看板 store 在首次渲染时惰性读 localStorage（state/board-store.ts），
+ * 那一刻需要用注册表归一化各组件配置。
  */
 installBuiltinWidgets()
 

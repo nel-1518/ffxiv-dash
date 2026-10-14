@@ -19,10 +19,7 @@ import type { GroupRow } from '../../state/group-rows.ts'
 import { parseDragData } from '../navigation/drag-types.ts'
 
 export type GroupBoardProps = {
-  /**
-   * 分行后的分组结构，由 `BoardSurface` 订阅后传入。
-   * 收结构而不是 `Group[]`：本组件完全不订阅看板数据，卡片内容的变化不会惊动这里。
-   */
+  /** 分行后的分组结构（`BoardSurface` 订阅后传入）；收结构不收 `Group[]`，本组件不订阅看板数据。 */
   rows: GroupRow[]
   /** 是否处于编辑模式：关闭时隐藏手柄、分组操作与卡片上的编辑/删除。 */
   editMode: boolean
@@ -34,18 +31,16 @@ export type GroupBoardProps = {
 const GRID_COLUMNS = 24
 
 /**
- * 只允许同 kind 的卡片互相吸附。
- *
- * 否则把链接卡拖过组件卡时，组件卡会先"让位"再弹回来 —— 目标其实无效
- * （reducer 的 `canPlaceItem` 会拒掉），却先动了一下，看起来像丢了位置。
- * 找不到同类候选时回退到全量中心距离，保证拖拽不会"卡死"。
+ * 只允许同 kind 的卡片互相吸附：否则链接卡拖过组件卡时，组件卡会先「让位」再弹回——
+ * 目标其实无效（reducer 的 canPlaceItem 会拒），却像丢了位置。
+ * 找不到同类候选时回退到全量中心距离，保证拖拽不会「卡死」。
  */
 const sameKindCollision: CollisionDetection = (args) => {
   const activeKind = parseDragData(args.active.data.current ?? undefined)?.kind
 
   const candidates = args.droppableContainers.filter((container) => {
     const overKind = parseDragData(container.data.current ?? undefined)?.kind
-    // 任一侧读不出 kind 就不参与筛选，避免因为拿不到 data 而把候选清空
+    // 任一侧读不出 kind 就不参与筛选，避免拿不到 data 时把候选清空
     return !activeKind || !overKind || activeKind === overKind
   })
 
@@ -53,13 +48,8 @@ const sameKindCollision: CollisionDetection = (args) => {
 }
 
 /**
- * 分组的位置调整：置顶 / 上移 / 下移 / 置底。
- *
- * 做成模块级函数（而不是组件内闭包）：引用永远不变，可以直接喂给 `memo(BoardGroupSlot)`；
- * 顺序在调用那一刻从 store 读，不存在闭包捕获过期顺序的问题。
- *
- * ⚠️ `readGroupIds()` 返回的是 store 的缓存数组，只能读不能改，要复制一份再挪。
- * 置顶 / 置底是摘出来再插回首尾（不是逐步换位）：中间隔着多少分组都一步到位。
+ * 分组位置调整（置顶 / 上移 / 下移 / 置底）。模块级函数：引用恒定可直接喂 `memo(BoardGroupSlot)`，顺序在调用那一刻
+ * 从 store 读、无闭包过期问题。⚠️ `readGroupIds()` 返回 store 缓存数组只读不改，挪动前复制；置顶/置底是摘出再插回首尾，一步到位。
  */
 function moveGroup(groupId: string, move: GroupMove): void {
   const currentIds = readGroupIds()
@@ -85,18 +75,12 @@ function moveGroup(groupId: string, move: GroupMove): void {
 }
 
 /**
- * 拖拽编排层。
- *
- * 传感器：PointerSensor + activationConstraint.distance 分开"点卡片"与"拖卡片"
- * （卡内链接、图标按钮不会被误判成拖拽）；KeyboardSensor 让键盘也能排序。
- * 拖拽手柄只绑在 DragHandle 上，整张卡片可以自由放交互元素。
- *
- * 涉及分组归属的判断都在事件回调里即时读 store（`read*` 系列），
- * 不需要订阅，也不存在闭包捕获过期数据的问题。
- *
- * ⚠️ 这一层不持有任何拖拽状态：正在拖的是谁、虚影怎么飞回去都交给 dnd-kit
- * （见 `BoardDragOverlay`）。拖拽开始/结束那一刻在这里 `setState` 会让整棵看板树重建 ——
- * 拖拽卡顿与"落位后闪一下"都出在这上面（详见 docs/development.md 的「拖拽」一节）。
+ * 拖拽编排层。传感器：PointerSensor + activationConstraint.distance 分开「点卡片」与「拖卡片」
+ * （卡内链接、图标按钮不被误判）；KeyboardSensor 让键盘也能排序；手柄只绑在 DragHandle 上，
+ * 整卡可自由放交互元素。归属判断在回调里即时读 store（`read*` 系列），不订阅、无闭包过期问题。
+ * ⚠️ 拖拽性能约定：本层不持有任何拖拽状态——正在拖的是谁、虚影怎么飞回都交给 dnd-kit
+ * （见 `BoardDragOverlay`）；在拖拽开始/结束时刻 setState 会重建整棵看板元素树、连锁到每张卡片，
+ * 拖拽卡顿与「落位后闪一下」都出在这（docs/development.md「拖拽」一节）。
  */
 export function GroupBoard({
   rows,
@@ -110,7 +94,7 @@ export function GroupBoard({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
-  /** 分组 id → 全局下标。表头的四个位置按钮靠它判断置顶/上移/下移/置底是否可用。 */
+  /** 分组 id → 全局下标；表头四个位置按钮靠它判断置顶/上移/下移/置底是否可用。 */
   const positions = useMemo(() => {
     const map = new Map<string, number>()
     let index = 0
@@ -134,7 +118,7 @@ export function GroupBoard({
     const activeData = parseDragData(active.data.current ?? undefined)
     const overData = parseDragData(over.data.current ?? undefined)
 
-    // dnd-kit 偶尔拿不到 data.current，那时用 id 归属反推所在的卡片
+    // dnd-kit 偶尔拿不到 data.current，此时用 id 归属反推所在卡片
     const sourceGroupId = activeData?.groupId ?? readGroupIdOfItem(draggedId)
     const targetGroupId = overData?.groupId ?? readGroupIdOfItem(overId)
     if (!sourceGroupId || !targetGroupId) {
@@ -185,15 +169,15 @@ export function GroupBoard({
               return (
                 <Col
                   key={groupId}
-                  // 每个分组的宽度由"同类一行放几个"决定；不足一行时自动拉伸铺满。
+                  // 每个分组的宽度由「同类一行放几个」决定；不足一行时自动拉伸铺满
                   span={GRID_COLUMNS / groupsPerRow(row.type)}
                   xs={24}
                 >
                   <BoardGroupSlot
                     groupId={groupId}
                     editMode={editMode}
-                    // 边界只跟 id 顺序有关，所以传布尔值，槽位的 memo 能挡住无关重渲染；
-                    // 「置顶」与「上移」同为"不是第一个"可用，「置底」与「下移」同为"不是最后一个"
+                    // 边界只跟 id 顺序有关，传布尔值让槽位的 memo 挡住无关重渲染：
+                    // 「置顶」「上移」同为不是第一个可用，「置底」「下移」同为不是最后一个可用
                     canMoveUp={position > 0}
                     canMoveDown={position < positions.size - 1}
                     onMove={moveGroup}

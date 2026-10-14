@@ -1,10 +1,8 @@
 /**
  * 黄金的试炼卡的配置类型、默认值与归一化（纯数据，无组件）。
- *
- * 这张卡**没有用户可配项**：它展示的是活动方每周公布的公共信息（期号、挑战副本、
- * 时间窗口、奖励），与服务器 / 角色都无关。config 因此是个空对象 ——
- * 保留类型与归一化只是为了跟其它组件走同一条注册路径（spec 要求有
- * `defaultConfig` / `normalizeConfig`），旧数据与手改过的 config 都会被归一化成 `{}`。
+ * 这张卡**没有用户可配项**：展示活动方每周公布的公共信息（期号、挑战副本、时间窗口、
+ * 奖励），与服务器 / 角色无关。config 是个空对象，保留类型与归一化只是为了走同一条
+ * 注册路径（spec 要求有 `defaultConfig` / `normalizeConfig`），旧数据与手改 config 都归一化成 `{}`。
  */
 
 /** 数据来源：ffxiv-api 的代理接口 */
@@ -14,8 +12,8 @@ export const GOLD_TRIAL_API_URL = 'https://ffxiv-api.neeeel.com/api/goldTrial'
 export const GOLD_TRIAL_SITE_URL = 'https://actff1.web.sdo.com/20241130_GoldTrial/#/index'
 
 /**
- * 前端缓存有效期 8 小时。
- * 试炼每周才换一期（周五公布），重开页面命中缓存就直接用、**不发请求**，停留期间不轮询。
+ * 前端缓存有效期 8 小时：试炼每周才换一期（周五公布），重开页面命中缓存就直接用、
+ * **不发请求**，停留期间不轮询。
  */
 export const GOLD_TRIAL_CACHE_TTL_MS = 8 * 60 * 60 * 1000
 

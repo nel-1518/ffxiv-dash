@@ -124,10 +124,8 @@ function sanitizeGroup(value: unknown, normalize: WidgetConfigNormalizer): Group
 
 /**
  * 校验并归一化一份 BoardDoc。
- *
- * 返回值：
- * - `doc` 为 null 表示输入不属于可恢复的范围（上层应回退默认数据）。
- * - `normalized` 为 true 表示与输入不一致（丢弃或补齐过字段），值得回写一次。
+ * `doc` 为 null = 输入不可恢复（上层回退默认数据）；`normalized` 为 true = 与输入不一致
+ * （丢弃或补齐过字段），值得回写一次。
  */
 export function sanitizeBoardDoc(
   input: unknown,

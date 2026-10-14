@@ -61,8 +61,8 @@ export const GROUP_TYPES: readonly GroupType[] = ['link', 'widget']
 export const ITEM_KINDS: readonly ItemKind[] = ['link', 'widget']
 
 /**
- * 分组列数的取值范围与各类型的默认值。取值范围是数据模型的一部分
- * （校验、表单、排布都要用），默认值保持老数据的观感不变。
+ * 分组列数的取值范围与各类型的默认值。取值范围是数据模型的一部分（校验、表单、排布都用），
+ * 默认值保持老数据观感不变。
  */
 export const GROUP_COLUMNS_MIN = 1
 export const GROUP_COLUMNS_MAX = 6

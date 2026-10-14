@@ -1,12 +1,8 @@
 /**
- * Universalis 聚合接口（纯逻辑，无 React）。
- *
- * 只做三件事：拼 URL、发请求（同一 URL 去重）、把响应按区服档位翻译成读数。
- *
- * 接口：`GET /api/v2/aggregated/{worldDcRegion}/{itemIds}`
- * 响应里 `nq` / `hq` 各含 minListing、averageSalePrice、recentPurchase 等统计项，
- * 而每一项都是 `{ world, dc, region }` 三档 —— 正好对应三级区服选择，
- * 所以「选了哪个粒度就读哪一档」由 `resolveTier` 决定。
+ * Universalis 聚合接口（纯逻辑，无 React）。只做三件事：拼 URL、发请求（同一 URL 去重）、
+ * 把响应按区服档位翻译成读数。接口：`GET /api/v2/aggregated/{worldDcRegion}/{itemIds}`；
+ * 响应 `nq` / `hq` 各含 minListing、averageSalePrice、recentPurchase 等统计项，每一项都是
+ * `{ world, dc, region }` 三档 —— 正好对应三级区服选择，读哪一档由 `resolveTier` 决定。
  */
 import { resolveTier, worldNameById } from './scopes.ts'
 import type { ScopeTier } from './scopes.ts'
@@ -80,16 +76,12 @@ function toReading(entry: unknown): PriceReading {
 
 /**
  * 平均售价。
- *
- * ⚠️ 接口只按**大区 / 全区**算它 —— 实测查「拉诺西亚」时 `averageSalePrice` 只有 `dc` 与
- * `region`，就是没有 `world`（`minListing` / `recentPurchase` 则是有 `world` 档的）。
- * 所以**选单个服务器时放宽到大区档**，否则这一行永远是「—」。
- *
- * 这时显示的数字其实是**大区**均价，不是本服均价。
- *
- * `minListing` / `recentPurchase` **刻意不回退**：它们本身有 `world` 档，缺失就意味着
- * 「这个服确实没货」，拿别服的价格顶上会真的误导。大区/全区的平均售价也不回退，
- * 那两档缺失说明是真的没有成交数据。
+ * ⚠️ 接口的 `averageSalePrice` **只有 `dc` / `region` 档、没有 `world` 档**
+ * （`minListing` / `recentPurchase` 是有 world 档的），所以选单个服务器时放宽到大区档，
+ * 否则这一行永远是「—」；此时显示的是**大区均价**，不是本服均价。
+ * `minListing` / `recentPurchase` **刻意不回退**：它们本有 world 档，缺失意味着「这个服
+ * 确实没货」，拿别服的价格顶上会真误导；大区/全区的平均售价也不回退，两档缺失是
+ * 真的没有成交数据。
  */
 function toAverageSalePrice(raw: unknown, tier: ScopeTier): PriceReading {
   const group = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {}
@@ -158,9 +150,9 @@ export function fetchMarket(scope: string, itemIds: number[]): Promise<MarketDat
     })
     .catch((error: unknown) => {
       /*
-       * 失败细节只进控制台：卡面上只在标题行留一个「获取失败」，不占版面。
-       * 记在这里而不是调用方 —— 同一 URL 的并发调用共用这一个 Promise，
-       * 所以一次真实请求只会打一条（在调用方记会被 StrictMode 双挂载打成两条）。
+       * 失败细节只进控制台：卡面只在标题行留一个「获取失败」，不占版面。
+       * 记在这里而不是调用方：同一 URL 的并发调用共用这一个 Promise，一次真实请求
+       * 只打一条（在调用方记会被 StrictMode 双挂载打成两条）。
        */
       console.error('[ffxiv-dash] 物品价格获取失败', { scope, itemIds, url, error })
       throw error

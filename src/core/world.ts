@@ -1,11 +1,9 @@
 /**
  * 中国区世界表（纯数据 + 基础查询，无 React）。
- *
- * 放在 `core/`：区服是跨组件的通用概念（物品价格、将来的人数统计等都要用）。
+ * 放 `core/`：区服是跨组件的通用概念（物品价格、将来的人数统计等都要用）；
  * 组件专属的东西（下拉分组、接口字段映射）留在各自目录。
- *
- * 层级：region（中国）→ dc（大区）→ world（服务器）。
- * `id` 与 Universalis `/api/v2/data-centers` 返回的 `worlds` 一一对应，改表时务必与上游核对。
+ * 层级：region（中国）→ dc（大区）→ world（服务器）。`id` 与 Universalis `/api/v2/data-centers`
+ * 的 `worlds` 一一对应，改表时务必与上游核对。
  */
 
 /** 整个中国区的 region 名。Universalis 也接受 `China`，但接口自身返回的是中文。 */
@@ -137,10 +135,9 @@ export type WorldOptionGroup = {
 }
 
 /**
- * 服务器下拉：大区只当分组标题、本身不可选 —— 组内只有服务器。
- *
- * 给"按单个服务器取数"的接口用（房屋售卖、市场税率只接受一个 world id）。
- * 需要「全区 / 大区 / 服务器」三档的组件自己拼选项（见 `market-widget/scopes.ts`）。
+ * 服务器下拉：大区只当分组标题、本身不可选（组内只有服务器），antd Select 直接吃。
+ * 给「按单个服务器取数」的接口用（房屋售卖、市场税率只接受一个 world id）；
+ * 要「全区 / 大区 / 服务器」三档的组件自己拼选项（见 `market-widget/scopes.ts`）。
  */
 export function worldOptions(): WorldOptionGroup[] {
   return DATA_CENTERS.map((dc) => ({

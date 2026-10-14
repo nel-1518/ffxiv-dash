@@ -10,10 +10,7 @@ import type { LinkItem, WidgetItem } from '../../core/storage/types.ts'
 /** 卡片外观所需的最小形状：链接卡片与组件卡片共有。 */
 export type CardFaceProps = {
   item: LinkItem | WidgetItem
-  /**
-   * 是否处于编辑模式。
-   * 关闭时卡片上不出现任何编辑类控件（手柄、编辑、删除），只剩可点击的链接本身。
-   */
+  /** 是否编辑模式：关闭时无编辑控件（手柄/编辑/删除），只剩可点击的链接本身。 */
   editMode: boolean
   /** 拖拽手柄，由调用方注入；浏览模式传 undefined。 */
   handle?: React.ReactNode
@@ -21,24 +18,14 @@ export type CardFaceProps = {
   onRemove: () => void
 }
 
-/**
- * 两种卡片外观共有的 props：`item` 各自收窄成具体类型，其余完全一致。
- * 从 `CardFaceProps` 派生而不是各抄一份：给它加字段时 `LinkFace` / `WidgetFace` 一起跟着变。
- * ⚠️ 加字段前先确认是原始值或稳定引用（见 `CardFace` 的 `memo` 说明）。
- */
+/** 两种外观共有的 props；从 CardFaceProps 派生，给它加字段时 LinkFace / WidgetFace 一起跟变。 */
 type FaceCommonProps = Omit<CardFaceProps, 'item'>
 
 /**
- * 卡片外观（纯展示，不含拖拽逻辑）。
- * `SortableCard` 用它渲染实体卡片，`DragPreview` 用它渲染跟随指针的虚影，两边同一份外观。
- *
- * ⚠️ 这层 `memo` 是拖拽流畅度的命门，别去掉。
- * dnd-kit 的 `DndContext` 在拖拽开始与指针每移动一帧时都换引用，而 context 传播不受
- * `memo` 拦截 —— `SortableCard` 必须一直重渲染（transform 要跟着走），但卡片外观这棵
- * antd 子树没有任何理由跟着渲染；不拦住的话拖动开始时主线程会被堵住数百 ms。
- *
- * memo 生效的前提是调用方传入的每个 prop 引用都稳定
- * （`SortableCard` 用 `useMemo` 固定 `handle`、`useCallback` 固定 `onEdit` / `onRemove`）。
+ * 卡片外观（纯展示，不含拖拽）：`SortableCard` 渲染实体、`DragPreview` 渲染虚影，同一份外观。
+ * ⚠️ memo 是拖拽流畅度的命门，别去掉：DndContext 每帧换 context 引用且传播不受 memo 拦截——
+ * SortableCard 必须跟（transform 要走），外观子树没理由跟；不拦住拖动开始会堵主线程数百 ms。
+ * 前提：每个 prop 引用稳定（SortableCard 用 useMemo 固定 handle、useCallback 固定 onEdit/onRemove）。
  */
 export const CardFace = memo(function CardFace({
   item,
@@ -54,10 +41,9 @@ export const CardFace = memo(function CardFace({
 })
 
 /**
- * 图标字段的取值判定：图片地址 → 显示图片；其他非空文字 → 显示这段文字；
- * 留空 → 名称首字 + pastel 底色（`core/pastel.ts`）。只认协议头，不猜扩展名。
- * ⚠️ 协议头之后必须还有内容（`\S`）：`https://` 这种半截地址不算图片，
- * 否则会渲染出 `<img src="//">`，白发一次请求再靠 `onError` 回退。
+ * 图标三形态：图片地址 → 图片；其他非空文字 → 该文字；留空 → 名称首字 + pastel 底色。
+ * 只认协议头不猜扩展名。⚠️ 协议头后必须还有内容（`\S`）：`https://` 半截地址不算图片，
+ * 否则渲染出 `<img src="">` 白发一次请求再靠 onError 回退。
  */
 const IMAGE_URL_PATTERN = /^(?:https?:\/\/|data:image\/|\/\/)\S/i
 
@@ -71,9 +57,8 @@ function linkIconKind(value: string): LinkIconKind {
 }
 
 /**
- * 取第一个"字符"。优先走 `Intl.Segmenter` 按字素簇切：`🕹️`（U+1F579 + 变体选择符）
- * 这种组合会被整体保留（只取码点会让 emoji 退化成单色文字字形）；
- * 没有 Segmenter 时退回按码点切（`Array.from`），至少不会像 `slice(0, 1)` 把代理对劈成乱码。
+ * 取第一个「字符」：优先 `Intl.Segmenter` 按字素簇切（`🕹️` 这类组合整体保留，避免 emoji 退化成单色字形）；
+ * 没有 Segmenter 时退回按码点切（Array.from），也不像 slice 劈开代理对。
  */
 const graphemeSegmenter =
   typeof Intl !== 'undefined' && 'Segmenter' in Intl
@@ -91,9 +76,8 @@ function firstChar(text: string): string {
 }
 
 /**
- * 名称首字：先按字素簇取首字，大写化之后再取一次。
- * `toUpperCase()` 不是"一个字符进、一个字符出"：`ß` → `SS`、`ﬁ` → `FI`，
- * 不补第二步会在 28px 的图标格里挤出两个字符 —— 这里承诺"图标上只显示一个字符"。
+ * 名称首字：按字素簇取首字、大写化后再取一次——toUpperCase 不保证「一字符进一字符出」
+ * （`ß`→`SS`、`ﬁ`→`FI`），这里承诺图标上只显示一个字符。
  */
 function upperInitial(text: string): string {
   return firstChar(firstChar(text).toUpperCase())
@@ -107,10 +91,7 @@ function LinkFace({
   onRemove,
 }: FaceCommonProps & { item: LinkItem }): React.ReactNode {
   const { modal } = App.useApp()
-  /**
-   * 手填图片地址里加载失败的那一个。记"哪个地址失败了"而不是布尔量，
-   * 字段值一变就自动重试，无需 effect 重置。
-   */
+  /** 手填图片地址里加载失败的那一个：记「哪个地址失败」而非布尔量，字段值一变即自动重试，无需 effect 重置。 */
   const [brokenIcon, setBrokenIcon] = useState<string | null>(null)
 
   const confirmRemove = () => {
@@ -138,10 +119,9 @@ function LinkFace({
   // 字符回退的底色按域名取，同站永远同色（见 `core/pastel.ts`）；显示图片时不必解析域名
   const pastel = showChar ? pastelColorOfLink(item.url, item.name) : null
   /*
-   * ⚠️ `item.url` 不能直接当 `href`：它来自 localStorage 与导入的 JSON，
-   * storage 层只做长度/类型收敛、不校验协议 —— 一条 `javascript:` 地址被点一下
-   * 就会在本站 origin 执行脚本。统一走 `normalizeLinkUrl`（只放行 http(s)）；
-   * 认不出来就不挂 href：卡片照常显示，只是点不动（悬停仍能看到原始地址）。
+   * ⚠️ `item.url` 不能直接当 `href`：来自 localStorage 与导入 JSON，storage 层只做长度/类型收敛、不校验协议——
+   * `javascript:` 会被点开在本站 origin 执行脚本。统一走 `normalizeLinkUrl`（只放行 http(s)）；
+   * 认不出就不挂 href：卡片照常显示只是点不动（悬停仍见原始地址）。
    */
   const href = normalizeLinkUrl(item.url)
 
@@ -149,18 +129,14 @@ function LinkFace({
     <Flex
       align="center"
       gap={8}
-      /*
-       * `dash-link-card` 标记"这是导航卡"（悬停浮起、拖拽虚影用）；
-       * `dash-card-surface` 是"卡片表面"的标记：底色/投影/毛玻璃与主题适配都挂在它上面，
-       * 组件卡由 WidgetShell 挂同一个类（见 global.css）。
-       */
+      // `dash-link-card` 标记「这是导航卡」（悬停浮起、拖拽虚影用）；`dash-card-surface` 是「卡片表面」标记：
+      // 底色/投影/毛玻璃与主题适配都挂它上面，组件卡由 WidgetShell 挂同一个类（见 global.css）
       className="dash-link-card dash-card-surface"
       style={{
         padding: '6px 8px',
-        // 描边 / 底色 / 圆角都留给主题变量（见 global.css 的 --dash-card-*），取不到时退回 antd 令牌。
+        // 描边/底色/圆角走主题变量（global.css 的 `--dash-card-*` 钩子：border-width、border、radius-sm、bg、bg-hover），缺省退回 antd 令牌。
         // ⚠️ 拆成三个 longhand：简写里塞两个变量时，一个算不出值整条声明就失效。
-        // ⚠️ 宽度也做成变量：有的主题（暗影）要"连位置都不留"的真无边框，
-        // 光把颜色设成 transparent 还会留下 1px 的发丝线。
+        // ⚠️ 宽度也做成变量：有的主题（暗影）要「连位置都不留」的真无边框，光 transparent 还会留 1px 发丝线。
         borderWidth: 'var(--dash-card-border-width, 1px)',
         borderStyle: 'solid',
         borderColor: 'var(--dash-card-border, var(--ant-color-border-secondary))',

@@ -5,16 +5,10 @@ import '../light-card.css'
 import './theme.css'
 
 /**
- * 晓月（Endwalker）。
- *
- * 色值取自官方专题站 <https://na.finalfantasyxiv.com/endwalker/> 的计算样式与样式表：
- * 冷黑底 `#18181a` + 月光白标题 `#f0f0f0` + 灰紫发丝边 `#bcbccc`；
- * 站点真正的签名是 `.endwalker-btn` 上那支三色渐变
- * `#3d4d99 → #3689b3 → #cc7a29`（蓝紫 / 青 / 琥珀）—— 只取它的色相方向：
- * 主色是靛蓝紫、链接与警告取琥珀端，中间的青端不用（与银海的冰蓝撞色）。
- *
- * ⚠️ 卡片是**亮色**（与页面、顶栏的暗色分三层），卡内文字在 `theme.css` 里整体翻深色，
- * 所以这里看到 `colorBgContainer` 是深色并不矛盾 —— 那是弹窗等暗处用的。
+ * 晓月（Endwalker）。取色见 `docs/themes.md`（来源：官方专题站计算样式与样式表：冷黑底 + 月光白标题 + 灰紫发丝边）。
+ * 签名的三色渐变 `#3d4d99 → #3689b3 → #cc7a29` 只取色相方向：主色靛蓝紫、链接与警告取琥珀端，中间青端不用（与银海冰蓝撞色）。
+ * ⚠️ 卡片是亮色（与页面、顶栏的暗色分三层），卡内文字在 `theme.css` 整体翻深色；
+ * `colorBgContainer` 是深色不矛盾——那是弹窗等暗处用的。
  */
 export const endwalkerSpec: ThemeSpec = {
   key: 'endwalker',

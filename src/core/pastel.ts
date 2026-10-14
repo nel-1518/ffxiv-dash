@@ -1,11 +1,8 @@
 /**
- * 图标默认底色：**稳定 Hash + 12 色固定 pastel 调色板**。
- *
- * 链接没有自己的图标时，卡片显示"一个字符 + 一层底色"。底色不随机生成 ——
- * 直接对 hash 取 RGB 会出现过亮、过艳、过脏的颜色，所以只用 12 个人工挑过的低饱和色。
- *
- * 同一个 key 永远落在同一个颜色上（刷新、重开、拖动排序都不变）：
- * hash 只取决于 key 本身，不掺任何运行期状态。
+ * 图标默认底色：稳定 hash + 12 色固定 pastel 调色板。
+ * 链接没图标时卡片显示「一个字符 + 一层底色」；底色不随机——直接对 hash 取 RGB 会出现
+ * 过亮 / 过艳 / 过脏的颜色，只用 12 个人工挑过的低饱和色。
+ * 同一个 key 永远同一颜色（刷新、重开、拖动排序都不变）：hash 只取决于 key，不掺运行期状态。
  */
 
 export type PastelColor = {
@@ -81,8 +78,7 @@ export const pastelPalette: readonly PastelColor[] = [
 ]
 
 /**
- * FNV-1a 32 位 hash。
- * 全整数运算（`Math.imul` + `>>> 0`）：普通乘法在 32 位处会溢出成浮点，
+ * FNV-1a 32 位 hash。全整数运算（`Math.imul` + `>>> 0`）：普通乘法在 32 位处溢出成浮点，
  * 结果因引擎而异，做不到跨浏览器一致。
  */
 function hashString(value: string): number {
@@ -127,10 +123,8 @@ function hostOf(url: string): string | null {
 }
 
 /**
- * 一条链接该用哪个底色。
- *
- * key 取**域名**而不是名称：同一个应用（同一站点）无论叫什么名字、放在哪个分组、
- * 排在第几行，颜色都一致，改名也不换色。域名解析不出来时才退回名称。
+ * 一条链接该用哪个底色。key 取域名而不是名称：同一站点无论叫什么、放哪个分组、排第几行
+ * 颜色都一致，改名不换色；域名解析不出来才退回名称。
  */
 export function pastelColorOfLink(url: string, name: string): PastelColor {
   const key = hostOf(url) || name.trim()

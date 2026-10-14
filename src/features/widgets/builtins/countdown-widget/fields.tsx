@@ -25,9 +25,8 @@ export function CountdownFormFields(): React.ReactNode {
         rules={[{ required: true, message: '请选择日期' }]}
         /*
          * config 里存的是 `YYYY-MM-DD` 字符串（要能原样进 localStorage），而 DatePicker
-         * 只吃 dayjs 对象 —— 转换就地做在这条 Form.Item 的两端：
-         * 下发给控件时 `getValueProps` 转成 dayjs，控件回调时 `normalize` 转回字符串。
-         * 于是表单之外（数据层、渲染层）永远只见到字符串。
+         * 只吃 dayjs —— 转换就地做在这条 Form.Item 两端：下发给控件时 getValueProps
+         * 转成 dayjs，控件回调时 normalize 转回字符串，表单之外（数据层、渲染层）只见字符串。
          */
         getValueProps={(value: string | undefined) => ({ value: value ? dayjs(value) : null })}
         normalize={(value: Dayjs | undefined) => (value ? value.format('YYYY-MM-DD') : '')}
@@ -47,15 +46,11 @@ export function CountdownFormFields(): React.ReactNode {
 }
 
 /**
- * 倒数日卡片。
- *
- * 从上到下：事件 → 倒数天数 → 强调短线 → 描述。
- * 事件名与天数是主视觉（事件半粗、天数跟着卡宽缩放并垫一层柔光）；
- * 短线不承载信息，它只负责把"状态色"从数字搬到卡片下半部分（今天成功色、已过去灰色）。
- * 描述行把「距【事件】还有 X 日」这句原话读出来，并补上目标日期与周期 —— 它是说明，所以最小最轻。
- *
- * 时钟取的是「天」粒度（`useClockAt('day')`）：卡片的内容一天才变一次，
- * 于是它只在跨过零点那一刻重渲染
+ * 倒数日卡片，从上到下：事件 → 倒数天数 → 强调短线 → 描述。
+ * 事件名与天数是主视觉（事件半粗，天数跟着卡宽缩放并垫一层柔光）；短线不承载信息，
+ * 只把状态色（今天成功色、已过去灰）从数字搬到卡片下半部分。
+ * 描述行把「距【事件】还有 X 日」原话读出并补目标日期与周期 —— 是说明，所以最小最轻。
+ * 时钟取「天」粒度（useClockAt('day')）：内容一天才变一次，只在跨零点那一刻重渲染。
  */
 export function CountdownRender({ config }: WidgetRenderProps<CountdownConfig>): React.ReactNode {
   const { date, cycle } = config
@@ -65,8 +60,8 @@ export function CountdownRender({ config }: WidgetRenderProps<CountdownConfig>):
 
   if (!result) {
     /*
-     * 还没选日期。这是一块占位而不是一条错误：虚线框把空白处"框起来"，
-     * 卡片就不会因为只有一行灰字看起来像渲染失败（文案仍把下一步说清楚）。
+     * 还没选日期。这是一块占位而不是一条错误：虚线框把空白处「框起来」，
+     * 卡片就不会因只有一行灰字看起来像渲染失败（文案仍把下一步说清楚）。
      */
     return (
       <div className="dash-countdown dash-countdown-empty">
@@ -79,9 +74,8 @@ export function CountdownRender({ config }: WidgetRenderProps<CountdownConfig>):
   const count = Math.abs(days)
 
   /*
-   * 描述行 = 「距【事件】还有 X 日」这句原话。
-   * 事件名与天数上面已经各占一行，这句话在这里的职责是「把数字读出来」并说清方向，
-   * 所以不缩写成「还有 X 日」—— 单独看一行说明时，出处比省几个字重要。
+   * 描述行 = 「距【事件】还有 X 日」这句原话：职责是「把数字读出来」并说清方向，
+   * 不缩写成「还有 X 日」—— 单独一行说明时，出处比省几个字重要。
    * 「就是今天」是唯一不念数字的情况：那天读「还有 0 日」很怪。
    */
   const sentence =
@@ -89,10 +83,7 @@ export function CountdownRender({ config }: WidgetRenderProps<CountdownConfig>):
       ? `今日是"${event}"`
       : `距"${event}"${state === 'past' ? '已过去' : '还有'} ${count} 日`
 
-  /*
-   * 「目标」在周期模式下也成立（它就是要指向的那一天），而且比「下一个」短一个字 ——
-   * 窄卡上少折一行。
-   */
+  // 「目标」在周期模式下也成立（它就是要指向的那一天），且比「下一个」短一个字，窄卡少折一行
   const meta =
     cycle === 'none'
       ? `目标 ${formatDateText(target)}`

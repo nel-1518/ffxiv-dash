@@ -1,10 +1,8 @@
 /**
  * 汇率卡的配置字段与渲染。
- *
- * 卡面两段：标题行（货币对 + 数据新鲜度）→ 浅底读数面板。
- * 面板中央是主读数「1 基准货币 = 汇率 目标货币」（汇率跟着卡宽缩放，同倒数日卡），
- * 下方一行反向汇率、一行数据日期 —— 看一眼就知道手里的钱折过来是多少，
- * 以及这个数是哪天的（央行参考汇率一天一更）。
+ * 卡面两段：标题行（货币对 + 数据新鲜度）→ 浅底读数面板：中央主读数「1 基准货币 =
+ * 汇率 目标货币」（汇率随卡宽缩放，同倒数日卡），下方一行反向汇率、一行数据日期 ——
+ * 看一眼知道手里的钱折过来多少、这个数是哪天的（央行参考汇率一天一更）。
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Flex, Form, Select, Typography } from 'antd'
@@ -59,26 +57,19 @@ export function ExchangeFormFields(): React.ReactNode {
 }
 
 export function ExchangeRender({ config }: WidgetRenderProps<ExchangeConfig>): React.ReactNode {
-  /*
-   * 时钟取**分钟粒度**：这张卡只有「N 分钟前」那一行吃时钟，而它一分钟才变一次。
-   * （缓存 8 小时，读数最多显示到「N 小时前」。）
-   */
+  // 时钟取分钟粒度：只有「N 分钟前」那行吃时钟，一分钟才变一次（缓存 8 小时，读数最多「N 小时前」）
   const now = useClockAt('minute')
 
   const { base, quote } = config
   /** 当前请求的唯一标识：数据与错误都按它归档，换货币对时旧数据自然失效。 */
   const requestKey = `${base}-${quote}`
 
-  /*
-   * 数据与错误都**连着自己那份请求标识一起存**，而不是在 effect 里手动清空：
-   * 渲染期拿 key 一比就知道这条数据是不是当前货币对的，不必"先置空再请求"。
-   */
+  // 数据与错误都**连着请求标识一起存**（不在 effect 里手动清空）：
+  // 渲染期拿 key 一比即知数据属于当前货币对，不必"先置空再请求"。
   const [entry, setEntry] = useState<{ key: string; data: ExchangeRate } | null>(null)
   const [failure, setFailure] = useState<{ key: string; message: string } | null>(null)
 
-  /*
-   * 渲染期读缓存（纯读、无副作用）：页面打开时命中缓存就立刻有数据可显示。
-   */
+  // 渲染期读缓存（纯读、无副作用）：页面打开时命中缓存就立刻有数据可显示。
   const cached = useMemo(() => readExchangeCache(base, quote), [base, quote])
 
   const data = (entry?.key === requestKey ? entry.data : null) ?? cached
@@ -86,12 +77,8 @@ export function ExchangeRender({ config }: WidgetRenderProps<ExchangeConfig>): R
   // 没有数据也没有错误 = 还在等第一次结果，不需要单独维护一个 loading 状态
   const pending = data === null && error === null
 
-  /*
-   * 拉取 + 落盘 + 记账。
-   *
-   * 刻意写成**同步函数返回 Promise**（而不是 async 函数）：setState 全部落在
-   * then/catch 回调里，effect 同步阶段一次都不会触发渲染。
-   */
+  // 拉取 + 落盘 + 记账。刻意写成**同步函数返回 Promise**（而不是 async 函数）：
+  // setState 全部落在 then/catch 回调里，effect 同步阶段一次都不会触发渲染。
   const reload = useCallback((): Promise<void> => {
     return fetchExchangeRate(base, quote)
       .then((result) => {
@@ -108,10 +95,7 @@ export function ExchangeRender({ config }: WidgetRenderProps<ExchangeConfig>): R
       })
   }, [base, quote, requestKey])
 
-  /*
-   * 打开 / 换货币对时请求一次，**只此一次**：命中未过期缓存（8 小时内）就直接用、不发请求；
-   * 停留期间不做任何轮询。
-   */
+  // 打开 / 换货币对时请求一次，**只此一次**：命中未过期缓存（8 小时内）直接用、不发请求，停留期间不轮询。
   useEffect(() => {
     const hit = readExchangeCache(base, quote)
     if (hit && isFresh(hit, Date.now())) {
@@ -132,8 +116,8 @@ export function ExchangeRender({ config }: WidgetRenderProps<ExchangeConfig>): R
 
   return (
     /*
-     * 正文不可点，纯粹是读数展示 —— 这一层是卡内的纵向 flex 容器，
-     * 撑满卡面正文区（`.dash-exchange` 里有 display: flex 的规则）。
+     * 正文不可点，纯读数展示 —— 这层是卡内的纵向 flex 容器，撑满卡面正文区
+     *（`.dash-exchange` 里有 display: flex 的规则）。
      */
     <div className="dash-card-fill dash-exchange">
       <Flex align="baseline" justify="space-between" gap={8} style={{ minWidth: 0 }}>

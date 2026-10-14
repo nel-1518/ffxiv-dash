@@ -1,15 +1,9 @@
 /**
- * PvP 地图轮换（纷争前线 / 水晶冲突）。
- *
- * 逻辑移植自 ffxiv-wakeng/pvp-calendar：
- * 用「已知轮换起点 + 固定周期」算出当前是第几个轮换，再对地图表取模。
- * 起点与周期都是绝对 UTC 时刻，因此浏览者所在时区不影响结果。
- *
- * 维护方式（与上游一致）：
- * - 增删地图：改对应数组，必要时把 REFERENCE 同步成一个已知的轮换起点；
- * - 改轮换周期：改周期常量，同样要同步 REFERENCE。
- *
- * 本模块是**纯数据 + 纯函数**，不引入 React，方便单独校对。
+ * PvP 地图轮换（纷争前线 / 水晶冲突）。逻辑移植自 ffxiv-wakeng/pvp-calendar：
+ * 用「已知轮换起点 + 固定周期」算出当前是第几个轮换，再对地图表取模；
+ * 起点与周期都是绝对 UTC 时刻（轮换点对齐整分整秒），浏览者所在时区不影响结果。
+ * 维护（与上游一致）：增删地图改对应数组、必要时把 REFERENCE 同步为已知轮换起点；改轮换周期同样要同步。
+ * 纯数据 + 纯函数，不引入 React，方便单独校对。
  */
 
 const MS_PER_MINUTE = 60 * 1000
@@ -27,9 +21,8 @@ export type CcMapId =
 
 /**
  * 纷争前线：每 24 小时在 23:00（北京）/ 15:00（UTC）轮换一次。
- *
- * 表长 8 而不是去重后的 5：上游就是按这个顺序排的 8 天循环，
- * 重复出现的 `seize` / `naadam` / `triumph` 是有意为之，改顺序前先核对游戏内实际轮换。
+ * 表长 8 而不是去重后的 5：上游就是按这个顺序排的 8 天循环，重复出现的
+ * seize / naadam / triumph 是有意为之，改顺序前先核对游戏内实际轮换。
  */
 export const FRONTLINE_ROTATION_MS = 24 * MS_PER_HOUR
 export const FRONTLINE_REFERENCE = Date.parse('2026-04-27T15:00:00Z')
@@ -81,7 +74,7 @@ export const CC_MAP_NAMES: Record<CcMapId, string> = {
 type Rotation = { index: number; next: number }
 
 function rotationAt(nowMs: number, reference: number, periodMs: number): Rotation {
-  // 参考时间之前的时刻会算出负的 index；取模时统一补正，见 pickMap
+  // 参考时间之前的时刻会算出负的 index；取模时统一补正（见 pickMap）
   const index = Math.floor((nowMs - reference) / periodMs)
   return { index, next: reference + (index + 1) * periodMs }
 }
@@ -104,10 +97,8 @@ export function getFrontlineRotation(now: Date = new Date()): FrontlineRotation 
 }
 
 /**
- * 下一次轮换后生效的纷争前线地图，也就是「次日」。
- *
- * 轮换点在 23:00，因此这个值在 00:00–22:59 就是次日的白天图；
- * 到了 23:00–23:59 当前图已经属于新的一天，它就顺延成再下一天，语义仍是"下一次轮换"。
+ * 下一次轮换后生效的纷争前线地图，即「次日」。轮换点在 23:00：00:00–22:59 是次日白天图；
+ * 23:00–23:59 当前图已属新的一天，此值顺延为再下一天，语义仍是「下一次轮换」。
  */
 export function getNextFrontlineMap(now: Date = new Date()): FrontlineMapId {
   const rotation = rotationAt(now.getTime(), FRONTLINE_REFERENCE, FRONTLINE_ROTATION_MS)
@@ -118,10 +109,8 @@ export type CcRotation = {
   /** 当前生效的地图。 */
   map: CcMapId
   /**
-   * 下一次轮换的时刻。
-   *
-   * 剩余时长由调用方拿这个时刻现算（卡片是在叶子里按"文本变了才渲染"取的快照）：
-   * 在这里算好一个毫秒数反而用不上 —— 它一渲染就过期。
+   * 下一次轮换的时刻。剩余时长由调用方拿这个时刻现算（卡片叶子按「文本变了才渲染」取快照），
+   * 在这里算好毫秒数反而用不上 —— 一渲染就过期。
    */
   nextRotation: Date
 }
@@ -134,17 +123,14 @@ export function getCcRotation(now: Date = new Date()): CcRotation {
   }
 }
 
-/** 下一次轮换后生效的水晶冲突地图。 */
 export function getNextCcMap(now: Date = new Date()): CcMapId {
   const rotation = rotationAt(now.getTime(), CC_REFERENCE, CC_ROTATION_MS)
   return pickMap(CC_MAPS, rotation.index + 1)
 }
 
 /**
- * 剩余时长：`时:分`。
- *
- * 分钟**向下取整**（秒直接截掉，不四舍五入）：显示 13h:17m 就代表还剩 13 小时 17 分多，
- * 不会因为四舍五入把 13:17:40 报成 13:18。
+ * 剩余时长：`时:分`。分钟向下取整（秒直接截掉，不四舍五入）：
+ * 显示 13h:17m 就代表还剩 13 小时 17 分多，四舍五入会把 13:17:40 报成 13:18。
  */
 export function formatHoursMinutes(ms: number): string {
   const totalMinutes = Math.max(0, Math.floor(ms / MS_PER_MINUTE))
@@ -154,10 +140,8 @@ export function formatHoursMinutes(ms: number): string {
 }
 
 /**
- * 剩余分钟数，形如 `09m`。
- *
- * 水晶冲突每小时轮换一次，剩余分钟恒在 0-59 之间，写小时段只会永远显示 0h；
- * 与 formatHoursMinutes 同样向下取整，分钟补足两位以免逐分变化时宽度跳动。
+ * 剩余分钟数，形如 `09m`。水晶冲突每小时轮换，剩余分钟恒在 0-59 之间，
+ * 写小时段只会永远显示 0h；与 formatHoursMinutes 同样向下取整，补足两位以免宽度跳动。
  */
 export function formatMinutes(ms: number): string {
   const totalMinutes = Math.max(0, Math.floor(ms / MS_PER_MINUTE))

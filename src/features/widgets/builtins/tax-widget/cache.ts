@@ -1,9 +1,7 @@
 /**
- * 税率缓存（localStorage，纯逻辑无 React）。
- *
- * 与物品价格 / 房屋卡同一套写法：**整个缓存只占一个键**，内部按服务器分条目，
- * 写入时顺手把过期条目一起清掉，不会随时间无限堆积。
- * 网页打开时先看它：命中且未过期就直接用、**不发请求**。
+ * 税率缓存（localStorage，纯逻辑无 React）。与物品价格 / 房屋卡同一套写法：
+ * **整个缓存只占一个键**、内部按服务器分条目、写入时顺手清掉过期条目（不随时间堆积）；
+ * 网页打开时命中且未过期就直接用、**不发请求**。
  */
 import { TAX_CACHE_TTL_MS } from './config.ts'
 import type { TaxRates } from './rates.ts'
@@ -88,9 +86,7 @@ export function isFresh(data: TaxRates, now: number): boolean {
 
 /**
  * 写入一条，并**顺手清掉所有已过期条目**。
- *
- * 清理和写入共用 `TAX_CACHE_TTL_MS`：缓存只有"还能用"与"该删了"两种状态，
- * 过期数据留在盘上不会有人读，只会白占地方。
+ * 清理和写入共用 `TAX_CACHE_TTL_MS`：过期数据留在盘上不会有人读，只会白占地方。
  */
 export function writeTaxCache(data: TaxRates): void {
   const file = readFile()

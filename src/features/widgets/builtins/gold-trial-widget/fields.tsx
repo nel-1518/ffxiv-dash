@@ -1,12 +1,9 @@
 /**
  * 黄金的试炼卡的配置字段与渲染。
- *
  * 卡面自上而下四块：标题行（期号 + 阶段状态）→ 副本行（副本名 + 等级徽标）→
- * 读数行（挑战时段 / 阶段倒计时 / 登记奖励）→ 下期预告脚注。
- * 整卡可点，跳到活动专题页 —— 挑战成功后的**登记**就在那里完成（规则要求登记确认，
- * 否则视为放弃本周试炼）。
- *
- * 数据在挂载时取一次，停留期间不轮询；阶段与倒计时跟着**分钟粒度**的全局时钟走，跨分钟才重渲染。
+ * 读数行（挑战时段 / 阶段倒计时 / 登记奖励）→ 下期预告脚注。整卡可点，跳到活动专题页
+ * —— 挑战成功后的**登记**就在那里完成（规则要求登记确认，否则视为放弃本周试炼）。
+ * 数据挂载时取一次，停留期间不轮询；阶段与倒计时跟**分钟粒度**的全局时钟走。
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, Button, Flex, Typography } from 'antd'
@@ -35,10 +32,8 @@ export function GoldTrialFormFields(): React.ReactNode {
 }
 
 /**
- * 阶段对应的那一行读数。
- *
- * 挑战 / 登记期显示**倒计时**（卡面唯一会动的数，标主色），其余阶段显示绝对时刻：
- * 未开始看"什么时候开始挑战"，已结束看"下期什么时候公布"。
+ * 阶段对应的那一行读数。挑战 / 登记期显示**倒计时**（卡面唯一会动的数，标主色），
+ * 其余阶段显示绝对时刻：未开始看"什么时候开始挑战"，已结束看"下期什么时候公布"。
  */
 function phaseRow(
   phase: GoldTrialPhaseInfo,
@@ -78,18 +73,16 @@ export function GoldTrialRender(): React.ReactNode {
   const [failure, setFailure] = useState<string | null>(null)
 
   /*
-   * 渲染期读缓存（纯读、无副作用）：页面打开时命中缓存就立刻有数据可显示。
+   * 渲染期读缓存（纯读、无副作用）：页面打开时命中缓存就立刻有数据可显示；
    * 缓存 8 小时，命中即不发请求（见下面的 effect）。
    */
   const cached = useMemo(() => readGoldTrialCache(), [])
   const data = entry ?? cached
 
   /*
-   * 拉取 + 落盘 + 记账。
-   *
-   * 刻意写成**同步函数返回 Promise**（而不是 async 函数）：setState 全部落在
-   * then/catch 回调里，effect 同步阶段一次都不会触发渲染。
-   * 请求本身在 `api.ts` 里按 URL 单飞，StrictMode 双挂载也只发一条。
+   * 拉取 + 落盘 + 记账。刻意写成**同步函数返回 Promise**（不是 async 函数）：setState
+   * 全落在 then/catch 回调里，effect 同步阶段一次都不触发渲染；请求在 `api.ts` 里按
+   * URL 单飞，StrictMode 双挂载也只发一条。
    */
   const reload = useCallback((): Promise<void> => {
     return fetchGoldTrial()
@@ -137,9 +130,8 @@ export function GoldTrialRender(): React.ReactNode {
   const title = current !== null && current.name !== '' ? `第 ${current.name} 期` : '黄金的试炼'
   const status = pending ? '正在获取…' : GOLD_TRIAL_PHASE_LABELS[phase.phase]
   /*
-   * 标题行右侧的读数：有期号时「期号 · 阶段」用间隔点分开
-   * （同房屋售卖的「服务器 · 新鲜度」、物品价格的「区服 · 新鲜度」）；
-   * 期号还没拿到时只剩阶段，不与左侧的加粗标题重复一遍卡名。
+   * 标题行右侧读数：有期号时「期号 · 阶段」用间隔点分开（同其它卡片的「参数 · 状态」写法）；
+   * 期号没拿到时只剩阶段，不与左侧加粗标题重复卡名。
    */
   const headline = title === '黄金的试炼' ? status : `${title} · ${status}`
   const windowText =
@@ -154,11 +146,10 @@ export function GoldTrialRender(): React.ReactNode {
 
   return (
     /*
-     * 正文整块可点，跳活动专题页（登记入口）。链接只包正文：卡片标题栏在
-     * WidgetShell 里，编辑 / 删除按钮不能嵌进交互元素。
-     * `dash-card-fill` 与房屋售卖 / 物品价格 / 市场税率同一套：卡片被同组更高的
-     * 卡撑高时内容跟着长（封顶 164px），标题行钉在卡面顶部 —— 不加它时整块内容
-     * 会被 `.ant-card-body` 的垂直居中推到卡片中间，与其他卡的标题行错开。
+     * 正文整块可点，跳活动专题页（登记入口）。链接只包正文：标题栏在 WidgetShell 里，
+     * 编辑 / 删除按钮不能嵌进交互元素。`dash-card-fill` 让卡片被同组更高的卡撑高时内容
+     * 跟着长（封顶 164px）、标题行钉在顶部 —— 不加它整块内容会被 `.ant-card-body`
+     * 垂直居中推到卡中间，与其他卡的标题行错开。
      */
     <a
       className="dash-card-link dash-card-fill dash-goldtrial-link"

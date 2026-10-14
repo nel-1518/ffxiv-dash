@@ -1,19 +1,12 @@
 /**
  * 同区服请求合并器（纯逻辑，无 React）。
  *
- * **要解决的问题**：看板上可以摆多张「物品价格」卡片，每张卡查的物品 / 区服各不相同。
- * 早先每张卡各调一次 `fetchMarket`，于是同一次进网页会打出 N 个请求 —— 而 Universalis 的
- * 聚合接口 `.../{itemIds}` 的 itemIds 本来就是**逗号分隔的多个物品**，一次就能查好几个。
- *
- * **做法**：把「这一轮要查什么」先收集起来，等当前这一批挂载结束后，按区服分组、把物品 id
- * 求并集，每个区服只发一次真请求，再把批量结果**按订阅者过滤**分回各张卡。
- *
- * 收集窗口取一个宏任务边界（`setTimeout(flush, 0)`）即可：同一轮 commit 里各卡片的挂载
- * effect 是同步依次执行的，全都落在同一个宏任务里；多出来的延迟只有一个 tick，
- * 影响不到首屏（数据本来就要等网络）。
- *
- * ⚠️ 不同区服**没法合并进同一个请求** —— 接口 URL 按 scope 分段（`/aggregated/{scope}/...`），
- * 所以分组是必须的：同 scope 合一，不同 scope 各发各的。
+ * 看板可摆多张「物品价格」卡，各查各的会打 N 个请求；而聚合接口 `.../{itemIds}` 本就是
+ * **逗号分隔的多个物品**，一次能查好几个。做法：收下这一轮要查什么，等当前一批挂载结束后
+ * 按区服分组、物品 id 求并集，每个区服只发一次真请求，结果**按订阅者过滤**分回各张卡。
+ * 收集窗口取一个宏任务边界（`setTimeout(flush, 0)`）即可：同一轮 commit 里的挂载 effect
+ * 同步依次执行，全落在同一宏任务里，多出的延迟只有一个 tick，影响不到首屏。
+ * ⚠️ 不同区服**没法并成同一请求** —— 接口 URL 按 scope 分段（`/aggregated/{scope}/...`），必须分组。
  */
 
 import { fetchMarket } from './universalis.ts'
@@ -29,9 +22,8 @@ type Subscriber = {
 
 /**
  * 待发队列：区服 → 这一轮向它订阅的所有卡片。
- *
- * flush 一开始就整体取走并清空（见 `flush`），所以「正在发送」期间新来的订阅会**自然落进
- * 下一批**，不会被这一批吞掉、也不会漏发。
+ * flush 一开始就整体取走并清空，所以「正在发送」期间新来的订阅自然落进下一批，
+ * 不会被这一批吞掉、也不会漏发。
  */
 const pending = new Map<string, Subscriber[]>()
 
@@ -40,11 +32,9 @@ let flushScheduled = false
 
 /**
  * 请求某个区服下这些物品的价格。
- *
- * 与 `fetchMarket` 的差别只有一个：**不是立刻发请求**，而是先登记，
- * 等同一轮的其它卡片到齐后合并成一次请求。返回的 Promise 只会拿到
- * 「本订阅者请求的那几个物品」的数据，形状与 `fetchMarket` 完全一致，
- * 卡片侧因此不需要任何适配。
+ * 与 `fetchMarket` 的唯一差别：**不立刻发请求**，先登记、等同轮其它卡片到齐后并成一次。
+ * Promise 只会拿到「本订阅者请求的那几个物品」的数据，形状与 `fetchMarket` 完全一致，
+ * 卡片侧不需要任何适配。
  */
 export function requestMarket(scope: string, itemIds: number[]): Promise<MarketData> {
   return new Promise<MarketData>((resolve, reject) => {
@@ -115,10 +105,9 @@ async function runBatch(scope: string, subscribers: Subscriber[]): Promise<void>
     }
   } catch (error: unknown) {
     /*
-     * 失败日志不在这里打：`fetchMarket` 已经按「一次真实请求一条」打过一次
-     * （见 universalis.ts 里那段注释），这里再打就成了同一次失败两条记录。
-     * 这里只负责把同一个错误分发给本区服的所有订阅者 —— 错误隔离在区服这一层：
-     * 某个区服挂了，其它区服的卡片照常出数据。
+     * 失败日志不在这里打：`fetchMarket` 已按「一次真实请求一条」打过（见 universalis.ts），
+     * 再打就成了同一次失败两条记录。这里只把同一个错误分发给本区服的所有订阅者 ——
+     * 错误隔离在区服这一层：某个区服挂了，其它区服的卡片照常出数据。
      */
     for (const subscriber of subscribers) {
       subscriber.reject(error)

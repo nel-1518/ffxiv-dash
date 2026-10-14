@@ -1,16 +1,7 @@
 /*
- * 全局基础样式。
- *
- * 本文件按层级只承载跨域的部分：
- *   ① 设计令牌 :root 的 --dash-* 变量（主题的 theme.css 可覆盖其中一部分）；
- *   ② 元素基线（box-sizing / selection / 链接下划线）；
- *   ③ 页面布局（背景层、内容列、顶栏对齐）；
- *   ④ 共享卡片材质（.dash-card-surface，组件卡与导航卡、主题共同依赖的那层）；
- *   ⑤ 全局动效兜底。
- *
- * 各域样式已拆到 features 下各域目录的同名 css（widgets / search / settings /
- * dashboard / groups / navigation），由各自入口组件引入。
- * 所有颜色都引用 antd 的 CSS 变量，因此切换主题时这里会自动跟随。
+ * 全局基础样式：只承载跨域的部分 —— :root 的 --dash-* 令牌（主题可覆盖部分）、元素基线、
+ * 页面布局、共享卡片材质（.dash-card-surface）与全局动效兜底。
+ * 各域样式拆在 features 下同名 css，由各自入口组件引入；颜色引用 antd CSS 变量，切主题自动跟随。
  */
 
 @font-face {
@@ -26,49 +17,37 @@
   /* 页面底色。与 theme-config.ts 的 token.colorBgLayout 保持一致。 */
   --dash-page-bg: #f0f2f5;
   /*
-   * 组件卡内容的纵向预算（px）。
-   *
-   * 「读数卡跟随本行最高卡撑高」时，内部内容最多长到这个数：
-   * 164 = 235（PvP 地图轮换卡单独一张时的卡高）− 72（卡片头 + 卡面上下内边距）。
-   * 需要这个数的三处 —— `.dash-card-fill`、`.dash-note--editing`、`.dash-aurora`（均在
-   * widgets.css）—— 都引用本令牌，改卡片尺寸后只需改这里（推导过程见 widgets.css 的注释）。
+   * 组件卡内容纵向预算（px）：
+   * 164 = 235（PvP 地图轮换卡单独一张的卡高）− 72（卡片头 + 卡面上下内边距）。
+   * 三处使用者都在 widgets.css；改卡片尺寸后只需改这里（推导见 widgets.css 注释）。
    */
   --dash-card-content-max: 164px;
-  /*
-   * 页面顶部留白。
-   * 由顶栏那条元素自己吃掉（它要顶到页面最上边），所以单独抽成变量：
-   * 一处改，窄屏断点与顶栏的纵向内边距同时跟上。
-   */
+  /* 页面顶部留白：由顶栏自己吃掉（它要顶到页面最上边）；抽成变量，窄屏断点与顶栏一处改同时跟上 */
   --dash-page-pad-top: 10px;
   /*
    * 内容列两侧留白。
-   * ⚠️ **必须在 :root 里给到**（窄屏断点只负责覆盖它）：
-   * `.dash-container` 与顶栏都直接吃这个变量，一旦解析不到，`padding-inline` 会退成 0，
-   * 整个页面（包括看板）都会顶到屏幕边缘。
+   * ⚠️ 必须在 :root 里给到（窄屏断点只负责覆盖它）：.dash-container 与顶栏都直接吃这个变量，
+   * 解析不到时 padding-inline 会退成 0，整个页面（包括看板）顶到屏幕边缘。
    */
   --dash-page-pad-x: clamp(12px, 10vw, 100px);
   /* 搜索弹窗卡片的大投影。antd 没有对应的 token，因此在这里立一个本地的。 */
   --dash-shadow-xl:
     0 12px 32px -8px rgba(15, 23, 42, 0.24), 0 2px 8px rgba(15, 23, 42, 0.08);
-  /*
-   * 链接卡片悬停浮起的投影。
-   * 刻意偏向下方与左侧（而不是均匀铺开），读起来像左下角离地抬起。
-   */
+  /* 链接卡悬停浮起的投影：刻意偏下偏左（非均匀铺开），读起来像左下角离地抬起 */
   --dash-link-lift-shadow:
     -3px 7px 14px -4px rgba(15, 23, 42, 0.22), -1px 2px 3px rgba(15, 23, 42, 0.07);
   /*
-   * 卡片底色的 RGB 通道（不透明度由「外观 → 卡片」的滑块控制）。
-   * 两个值是斜向渐变的两端，主题可以覆盖：银海用「白 → 淡蓝」的磨砂玻璃，
-   * 默认两端相同 = 纯白色卡片（与加主题系统之前完全一致）。
+   * 卡片底色的 RGB 通道（不透明度由「外观 → 卡片」滑块控制）。
+   * 两值是斜向渐变的两端，主题可覆盖；默认两端相同 = 纯白色卡片。
    */
   --dash-card-rgb: 255 255 255;
   --dash-card-rgb-2: 255 255 255;
   --dash-selection-bg: #1677ff;
   --dash-selection-color: #ffffff;
   /*
-   * 卡片常驻的投影。参考专题站的信息卡，主题可以给一圈“纯白外发光”而不是深色投影。
-   * ⚠️ 默认值必须是一条**合法的投影**而不是 `none`：它会被拼进 `box-shadow` 列表
-   * （链接卡悬停时是「浮起投影, 常驻投影」），列表里出现 `none` 会让整条声明失效。
+   * 卡片常驻投影，主题可给一圈"纯白外发光"而不是深色投影。
+   * ⚠️ 默认值必须是一条合法投影而不是 `none`：它会被拼进 box-shadow 列表（链接卡悬停时是「浮起投影, 常驻投影」），
+   * 列表里出现 `none` 会让整条声明失效。
    */
   --dash-card-shadow: 0 0 #0000;
 }
@@ -89,10 +68,8 @@ body {
 }
 
 /*
- * 页面浅灰底 + 卡片纯白，形成层次。
- *
- * 这里用 var(--ant-color-bg-layout, 回退值)：正常运行时由 ConfigProvider 注入
- * antd 的 CSS 变量（跟随主题切换）；万一变量尚未注入，也不会退化成透明。
+ * 页面浅灰底 + 卡片纯白，形成层次。用 var(--ant-color-bg-layout, 回退值)：
+ * 正常由 ConfigProvider 注入（跟随主题切换）；变量尚未注入时也不会退化成透明。
  */
 html,
 body {
@@ -110,16 +87,11 @@ body {
 }
 
 /*
- * 自定义背景（设置 → 外观）。
- *
- * 背景层是 `position: fixed` 的整屏元素，不是给 body 刷背景图：
- * 这样图片自己独立成层，也避开了 `background-attachment: fixed` 在移动端的各种残废行为。
- *
- * 搭配规则有三条，缺一不可：
- * ① 开启背景时外壳透明（.has-custom-bg），否则 antd Layout 的 colorBgLayout 会把背景层盖掉；
- * ② 内容层抬到 z-index: 1 —— 背景层是定位元素且 z-index 为 0，
- *    按绘制顺序它会盖住所有非定位内容（卡片就全被遮了）；
- * ③ 背景层自己 pointer-events: none，绝不抢交互。
+ * 自定义背景（设置 → 外观）：背景层是 position: fixed 的整屏元素而非给 body 刷背景图
+ * （图片独立成层，也避开 background-attachment: fixed 在移动端的问题）。搭配规则三条缺一不可：
+ * ① 开启背景时外壳透明（.has-custom-bg），否则 antd Layout 的 colorBgLayout 会盖住背景层；
+ * ② 内容层抬到 z-index: 1 —— 背景层是定位元素且 z-index 为 0，按绘制顺序会盖住所有非定位内容；
+ * ③ 背景层 pointer-events: none，绝不抢交互。
  */
 .dash-shell.has-custom-bg {
   background: transparent;
@@ -148,15 +120,10 @@ body {
 }
 
 /*
- * 背景暗角（vignette）。
- *
- * 主题按需给 `--dash-bg-vignette`，缺省 `none` = 什么都不画（其余主题不受影响）。
- * 它必须画在**背景图之上**：`::after` 是 `.dash-bg` 的最后一个子节点，
- * 而 `.dash-bg-image` 也是定位元素 —— 同层时按 DOM 顺序绘制，`::after` 在后。
- * ⚠️ 只加一层遮罩、不动内容层的 z-index：内容仍是 `.ant-layout-content { z-index: 1 }`，
- * 所以暗角只压暗画面，不会盖住卡片。
- * ⚠️ 只在**有背景图**时才有这个节点（AppShell 按 `background` 决定是否渲染 `.dash-bg`），
- * 无图时自然没有暗角 —— 这也是合理的：它是给图用的。
+ * 背景暗角（vignette）：主题按需给 --dash-bg-vignette，缺省 none = 不画。
+ * ⚠️ 必须画在背景图之上（::after 在 .dash-bg 里 DOM 顺序靠后、同为定位元素按序绘制覆盖），
+ * 且只加遮罩、不动内容层 z-index（仍是 .ant-layout-content { z-index: 1 }），只压暗画面不盖卡片。
+ * 只在有背景图时才有该节点（AppShell 按 background 决定是否渲染 .dash-bg），无图无暗角是合理的。
  */
 .dash-bg::after {
   content: '';
@@ -167,31 +134,21 @@ body {
 }
 
 /*
- * 卡片：半透明 + 毛玻璃（设置 → 外观 → 卡片）。
- *
- * 这些参数由「主题 + AppShell」共同下发：
- *   --dash-card-rgb / -rgb-2  卡片底色的渐变两端（主题给，默认两端都是白 = 纯色卡片）
- *   --dash-card-alpha         不透明度 0-1（用户给）
- *   --dash-card-backdrop      卡片背后那层的模糊（用户给）
- *   --dash-card-shadow       常驻投影（主题按需给，银海是一圈纯白外发光）
- *   --dash-card-radius     组件卡圆角（主题按需给）
- *   --dash-card-radius-sm  导航卡圆角 —— 它与组件卡高矮差好几倍，不能共用一套值
- *   --dash-card-border        描边颜色（主题按需给）
- *   --dash-card-border-width  描边宽度，默认 1px —— 想要"真无边框"得把它归零：
- *                             只把颜色设成 `transparent` 时那 1px 还在，边缘仍会留一条发丝线
- *   --dash-card-bg-hover      悬停时的底色覆盖（主题按需给，暗影用它铺那层紫罗兰渐变）
- *                             ⚠️ 只能以**变量**形式给：导航卡的底色写在 `CardFace` 的
- *                             inline style 里（`var(--dash-card-bg-hover, var(--dash-card-bg, …))`），
- *                             inline style 的特异性最高，任何 CSS 规则都压不过它
- *
- * 底色在这里拼成 `linear-gradient(135deg, rgb(R G B / α), rgb(R2 G2 B2 / α))`，
- * 让两种卡片共用同一套变量：导航卡是自绘的 Flex（底色/描边/圆角写在 inline style 里，
- * 取 var(--dash-card-*)），组件卡是 antd Card（规则在下面）。改这一处两边同时生效。
- *
- * ⚠️ 变量替换发生在**声明它的那个元素**上：`--dash-card-rgb` 挂在 `<html>`（主题的
- * theme.css），`--dash-card-bg` 挂在 `.dash-shell`（能同时看到主题变量与 AppShell 的
- * inline 变量）。不要写成 `rgb(var(--ant-…) / …)` 那种跨作用域的链式引用 ——
- * 拿不到值的变量会让整条声明**直接失效**，而不是回退。
+ * 卡片：半透明 + 毛玻璃（设置 → 外观 → 卡片）。参数由「主题 + AppShell」共同下发：
+ *   --dash-card-rgb / -rgb-2  底色渐变两端（主题给，默认两端都是白 = 纯色卡片）
+ *   --dash-card-alpha         不透明度 0-1（用户给）；--dash-card-backdrop 背后那层的模糊（用户给）
+ *   --dash-card-shadow        常驻投影（主题按需给）
+ *   --dash-card-radius / -sm  组件卡 / 导航卡圆角（两者高矮差好几倍，不能共用）
+ *   --dash-card-border-width  描边宽度，默认 1px —— 想"真无边框"得把它归零
+ *                             （只把颜色设成 transparent 时那 1px 还在，边缘仍留发丝线）
+ *   --dash-card-bg-hover      悬停底色覆盖（主题按需给）
+ *                             ⚠️ 只能以变量形式给：导航卡底色写在 CardFace 的 inline style 里读它，
+ *                             inline style 特异性最高，任何 CSS 规则压不过
+ * 底色在这里拼成 linear-gradient(…) 让两种卡片共用同一套变量：导航卡是自绘 Flex（底色/描边/圆角写在
+ * inline style 里取 var(--dash-card-*)），组件卡是 antd Card。改这一处两边生效。
+ * ⚠️ 变量替换发生在声明它的那个元素上：--dash-card-rgb 挂在 `<html>`（theme.css），--dash-card-bg 挂在
+ * .dash-shell（同时看到主题变量与 AppShell 的 inline 变量）。不要写跨作用域的链式引用
+ * （如 `rgb(var(--ant-…) / …)`）—— 拿不到值的变量会让整条声明直接失效，而非回退。
  */
 .dash-shell {
   --dash-card-bg: linear-gradient(
@@ -202,36 +159,24 @@ body {
 }
 
 /*
- * 卡片表面：组件卡（antd Card）与导航卡（自绘 Flex）共用的那一层。
- *
- * 两种卡片都挂 `dash-card-surface`（见 CardFace 与 WidgetRenderer），**主题也只认这一个类** ——
- * 不再依赖 `.dash-sortable-item > .ant-card` 这种 DOM 结构（卡片外多包一层就会失效），
- * 主题文件里原本要写的四段选择器也收敛成一段。
- * 例外：下面是网格自身的布局规则（高度/内容居中），那里"格子里的那张卡"就是结构本身，保持原样。
+ * 卡片表面：组件卡（antd Card）与导航卡（自绘 Flex）共用、主题只认这一个类（见 CardFace 与
+ * WidgetRenderer）—— 不再依赖 .dash-sortable-item > .ant-card 这类 DOM 结构（外层多包一层就会失效）。
+ * 例外：网格自身的布局规则（高度/内容居中），那里"格子里的那张卡"就是结构本身。
  */
 .dash-card-surface {
   background: var(--dash-card-bg, var(--ant-color-bg-container));
   box-shadow: var(--dash-card-shadow);
   /*
-   * ⚠️ 只写标准属性，**不要**再手写 `-webkit-backdrop-filter` 那一行：
-   * 构建期压缩器（Vite 8 默认那套）会自己按目标浏览器补前缀 —— 主题里只写了标准属性的
-   * `evercold` 顶栏规则，产物里就是 `-webkit-` + 标准两行。
-   * 手写前缀行与本行取值完全相同，会被压缩器当重复声明合并掉，而实测**保留的是被合并到
-   * 后面那行的 `-webkit-`、标准行反而消失**；Chromium 并不认 `-webkit-backdrop-filter`
-   * （实测 `CSS.supports('-webkit-backdrop-filter', 'blur(1px)')` 为 false）——
-   * 症状正是"开发态好、**部署后卡片模糊完全失效**"（算出来是 `none`，滑块怎么拖都不动）。
+   * ⚠️ 只写标准属性，不要手写 -webkit-backdrop-filter：构建期压缩器（Vite 8 默认那套）会自动按目标浏览器补前缀；
+   * 手写前缀行与本行取值相同，会被当重复声明合并、保留的恰是被合并的 -webkit- 行而标准行消失（Chromium 只认标准属性）——
+   * 表现为开发态正常、部署后卡片模糊整体失效。
    */
   backdrop-filter: var(--dash-card-backdrop, none);
 }
 
 /*
- * 组件卡比导航卡高得多，圆角分开给（导航卡的写在 CardFace 的 inline style 里）。
- *
- * 描边宽度也在这里统一读 `--dash-card-border-width`（默认 1px = antd 原本的线宽）：
- * 导航卡那条 border 写在 `CardFace` 的 inline style 里、读的是同一个变量，
- * 于是"主题想真无边框"只需要把变量归零 —— 两边自动一致。
- * ⚠️ 光把 `--dash-card-border` 设成 `transparent` 是不够的：那 1px 的位置还在，
- * 卡片左右边缘仍会显一条发丝线。
+ * 组件卡圆角与描边宽度由变量统一给（导航卡同值写在 CardFace 的 inline style 里读同一变量，主题归零即两边同步）。
+ * ⚠️ 只把 `--dash-card-border` 设成 transparent 不够：那 1px 的位置还在，边缘仍显发丝线。
  */
 .ant-card.dash-card-surface {
   border-radius: var(--dash-card-radius, var(--ant-border-radius-lg));
@@ -239,10 +184,8 @@ body {
 }
 
 /*
- * 卡片标题 / 导航卡名称的主题色。
- * 主题给 `--dash-card-title-color`（导航卡可另给 `--dash-link-name-color`）即可，
- * 缺省沿用正文色 —— 与没这条规则时的行为一致。
- * ⚠️ 写在样式表而不是主题里：以前八套各自重复同一条选择器，改一处要改八遍。
+ * 卡片标题 / 导航卡名称的主题色：主题给 --dash-card-title-color（导航卡可另给 --dash-link-name-color），
+ * 缺省沿用正文色；统一写在样式表而非八套主题里各自重复。
  */
 .dash-card-surface .ant-card-head-title {
   color: var(--dash-card-title-color, var(--ant-color-text));
@@ -253,8 +196,7 @@ body {
 }
 
 /*
- * 内容列：居中限宽 + 两侧留白。看板用它；
- * 顶栏自己吃下同一套换算（见 `.dash-topbar` 的 padding-inline），两边左缘因此对齐。
+ * 内容列：居中限宽 + 两侧留白。看板用它；顶栏吃同一套换算（见 `.dash-topbar` 的 padding-inline），两边左缘因此对齐。
  */
 .dash-container {
   max-width: 1600px;
@@ -265,9 +207,8 @@ body {
 }
 
 /*
- * 页面级提示条（目前只有"看板数据读取失败"那条）：与内容列同一套居中限宽，
- * 好和看板的左缘对齐；但要**去掉** `.dash-container` 的底部留白 ——
- * 它属于看板，提示条下方还有看板要用同一份间距。
+ * 页面级提示条：与内容列同一套居中限宽（与看板左缘对齐），但去掉 .dash-container 的底部留白 ——
+ * 提示条下方还有看板要用同一份间距。
  */
 .dash-alert-bar {
   width: 100%;
@@ -298,7 +239,7 @@ a {
     padding-block: 0 32px;
   }
 }
-/* 尊重用户的动效偏好：拖拽与卡片过渡全部关掉 */
+/* 尊重动效偏好：拖拽与卡片过渡全关 */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

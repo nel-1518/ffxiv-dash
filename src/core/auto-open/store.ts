@@ -1,11 +1,8 @@
 /**
  * 「跳转」设置：每天首次进入页面时自动打开的一批链接（纯逻辑 + 一个 localStorage 键，无 React）。
- *
- * 它既不进看板数据、也不进外观偏好，独立落一个键；
- * 备份文件（`core/storage/backup.ts`）把它单列一段，只带走用户填写的链接原文。
- *
- * 以本地 0 点为界（`core/clock/format.ts` 的 `formatDateKey`）：一天只跳一次，
- * 同一天里刷新、重开标签页都不再跳。判断只在页面启动时做一次，停留期间不挂定时器。
+ * 不进看板数据、不进外观偏好，独立落键；备份（`core/storage/backup.ts`）单列一段，只带走链接原文。
+ * 以本地 0 点为界（`core/clock/format.ts` 的 `formatDateKey`）：一天只跳一次，同天刷新 / 重开不再跳；
+ * 判断只在页面启动时做一次，停留期间不挂定时器。
  */
 import { formatDateKey } from '../clock/format.ts'
 import { isRecord } from '../guards.ts'
@@ -14,12 +11,9 @@ import { isRecord } from '../guards.ts'
 const STORAGE_KEY = 'ffxiv-dash:auto-open:v1'
 
 export type AutoOpenState = {
-  /**
-   * 用户填的原文（每行一个链接）。
-   * 存原文而不是解析结果：设置里那个输入框要能原样回显用户写的东西。
-   */
+  /** 用户填的原文（每行一个链接）。存原文不存解析结果：设置输入框要原样回显。 */
   links: string
-  /** 上次自动跳转发生在哪个日历日（`YYYY-MM-DD`）；空串 = 从没跳过。 */
+  /** 上次自动跳转的日历日（`YYYY-MM-DD`）；空串 = 从没跳过。 */
   lastOpenedOn: string
 }
 
@@ -48,9 +42,7 @@ function normalize(raw: unknown): AutoOpenState {
 
 /**
  * 备份导入用：把外部数据里的一段「跳转」设置归一化成链接原文（认不出来就是空）。
- *
- * 只取 `links`：`lastOpenedOn` 是"今天跳过没有"的当日记账，跟着备份走会让
- * 导入方当天少跳一次，一律不导出也不导入。
+ * ⚠️ 只取 `links`：`lastOpenedOn` 是「今天跳过没有」的记账，跟着备份走会让导入方当天少跳一次，不导出也不导入。
  */
 export function normalizeAutoOpenLinks(raw: unknown): string {
   return normalize(raw).links
@@ -73,9 +65,8 @@ function load(): AutoOpenState {
 }
 
 /**
- * 一条链接的规范化：没写协议头就补 `https://`，且**只认 `http(s):`**。
- *
- * `javascript:` / `data:` 这类协议不该出现在"自动打开"里，一律当作认不出来。
+ * 一条链接的规范化：没协议头补 `https://`，且只认 `http(s):`。
+ * ⚠️ `javascript:` / `data:` 等不该出现在「自动打开」里，一律当认不出来。
  */
 function normalizeLink(line: string): string | null {
   const candidate = HAS_SCHEME_PATTERN.test(line) ? line : `https://${line}`
@@ -88,9 +79,9 @@ function normalizeLink(line: string): string | null {
 }
 
 /**
- * 解析输入框里的文本（每行一个链接）。
- * 空行忽略；同一地址去重（浏览器不会替我们去重，会开出两个一样的标签页）；
- * `invalid` 是"认不出来"的行原文，只为让设置面板说清"N 行已忽略"，不影响其它行生效。
+ * 解析输入框文本（每行一个链接）。
+ * 空行忽略；同地址去重（浏览器不去重，会开两个一样的标签页）；
+ * `invalid` 是认不出的行原文，只为设置面板说清「N 行已忽略」，不影响其它行生效。
  */
 export function parseLinks(text: string): { links: string[]; invalid: string[] } {
   const links: string[] = []
@@ -151,11 +142,9 @@ export function setAutoOpenLinks(links: string): void {
 }
 
 /**
- * 今天该自动打开的链接；今天已跳过、或没填链接时返回空数组。
- *
- * ⚠️ 查到就立刻记账（同一个同步调用里完成）：本函数在 dev 的 StrictMode 下会被调两次，
- * 查询与记账拆成两步就会开出两轮标签页。
- * 代价是"被浏览器拦下"时当天不再自动重试 —— 由调用方的提示与「全部打开」按钮兜住。
+ * 今天该自动打开的链接；今天已跳过或没填链接时返回空数组。
+ * ⚠️ 查到就立刻记账（同一同步调用里完成）：dev StrictMode 下本函数被调两次，查询与记账拆两步会开两轮标签页。
+ * 代价是被浏览器拦下时当天不再自动重试——由调用方提示与「全部打开」按钮兜住。
  */
 export function takeTodayLinks(now: Date): string[] {
   const current = load()

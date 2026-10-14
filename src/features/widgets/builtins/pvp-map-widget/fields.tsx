@@ -27,10 +27,8 @@ export function PvpMapFormFields(): React.ReactNode {
 }
 
 /**
- * 一个战场的信息块。
- *
- * 浅色底 + 圆角把两个战场分离开，左侧一条竖条承担"这是哪一类"的识别，
- * 底部一行把轮换倒计时右对齐 —— 比原来的纯文字行多一层层次。
+ * 一个战场的信息块：浅色底 + 圆角分离两个战场，左侧竖条承担「这是哪一类」的识别，
+ * 底部一行把轮换倒计时右对齐 —— 比纯文字行多一层层次。
  */
 function BattleBlock({
   accent,
@@ -68,8 +66,8 @@ function BattleBlock({
       </Flex>
 
       {/*
-        地图行允许换行、不做省略号：组件卡在 3 列以上只有 200px 上下，一行塞不下三段文字，
-        截成「周边…」比换行难读得多。「→ 下一个」包成一个 flex 项，换行时整体下去。
+        地图行允许换行、不做省略号：3 列以上卡宽只有 200px 上下，一行塞不下三段文字，
+        截成「周边…」比换行难读得多；「→ 下一个」包成 flex 项，换行时整体下去。
       */}
       <Flex align="baseline" gap={6} wrap style={{ minWidth: 0 }}>
         <Typography.Text strong style={{ fontSize: 13 }}>
@@ -99,12 +97,10 @@ function BattleBlock({
 
 /**
  * 剩余时长读数。
- *
- * ⚠️ 这里的快照必须是**格式化后的文本**，不能改拿父级那个分钟粒度的 `now` 去算：
- * `formatHoursMinutes` / `formatMinutes` 是向下取整的，而同一分钟里"真实剩余"会跨过一个整分，
- * 拿本分钟起点去算就变成了向上取整（还剩 8 分多会显示成 9 分）—— 正是 `rotation.ts`
- * 里明说不要的那种报法。用文本快照则两全：读数与原实现逐秒一致，
- * 重渲染只发生在文本真的变的时候（每分钟两次：整分那一下 + 过后那一下）。
+ * ⚠️ 快照必须是格式化后的文本，不能拿父级那个分钟粒度的 now 去算：
+ * formatHoursMinutes / formatMinutes 是向下取整的，同一分钟里「真实剩余」会跨过一个整分，
+ * 拿本分钟起点算就成了向上取整（还剩 8 分多会显示 9 分）—— 正是 rotation.ts 明说不要的报法。
+ * 文本快照两全：读数与原实现逐秒一致，重渲染只发生在文本真的变的时候（每分钟两次）。
  */
 function RemainingTime({
   until,
@@ -129,9 +125,9 @@ function RemainingTime({
 /** 点击整块内容打开 PvP 日历站。标题栏不套链接：那里有编辑/删除按钮，交互元素不能套在 <a> 里。 */
 export function PvpMapRender({ config }: WidgetRenderProps<PvpMapConfig>): React.ReactNode {
   /*
-   * 时钟取**分钟粒度**：轮换周期是 24h / 60min，两个 REFERENCE 又都落在整分整秒上，
-   * 所以「当前 / 下一个地图」与轮换时刻用分钟快照就够了，还会在边界那一跳准点翻；
-   * 整秒订阅只会白渲染 59 次。剩余时长是唯一的例外，见 RemainingTime。
+   * 时钟取分钟粒度：轮换周期是 24h / 60min，两个 REFERENCE 都落在整分整秒上，
+   *「当前 / 下一个地图」与轮换时刻用分钟快照就够，边界一跳准点翻；整秒订阅只会白渲染 59 次。
+   * 剩余时长是唯一的例外，见 RemainingTime。
    */
   const now = useClockAt('minute')
 

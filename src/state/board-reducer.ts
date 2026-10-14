@@ -36,10 +36,7 @@ function applyOrder<T extends { id: string }>(items: T[], orderedIds: string[]):
   return ordered
 }
 
-/**
- * 某组件类型是否已达实例上限（整块看板全局计数，见 `core/group-rules.ts`）。
- * spec 未注册时没有上限信息，按"不设限"处理，避免把未知类型的落库全堵死。
- */
+/** 某组件类型是否已达实例上限（整板全局计数，见 `core/group-rules.ts`）；spec 未注册按「不设限」处理，避免堵死未知类型的落库。 */
 function widgetLimitReached(doc: BoardDoc, widgetKey: string): boolean {
   const spec = getWidget(widgetKey)
   if (!spec) {
@@ -48,9 +45,7 @@ function widgetLimitReached(doc: BoardDoc, widgetKey: string): boolean {
   return countWidgetInstances(doc, widgetKey) >= maxCountOf(spec.maxCount)
 }
 
-/**
- * 仪表盘状态 reducer —— 纯函数，全部不可变更新，不改动入参。
- */
+/** 仪表盘状态 reducer —— 纯函数，全部不可变更新，不改动入参。 */
 export function boardReducer(doc: BoardDoc, action: BoardAction): BoardDoc {
   switch (action.type) {
     case 'addGroup': {
@@ -61,7 +56,7 @@ export function boardReducer(doc: BoardDoc, action: BoardAction): BoardDoc {
         columns: clampGroupColumns(action.columns, action.groupType),
         items: [],
       }
-      // 新建的分组放最顶层，立刻出现在眼前；换位置用表头的 置顶 / 上移 / 下移 / 置底
+      // 新建分组放最顶层；换位置用表头的 置顶 / 上移 / 下移 / 置底
       return replaceGroups(doc, [group, ...doc.groups])
     }
 
@@ -95,10 +90,8 @@ export function boardReducer(doc: BoardDoc, action: BoardAction): BoardDoc {
 
     case 'updateItem': {
       /*
-       * 编辑已有条目不占新名额；但把组件改成另一种类型等价于"再放一个该类型的实例"，
-       * 同样要过上限。同类型改标题 / 配置不受限。
-       * ⚠️ 条目先提取成局部 const：判别收窄（kind === 'widget'）只在别名引用 const 局部量时
-       * 才能延续到后面的 if，直接写 action.item 会收窄失败。
+       * 编辑条目不占新名额；但改成另一组件类型等价于再放一个实例，同样过上限（同类型改标题/配置不受限）。
+       * ⚠️ 条目必须先提取成局部 const：判别收窄（kind === 'widget'）只对 const 局部量能延续到后面的 if，直接写 action.item 会收窄失败。
        */
       const { item: nextItem } = action
       const existing = doc.groups
@@ -119,7 +112,7 @@ export function boardReducer(doc: BoardDoc, action: BoardAction): BoardDoc {
     }
 
     case 'updateItemConfig': {
-      // 按 id 反查所属分组：组件内部只拿得到自己的 item.id
+      // 按条目 id 反查所属分组（组件内部拿不到 groupId）
       let touched = false
       const nextGroups = doc.groups.map((group) => {
         const target = group.items.find((item) => item.id === action.itemId)
@@ -130,7 +123,7 @@ export function boardReducer(doc: BoardDoc, action: BoardAction): BoardDoc {
         const updated: WidgetItem = { ...target, config: { ...target.config, ...action.patch } }
         return { ...group, items: group.items.map((item) => (item.id === action.itemId ? updated : item)) }
       })
-      // 没命中就别换引用，免得白跑一次落盘
+      // 未命中就不换引用，免得白跑一次落盘
       return touched ? replaceGroups(doc, nextGroups) : doc
     }
 
@@ -154,7 +147,7 @@ export function boardReducer(doc: BoardDoc, action: BoardAction): BoardDoc {
         return doc
       }
 
-      // 先从源分组移除，再插入目标分组的参照卡片之前（或末尾）
+      // 先从源分组移除，再插到目标分组的参照卡片之前（或末尾）
       const withoutItem = source.items.filter((entry) => entry.id !== action.itemId)
       const nextGroups = doc.groups.map((group) => {
         if (group.id === action.sourceGroupId) {
@@ -175,7 +168,7 @@ export function boardReducer(doc: BoardDoc, action: BoardAction): BoardDoc {
     }
 
     case 'replaceDoc':
-      // 导入已经过 parseBoardDocValue 校验；这里直接换引用，store 会广播变更并由落盘闸门写盘
+      // 导入已过 parseBoardDocValue 校验；直接换引用，store 广播变更并由落盘闸门写盘
       return action.doc
 
     default: {

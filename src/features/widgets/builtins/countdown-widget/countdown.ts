@@ -1,9 +1,7 @@
 /**
  * 倒数日的纯逻辑：日期解析、周期推进、倒数结果。
- *
- * 不导入 React、不碰 DOM，输入输出都是原始值 —— 可以脱离浏览器单独验证。
- * 所有比较都以「本地日历日」为单位（本地 0 点为基准），时钟的时分秒不参与计算：
- * 卡片只数到"天"，同一天里无论几点看都必须是同一个答案。
+ * 不导入 React、不碰 DOM，输入输出都是原始值，可脱离浏览器单独验证。
+ * 所有比较都以「本地日历日」为单位（本地 0 点为基准），时钟的时分秒不参与计算 —— 卡片只数到「天」，同一天里无论几点看都是同一个答案。
  */
 
 /** 倒数周期：`none` 只倒到锚点那一天，过了就转成「已过去」；其余三种按周期往后滚。 */
@@ -41,11 +39,9 @@ export function daysInMonth(year: number, month: number): number {
 }
 
 /**
- * 解析 `YYYY-MM-DD`。
- *
- * 只看正则不够：`2026-02-31` 长得完全合法，而 `new Date(2026, 1, 31)` 会把它
- * 悄悄滚成 3 月 3 日。这里额外核对"这一天在该月真实存在"，非法即返回 null ——
- * 于是数据层里只可能出现真实存在的日历日，渲染层不用再兜底。
+ * 解析 `YYYY-MM-DD`。只看正则不够：`2026-02-31` 长得合法，而 new Date(2026, 1, 31)
+ * 会悄悄滚成 3 月 3 日；这里额外核对这一天在该月真实存在，非法即返回 null ——
+ * 数据层里只可能出现真实日历日，渲染层不用再兜底。
  */
 export function parseDateKey(value: string): DateParts | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
@@ -71,10 +67,8 @@ function atMidnight(year: number, month: number, day: number): Date {
 }
 
 /**
- * 两个本地 0 点日期相差的整天数（`to - from`）。
- *
- * 用 round 而不是 floor：夏令时切换那天只有 23 小时，floor 会把"隔一天"算成 0 天。
- * 中国没有夏令时，但这里不应该依赖这件事。
+ * 两个本地 0 点日期相差的整天数（`to - from`）。用 round 而不是 floor：夏令时切换那天
+ * 只有 23 小时，floor 会把「隔一天」算成 0 天；中国没有夏令时，但不应依赖这件事。
  */
 function diffInDays(from: Date, to: Date): number {
   return Math.round((to.getTime() - from.getTime()) / 86_400_000)
@@ -86,11 +80,9 @@ export function formatDateText(date: Date): string {
 }
 
 /**
- * 锚点偏移 k 个自然月。
- *
- * 锚点日超出目标月的天数时夹到月末（1/31 的"下个月"是 2/28 或 2/29）。
- * ⚠️ 每一步都必须"锚点 + k"重新算，绝不能拿上一个候选再 +1 个月：
- * 夹取会沿着链条传染（31 → 28 → 28 → …），一旦踩到短月，之后每个月都停在 28 号。
+ * 锚点偏移 k 个自然月；锚点日超出目标月天数时夹到月末（1/31 的"下个月"是 2/28 或 2/29）。
+ * ⚠️ 每一步都必须「锚点 + k」重新算，绝不能拿上一个候选再 +1 个月：
+ * 夹取会沿链条传染（31 → 28 → …），一旦踩到短月，之后每个月都停在 28 号。
  */
 function addMonthsClamped(anchor: DateParts, k: number): Date {
   const total = anchor.year * 12 + (anchor.month - 1) + k
@@ -100,10 +92,9 @@ function addMonthsClamped(anchor: DateParts, k: number): Date {
 }
 
 /**
- * 第 k 次出现（k = 0 就是锚点当天）。
- *
- * 每周用"日 + 7k"交给 Date 自己进位，跨月跨年不用管，也不会因为夏令时少一小时；
- * 每 / 每年走 `addMonthsClamped`，因为它要处理"锚点日在这个月不存在"。
+ * 第 k 次出现（k = 0 就是锚点当天）。每周用「日 + 7k」交给 Date 自己进位，
+ * 跨月跨年不用管也不会因夏令时少一小时；每月 / 每年走 addMonthsClamped，
+ * 因为它要处理「锚点日在这个月不存在」。
  */
 function occurrenceAt(anchor: DateParts, cycle: Exclude<CountdownCycle, 'none'>, k: number): Date {
   if (cycle === 'weekly') {
@@ -125,16 +116,11 @@ function estimateSteps(anchor: DateParts, cycle: Exclude<CountdownCycle, 'none'>
 }
 
 /**
- * 从锚点出发，找到第一个不早于今天的候选。
- *
- * 先按周 / 月 / 年差估出"今天大约落在第几次"，再从 `估算 - 1` 起向前试：
- * 夹到月末、以及"锚点日 vs 今天日"的大小关系都会让估算最多偏一期，
- * 所以留一格余量就够，实际循环只跑 1~2 次。
- *
- * ⚠️ 上界必须跟着估算走（`k <= 估算 + 2`），不能用固定的期数上限：
- * 锚点可以是几十年前，固定上限会把 k 卡在很早的那一期上，
- * 于是函数返回一个**过去的**日期，卡片就只能显示"已过去"。
- * 用估算值当上界则既不会死循环，也不会在大跨度下退化。
+ * 从锚点出发，找第一个不早于今天的候选：先按周 / 月 / 年差估算「今天大约落在第几次」，
+ * 从 估算 - 1 起向前试（夹到月末、锚点日与今天日的大小关系都会让估算偏一期），留一格余量、循环只跑 1~2 次。
+ * ⚠️ 上界必须跟着估算走（`k <= 估算 + 2`），不能用固定的期数上限：锚点可以是几十年前，
+ * 固定上限会把 k 卡在很早的期数上，返回一个过去的日期、卡片只能显示「已过去」；
+ * 估算值当上界既不会死循环，也不会在大跨度下退化。
  */
 function nextOccurrence(anchor: DateParts, cycle: Exclude<CountdownCycle, 'none'>, today: Date): Date {
   const estimate = estimateSteps(anchor, cycle, today)
@@ -159,10 +145,9 @@ export type CountdownResult = {
 }
 
 /**
- * 算出卡片要显示的内容。日期不合法（没填、或被手改坏）时返回 null，由渲染层给提示。
- *
- * 收 `todayKey`（`YYYY-MM-DD`）而不是 `now`：卡片的内容只跟"今天是哪天"有关。
- * 调用方用「天」粒度的快照把它算好（见 `fields.tsx`），于是跨天才重渲染一次；
+ * 算出卡片要显示的内容；日期不合法（没填、或被手改坏）时返回 null，由渲染层给提示。
+ * 收 `todayKey`（YYYY-MM-DD）而不是 now：卡片的内容只跟「今天是哪天」有关，调用方用
+ * 「天」粒度的快照把它算好（见 fields.tsx），于是跨天才重渲染一次；
  * 直接传 Date 的话秒级时钟会让卡片每一秒都跟着走。
  */
 export function resolveCountdown(config: { date: string; cycle: CountdownCycle }, todayKey: DateKey): CountdownResult | null {

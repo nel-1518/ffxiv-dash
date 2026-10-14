@@ -1,17 +1,9 @@
 /**
  * 上传背景图片的本地存放（IndexedDB，纯 I/O）。
- *
- * 为什么不用 localStorage：5MB 的图转 base64 约 6.7MB，超出 localStorage 配额必然写失败，
- * 还会连带拖坏看板数据；IndexedDB 直接存 Blob、配额按磁盘算。
- *
- * 图片本体不属于外观偏好（偏好里只记文件名与大小）：不进 localStorage，也不进备份文件；
- * 备份导入也不碰上传图（见 `./store.ts` 的 `importAppearance`）。
- *
- * 逐主题一份：按主题键分开存（`background:<主题键>`），改 / 删 A 主题的图不会动到 B 主题。
- * 「恢复默认」会把图一起删掉（用 `resetThemeAppearance`，别直接调 store 的 `resetThemeProfile`）。
- *
- * 所有异常只在控制台告警并回退：隐私模式 / 禁用存储下浏览器会直接抛，
- * 那时背景功能静默失效即可，不能影响应用启动。
+ * ⚠️ 不用 localStorage：5MB 图转 base64 ≈6.7MB 必超配额、连带拖坏看板数据；IndexedDB 存 Blob、配额按磁盘算。
+ * 图片本体不属于外观偏好（偏好只记文件名与大小），不进 localStorage 也不进备份；备份导入不碰上传图（./store.ts 的 `importAppearance`）。
+ * 逐主题一份（键 `background:<主题键>`），改/删 A 主题不动 B 主题；「恢复默认」连图一起删（走 `resetThemeAppearance`，别直接调 store 的 `resetThemeProfile`）。
+ * ⚠️ 所有异常只控制台告警并回退：隐私模式 / 禁用存储会直接抛，背景功能静默失效，不能影响应用启动。
  */
 import { THEME_KEYS } from '../theme-preference.ts'
 import { getAppearance, getThemeImageUrl, resetThemeProfile, setThemeImageUrl } from './store.ts'
@@ -93,8 +85,7 @@ function runTransaction<T>(
 }
 
 /**
- * 写入**某套主题**上传的图片，并把它接到外观快照上
- * （这套主题上一个 object URL 会被 revoke，别的主题不受影响）。
+ * 写入某套主题上传的图片，并接到外观快照上（这套主题上一个 object URL 会被 revoke，别的主题不受影响）。
  * 返回是否成功，失败由调用方提示用户。
  */
 export function putBackgroundImage(key: ThemeKey, file: Blob): Promise<boolean> {
@@ -119,9 +110,7 @@ export function clearBackgroundImage(key: ThemeKey): Promise<void> {
 
 /**
  * 启动时把各主题已保存的图片读回内存并套到背景上。
- *
- * 首屏只等 localStorage（颜色/外链立刻可见），上传的图片晚一两帧才出现，
- * 因此这个函数**不要 await**，让它自己跑完通知订阅者即可。
+ * 首屏只等 localStorage（颜色/外链立刻可见），上传图晚一两帧出现，因此不要 await，跑完自己通知订阅者。
  */
 export function initAppearanceImage(): void {
   const { profiles } = getAppearance()
@@ -139,13 +128,9 @@ export function initAppearanceImage(): void {
 }
 
 /**
- * 「恢复默认」入口：清掉某套主题的全部改动（回到出厂背景），并把它上传的图一并删掉。
- *
- * 这是全仓唯一同时碰外观 store 与 IndexedDB 的动作，所以住在这里 ——
- * `store.ts` 是纯逻辑，不能反过来依赖 IndexedDB。
- *
- * ⚠️ 顺序是「先同步清档案、再后台删图」：界面立刻回到出厂外观，不被 IndexedDB 往返拖住；
- * 删图失败最多留下没引用的数据，不影响重置。
+ * 「恢复默认」入口：清掉某套主题全部改动（回出厂背景）并删掉它上传的图。
+ * 全仓唯一同时碰外观 store 与 IndexedDB 的动作，所以住在这里——`store.ts` 纯逻辑，不反向依赖 IndexedDB。
+ * ⚠️ 顺序是「先同步清档案、再后台删图」：界面立刻回出厂外观，不被 IndexedDB 往返拖住；删图失败只留无引用数据。
  */
 export function resetThemeAppearance(key: ThemeKey): void {
   const previous = getThemeImageUrl(key)

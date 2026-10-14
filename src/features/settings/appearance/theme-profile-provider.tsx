@@ -14,11 +14,8 @@ export type ThemeProfileScopeProviderProps = {
 }
 
 /**
- * 把"当前编辑对象"换成指定主题（「主题编辑」用），背景 / 卡片控件因此改的就是它。
- *
- * ⚠️ 调用方**必须**同时给它 `key={themeKey}`：换编辑对象要重挂整棵子树，
- * 否则背景地址输入框的草稿（`useDraft` 的本地 state）会串到另一套主题上，
- * 表现成"切到 B 主题却还显示 A 主题刚打的半截地址"。
+ * 把「当前编辑对象」换成指定主题（「主题编辑」用），背景 / 卡片控件改的就是它。
+ * ⚠️ 调用方必须同时给 `key={themeKey}`：换编辑对象要重挂整棵子树，否则背景地址输入框草稿（`useDraft` 本地 state）会串到另一套主题上。
  */
 export function ThemeProfileScopeProvider({
   themeKey,

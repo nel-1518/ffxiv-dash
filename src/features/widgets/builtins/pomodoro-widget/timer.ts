@@ -1,21 +1,15 @@
 /**
- * 休息提醒卡的时段状态机与读数计算（纯逻辑，不导入 React，可以直接用 node 跑）。
- *
- * 计时**不数秒**，而是记住"这一段什么时候结束"（`endsAt`）再拿当前时刻去减 ——
- * 与市场卡「数据连着请求标识一起存」、待办卡「状态按窗口打键」是同一种写法：
- * 后台标签页被节流、系统休眠都不会让读数越走越偏，回到前台自然就对上。
+ * 休息提醒卡的时段状态机与读数计算（纯逻辑，不导入 React，可直接用 node 跑）。
+ * 计时不数秒，而是记住这一段什么时候结束（`endsAt`）再拿当前时刻去减：
+ * 后台标签页被节流、系统休眠都不会让读数漂移，回到前台自然对上。
  */
 import type { RestConfig } from './config.ts'
 
 export type Phase = 'focus' | 'break'
 
 /**
- * 一张卡的完整状态。
- *
- * - `ready`   准备进入专注（初始态，也是「重置」的落点）
- * - `running` 正在跑某一段，`endsAt` 是它的结束时刻
- * - `paused`  暂停中，`remainingMs` 是冻结住的剩余时长
- * - `awaiting` 这一段已经结束，等用户手动开始下一段（没勾"自动进入下一时段"时的落点）
+ * 一张卡的完整状态：`ready` 准备进入专注（初始态，也是「重置」的落点）；`running` 正在跑某一段，`endsAt` 是结束时刻；
+ * `paused` 暂停中，`remainingMs` 是冻结的剩余时长；`awaiting` 这一段已结束，等用户手动开始下一段（未勾「自动进入下一时段」时的落点）。
  */
 export type RestState =
   | { kind: 'ready' }
@@ -47,10 +41,8 @@ export function noticeOf(config: RestConfig, phase: Phase): string {
 }
 
 /**
- * 当前需要跑的时段；`ready` 时是 `null`（还没决定跑哪一段）。
- *
- * `awaiting` 返回的是**下一段** —— 所有"这一段是哪段"的显示（胶囊、环、按钮文案）
- * 都走这个函数，只有它知道 `ready` 与 `awaiting` 的区别。
+ * 当前需要跑的时段；`ready` 时是 `null`（还没决定跑哪段）。
+ * 所有「这一段是哪段」的显示（胶囊、环、按钮文案）都走它；`awaiting` 返回的是下一段，只有它知道 `ready` 与 `awaiting` 的区别。
  */
 export function activePhase(state: RestState): Phase | null {
   switch (state.kind) {
@@ -93,10 +85,9 @@ export function resume(state: RestState, now: number): RestState {
 }
 
 /**
- * 结束当前时段（自然到点与用户提前按「结束」都走这里）。
- *
- * 开着"自动进入下一时段"就直接跑起来，否则停在 `awaiting` 等用户点开始。
- * 两种落点**都不发通知** —— 发不发由调用方决定（提前结束是用户自己的动作，不该再打扰他）。
+ * 结束当前时段（自然到点与用户提前按「结束」都走这里）：
+ * 开着「自动进入下一时段」就直接跑起来，否则停在 `awaiting` 等用户点开始。
+ * 两种落点都不发通知——发不发由调用方决定（提前结束是用户自己的动作，不该再打扰他）。
  */
 export function finishPhase(state: RestState, config: RestConfig, now: number): RestState {
   if (state.kind !== 'running' && state.kind !== 'paused') {
@@ -117,19 +108,16 @@ export type CatchUpResult = {
 }
 
 /**
- * 补算：把"这一段什么时候结束"推进到**原有时序网格**上的当前位置。
- *
- * 隐藏标签页被节流、系统休眠期间可能一下跨过好几段。这时不能简单地"从现在重新开始下一段"
- * —— 那会让整条节奏整体往后漂（30+5 的循环离开两小时，回来后的起点会一直错开），
- * 这里按已经排好的 `endsAt` 一格一格往前推，落点与"一直没离开过"完全一致。
- *
- * 只推状态、**不发通知**：发几条由调用方决定（离开半天回来不该一口气弹十几条）。
+ * 补算：把「这一段什么时候结束」推进到原有时序网格上的当前位置。
+ * 隐藏标签页被节流、系统休眠期间可能一下跨过好几段；不能从现在重新开始下一段，否则整条节奏整体往后漂
+ * （30+5 的循环离开两小时，回来后的起点会一直错开）。按已排好的 `endsAt` 一格一格往前推，落点与「一直没离开过」完全一致。
+ * 只推状态、不发通知（离开半天回来不该一口气弹十几条），发几条由调用方决定。
  */
 export function catchUp(state: RestState, config: RestConfig, now: number): CatchUpResult {
   if (state.kind !== 'running') {
     return { state, finished: null }
   }
-  // 关掉自动接续时不会有"自己往前走"的段，落点与单次到点完全一样
+  // 关掉自动接续时不会有「自己往前走」的段，落点与单次到点完全一样
   if (!config.autoNext) {
     return { state: finishPhase(state, config, now), finished: state.phase }
   }
@@ -178,21 +166,16 @@ export function totalMsOf(state: RestState, config: RestConfig): number {
 }
 
 /**
- * 剩余秒数 —— 读数的快照就用它。
- *
- * ⚠️ 用 `ceil` 而不是 `floor`：开始那一刻要显示整段时长（30:00 而不是 29:59），
- * 到点那一刻要显示 00:00。这也是 pvp-map 的 `RemainingTime` 不用分钟粒度 now 的原因 ——
- * 拿"本分钟起点"去算会把向下取整变成向上取整。
+ * 剩余秒数——读数的快照就用它。
+ * ⚠️ 用 `ceil` 而不是 `floor`：开始那一刻要显示整段时长（30:00 而不是 29:59），到点那一刻要显示 00:00。
  */
 export function remainingSecondsOf(state: RestState, config: RestConfig, now: number): number {
   return Math.ceil(remainingMsOf(state, config, now) / 1000)
 }
 
 /**
- * 环形进度（0-100，已过去的比例）。
- *
- * 收的是**读数那一秒**（而不是毫秒时刻）：环与数字必须来自同一个快照，
- * 否则两者会差一帧（数字已经跳到 29:58、环还画着上一秒）。
+ * 环形进度（0-100，已过去的比例）。收的是读数那一秒（而不是毫秒时刻）：
+ * 环与数字必须来自同一个快照，否则两者会差一帧（数字已跳到 29:58、环还画着上一秒）。
  */
 export function progressOfSeconds(seconds: number, totalMs: number): number {
   if (totalMs <= 0) {
@@ -203,14 +186,9 @@ export function progressOfSeconds(seconds: number, totalMs: number): number {
 }
 
 /**
- * 读数：卡片上只写**整分钟**（向上取整）。
- *
- * 秒级的跳动留在内部：快照仍是整数秒，环形进度靠它每秒走一格；只有数字这一处按分钟显示。
- * `ceil` 保证起点显示整段（30min）、最后 60 秒显示 1min、到点显示 0min。
- *
- * ⚠️ `maxSeconds` 是**这一段的总秒数**，必须传：读数用的"现在"来自时钟的缓存值，
- * 它最多比真实时间晚 1 秒，不夹的话起点会算出 1801 秒 ⇒ 30 分钟的段一开就显示 `31min`
- * （上一版秒级读数显示成 `30:01`，用户报过这个现象）。
+ * 读数：卡片上只写整分钟（向上取整）。秒级跳动留在内部：快照仍是整数秒，环形进度靠它每秒走一格。
+ * ⚠️ `maxSeconds` 必须传这一段的总秒数：读数用的「现在」来自时钟缓存值，最多比真实时间晚 1 秒，
+ * 不夹的话起点会算出 1801 秒 ⇒ 30 分钟的段一开就显示 `31min`。
  */
 export function displayMinutes(seconds: number, maxSeconds: number): number {
   const capped = Math.min(Math.max(0, seconds), Math.max(0, maxSeconds))

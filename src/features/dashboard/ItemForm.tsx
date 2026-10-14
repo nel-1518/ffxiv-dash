@@ -13,13 +13,7 @@ import {
 } from '../../core/storage/types.ts'
 import type { GroupType, Item, ItemKind, LinkItem, WidgetItem } from '../../core/storage/types.ts'
 
-/**
- * 链接字段的三种排版。
- *
- * - `url-only`：新建链接的第一步 —— 只有网址，右侧带「自动获取数据」开关；
- * - `url-first`：自动获取成功后 —— 网址在最上，名称 / 图标 / 描述在其下方；
- * - `default`：编辑已有链接（当前与 `url-first` 同序）。
- */
+/** 链接字段的三种排版：`url-only`＝新建链接第一步（只有网址 + 「自动获取数据」开关）；`url-first`＝取回元数据后网址在最上、名称/图标/描述在其下；`default`＝编辑已有链接（与 url-first 同序）。 */
 export type LinkFormLayout = 'url-only' | 'url-first' | 'default'
 
 /** 描述输入框的字数上限（比落盘上限小，元数据回填时要按这个切一刀）。 */
@@ -29,7 +23,7 @@ export const MAX_LINK_DESC_INPUT_LENGTH = 120
 export type ItemFormValues = {
   kind: ItemKind
   link?: { name?: string; icon?: string; url?: string; desc?: string; abbreviation?: string }
-  /** 组件已不再支持自定义标题：表单里没有 title 字段，保存时统一取类型的 defaultTitle。 */
+  /** 组件已不再支持自定义标题：表单无 title 字段，保存时统一取类型的 defaultTitle。 */
   widget?: { key?: string }
   config?: Record<string, unknown>
 }
@@ -88,14 +82,11 @@ function buildInitialValues(
 }
 
 /**
- * 卡片编辑表单。
- *
- * - 组件类型下拉与"组件专属字段"都由注册表驱动 —— 新增一个组件只需注册，这里不用改。
- * - ⚠️ 不要给这个 Form 加 `preserve={false}`（GroupForm 有，这里不能有）：
- *   切换组件类型时新类型的 `FormFields` 全新挂载，StrictMode 在 dev 下会把新挂载组件的
- *   effect 跑两遍；清理时 rc-field-form 发现 preserve 为 false，会按 `getInitialValue(namePath)`
- *   （读的是 Form 的 `initialValues`，即新建时的默认配置）把刚写进字段的新类型默认值
- *   当成脏值清掉。表单的"干净"由 `clearOnDestroy` + Modal 的 `destroyOnHidden` 保证。
+ * 卡片编辑表单：组件类型下拉与「组件专属字段」都由注册表驱动，新增一个组件只需注册。
+ * ⚠️ 不要给这个 Form 加 `preserve={false}`（GroupForm 有、这里不能有）：切换组件类型时新类型的
+ * `FormFields` 全新挂载，StrictMode 在 dev 下会把 effect 跑两遍；清理时 rc-field-form 发现 preserve
+ * 为 false，会按 `getInitialValue(namePath)`（读 Form 的 initialValues，即新建时的默认配置）把刚写入
+ * 的新类型默认值当脏值清掉。表单的「干净」由 `clearOnDestroy` + Modal 的 `destroyOnHidden` 保证。
  */
 export function ItemForm({
   form,
@@ -109,10 +100,7 @@ export function ItemForm({
   loading = false,
 }: ItemFormProps): React.ReactNode {
   const doc = useBoardDoc()
-  /*
-   * 组件类型选项：达到实例上限（全局计数，缺省 20，见 `widgets/types.ts`）的类型禁用并标注，
-   * 但当前正在编辑的实例自己的类型保持可选 —— 否则已存在的卡片连配置都改不了。
-   */
+  // 组件类型选项：达上限（全局计数，缺省 20，见 `widgets/types.ts`）的类型禁用并标注；当前编辑实例自己的类型保持可选——否则已存在的卡片连配置都改不了
   const widgetOptions = useMemo(() => {
     const currentKey = item?.kind === 'widget' ? item.widget : undefined
     return listWidgets().map((spec) => {
@@ -128,10 +116,7 @@ export function ItemForm({
   }, [doc, item])
   const kindOptions = useMemo(() => allowedItemKinds(groupType), [groupType])
   const allowedKind = kindOptions[0]?.value ?? 'link'
-  /*
-   * 新建时的默认组件类型：偏好 pvp-map，但它已达上限时退回第一个还可选的类型，
-   * 避免表单初始值就是被禁用的选项、保存时被 reducer 拒掉。
-   */
+  // 新建默认类型：偏好 pvp-map，它已达上限时退回第一个还可选的类型——避免初始值是被禁的选项、保存时被 reducer 拒掉
   const defaultWidgetKey = useMemo(() => {
     if (item) {
       return item.kind === 'widget' ? item.widget : ''
@@ -181,10 +166,7 @@ export function ItemForm({
       id: item?.id ?? createId(),
       kind: 'widget',
       widget: key,
-      /*
-       * 标题不由用户填写，统一取组件类型的默认标题（落盘仍保留 title 字段：
-       * 删除确认、番茄钟通知等还在用它）。
-       */
+      // 标题不由用户填写，统一取组件类型的默认标题（落盘仍保留 title 字段：删除确认、番茄钟通知在用）
       title: spec?.defaultTitle || '自定义组件',
       config: config as Record<string, unknown>,
     }
@@ -200,11 +182,8 @@ export function ItemForm({
       onFinish={handleFinish}
       clearOnDestroy
     >
-      {/*
-        `kind` 的初始值由 Form 的 `initialValues` 给（`buildInitialValues` 一定写 `kind`）。
-        ⚠️ 不要再写字段级 `initialValue`：与同路径的 Form `initialValues` 冲突时 antd 会告警，
-        且字段级的值会被丢弃。
-      */}
+      {/* `kind` 初值由 Form 的 initialValues 给（buildInitialValues 一定写 kind）。⚠️ 不要再写字段级 initialValue：
+        与同路径的 Form initialValues 冲突时 antd 会告警，且字段级的值会被丢弃。 */}
       <Form.Item name="kind" hidden>
         <Input />
       </Form.Item>
@@ -279,11 +258,8 @@ function LinkSection({ layout, autoFetch, onAutoFetchChange, loading }: {
   if (layout === 'url-only') {
     return (
       <>
-        {/*
-          网址与「自动获取数据」同一行：网址是这一步唯一要填的东西，
-          开关贴在它右边，默认勾选（由 `EditDialog` 给初值）。
-          因为是自绘的行头，输入框要自己挂 `aria-label`。
-        */}
+        {/* 网址与「自动获取数据」同一行：网址是这一步唯一要填的东西，开关贴右边、默认勾选（EditDialog 给初值）；
+          自绘行头，输入框要自己挂 aria-label。 */}
         <Flex align="center" justify="space-between" gap={12} style={{ marginBottom: 8 }}>
           <span style={{ fontSize: 14, lineHeight: '22px' }}>网址</span>
           <Checkbox
@@ -301,7 +277,7 @@ function LinkSection({ layout, autoFetch, onAutoFetchChange, loading }: {
     )
   }
 
-  // `url-first`：刚用网址换回元数据，网址留在原处、其余字段出现在它下方
+  // `url-first`：刚用网址换回元数据，网址留在原处、其余字段出现在它下方（default 同序）
   return layout === 'url-first' ? (
     <>
       {url}
@@ -334,11 +310,7 @@ function WidgetSection({ widgetOptions }: { widgetOptions: { label: string; valu
         <Select
           options={widgetOptions}
           onChange={(nextKey: string) => {
-            /*
-             * 配置必须跟着类型换：不换的话新类型的字段会取到 undefined，界面显示的值
-             * 与保存时 normalizeConfig 补出来的值对不上。
-             * 传整个对象（而不是合并）是为了顺手丢掉上一个类型残留的字段。
-             */
+            // 配置必须整份跟着类型换（不合并）：不换则新类型字段取到 undefined、与 normalizeConfig 补出的值对不上；整份替换还丢掉上一类型残留字段
             const next = getWidget(nextKey)
             form.setFieldValue('config', { ...(next?.defaultConfig ?? {}) })
           }}

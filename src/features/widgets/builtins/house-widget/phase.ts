@@ -1,12 +1,8 @@
 /**
- * 房屋抽签周期（纯逻辑，无 React）。
- *
- * 房屋抽签是固定 9 天一轮：**申请期 5 天 + 公示期 4 天**，两者首尾相接。
- * 卡片只用它回答一个问题：现在处于哪个时期、还剩多久。
- *
- * 维护方式与 `pvp-map-widget/rotation.ts` 一致：已知起点 + 固定周期做取模。
- * 一旦游戏调整周期长度、或维护挪动了轮换点，把 `HOUSE_PHASE_ANCHOR` 换成一个
- * **已知的申请期起点**即可，其余代码一行都不用动。
+ * 房屋抽签周期（纯逻辑，无 React）。固定 9 天一轮：**申请期 5 天 + 公示期 4 天**首尾相接，
+ * 卡片只用它回答「现在处于哪个时期、还剩多久」。
+ * 维护同 `pvp-map-widget/rotation.ts`：已知起点 + 固定周期取模；游戏调整周期长度或维护
+ * 挪动了轮换点时，把 `HOUSE_PHASE_ANCHOR` 换成一个已知申请期起点即可，其余代码不动。
  */
 const MS_PER_MINUTE = 60 * 1000
 const MS_PER_HOUR = 60 * MS_PER_MINUTE
@@ -58,9 +54,8 @@ export function resolveHousePhase(now: Date = new Date()): HousePhase {
 
 /**
  * 剩余时长文案：`2 天 03h:07m`，不足一天时只有 `05h:12m`。
- *
- * 分钟**向下取整**（与 pvp 卡 `formatHoursMinutes` 同一规矩）：显示 03h:07m 就是还剩
- * 3 小时 7 分多，不会因为四舍五入把 7 分 40 秒报成 8 分。小时补零，宽度才不抖。
+ * 分钟**向下取整**（与 pvp 卡 `formatHoursMinutes` 同一规矩：显示 03h:07m 就是还剩
+ * 3 小时 7 分多，四舍五入会把 7 分 40 秒报成 8 分）；小时补零，宽度才不抖。
  */
 export function formatRemaining(ms: number): string {
   const totalMinutes = Math.max(0, Math.floor(ms / MS_PER_MINUTE))

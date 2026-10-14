@@ -1,15 +1,9 @@
 /**
- * 极光预报的纯逻辑：天气种子、碧空判定与极光窗口搜索。
- *
- * 天气算法整理自 https://github.com/Asvel/ffxiv-weather ：
- * 天气每 8 个艾欧泽亚小时（= 1400 地球秒）更换一次，
- * 由窗口起点推一个 0~99 的种子，再按各区域的概率表落位到具体天气。
- *
- * 极光规则（https://ff14.huijiwiki.com/wiki/天气#极光）：
- * 在库尔札斯西部高地与旧萨雷安，ET 00:00~08:00 的天气窗口若为「碧空」，
- * 则该窗口的前半段 ET 00:00~04:00 会出现极光。
- *
- * 不导入 React、不碰 DOM，输入输出都是原始值 —— 可以脱离浏览器单独验证。
+ * 极光预报的纯逻辑：天气种子、碧空判定与极光窗口搜索。算法整理自 https://github.com/Asvel/ffxiv-weather：天气每 8 个艾欧泽亚小时
+ * （= 1400 地球秒）更换一次，由窗口起点推一个 0~99 的种子，再按各区域概率表落位。
+ * 极光规则（https://ff14.huijiwiki.com/wiki/天气#极光）：库尔札斯西部高地与旧萨雷安，
+ * ET 00:00~08:00 的天气窗口若为「碧空」，则该窗口的前半段 ET 00:00~04:00 出现极光。
+ * 不导入 React、不碰 DOM，输入输出都是原始值 —— 可脱离浏览器单独验证。
  */
 
 /** 1 艾欧泽亚小时（bell）= 175 地球秒。 */
@@ -25,9 +19,9 @@ const AURORA_BELLS = 4
 const BELLS_PER_DAY = 24
 
 /**
- * 搜索窗口数的安全上界：5000 格天气窗口 ≈ 194 个现实日。
- * 「碧空」最稀有的区域（库尔札斯西部高地，5%）平均 ~23 现实小时才出现一次，
- * 凑 3 次远用不到这个数 —— 它只保证极端不走运时函数能停下来。
+ * 搜索窗口数的安全上界：5000 格天气窗口 ≈ 194 个现实日。「碧空」最稀有的区域
+ * （库尔札斯西部高地，5%）平均 ~23 现实小时才出现一次，凑几次远用不到这个数 ——
+ * 它只保证极端不走运时函数能停下来。
  */
 const MAX_WINDOWS = 5000
 
@@ -37,9 +31,8 @@ export type AuroraZoneId = 'coerthas-western' | 'old-sharlayan'
 type WeatherId = 'blizzards' | 'snow' | 'fair-skies' | 'clear-skies' | 'clouds' | 'fog'
 
 /**
- * 极光区域的天气概率表：种子 0~99 落在哪个累计区间就是哪种天气。
- * 数据整理自 ffxiv-weather ——「碧空」在库尔札斯西部高地占 70~74（5%），
- * 在旧萨雷安占 0~9（10%），因此两地的极光时间线并不相同。
+ * 极光区域的天气概率表：种子 0~99 落在哪个累计区间就是哪种天气（整理自 ffxiv-weather）。
+ * 「碧空」在库尔札斯西部高地占 70~74（5%）、旧萨雷安占 0~9（10%），两地极光时间线并不相同。
  */
 const ZONE_WEATHER_TABLES: Record<AuroraZoneId, [WeatherId, number][]> = {
   'coerthas-western': [
@@ -59,10 +52,7 @@ const ZONE_WEATHER_TABLES: Record<AuroraZoneId, [WeatherId, number][]> = {
   ],
 }
 
-/**
- * 天气种子的「钟点」偏移：ET 16:00 记 0、00:00 记 8、08:00 记 16
- * （ffxiv-weather 原注释：为了计算，16:00 是 0、00:00 是 8、08:00 是 16）。
- */
+/** 天气种子的「钟点」偏移：ET 16:00 记 0、00:00 记 8、08:00 记 16（ffxiv-weather 原设定）。 */
 function forecastIncrement(bell: number): number {
   return (bell + 8 - (bell % WINDOW_BELLS)) % 24
 }
@@ -105,9 +95,8 @@ export type AuroraWindow = {
 
 /**
  * 从 `nowMs` 出发，找出某区域接下来 `count` 次极光窗口。
- *
- * 天气窗口每 3 格轮到一次 ET 00:00 起点，因此只对 `bell % 24 === 0` 的窗口做
- * 碧空判定；当前窗口若极光已过 ET 04:00（结束时刻不晚于查询时刻）则跳过。
+ * 天气窗口每 3 格轮到一次 ET 00:00 起点，因此只对 `bell % 24 === 0` 的窗口做碧空判定；
+ * 当前窗口若极光已过 ET 04:00（结束时刻不晚于查询时刻）则跳过。
  */
 export function findAuroraWindows(zone: AuroraZoneId, nowMs: number, count: number): AuroraWindow[] {
   const currentBell = Math.floor(nowMs / BELL_MS)

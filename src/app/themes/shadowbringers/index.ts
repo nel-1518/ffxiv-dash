@@ -3,14 +3,8 @@ import type { ThemeSpec } from '../types.ts'
 import './theme.css'
 
 /**
- * 暗影（Shadowbringers）。
- *
- * 色值取自官方专题站 <https://jp.finalfantasyxiv.com/shadowbringers/> 的样式表，
- * 是"近黑底 + 紫罗兰"的三层结构：区块底 `#20202e` / 面板 `#282640` / 导航 `#272729`，
- * 主紫 `#5047b2`（实心按钮底色）、标题亮紫罗兰 `#968cff`、选中态淡紫 `#a299ff`。
- *
- * ⚠️ 卡片另照首页 `.new_content__list` 做（半透明黑底 + 悬浮紫渐变 + 紫罗兰强调色），
- * 见 `theme.css`。
+ * 暗影（Shadowbringers）。取色见 `docs/themes.md`（来源：官方专题站样式表，「近黑底 + 紫罗兰」三层结构）。
+ * ⚠️ 卡片另照首页 `.new_content__list` 做（半透明黑底 + 悬浮紫渐变 + 紫罗兰强调色），见 `theme.css`。
  */
 export const shadowbringersSpec: ThemeSpec = {
   key: 'shadowbringers',

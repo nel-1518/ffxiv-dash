@@ -45,11 +45,9 @@ const WELCOME_MEMO_6 = `# 如何配置主题？
 `
 
 /**
- * 初始演示数据。写成函数：每次调用都产出全新的 id，避免模块级副作用。
- *
- * `version` 直接引用 SCHEMA_VERSION 而不写死数字：`sanitizeBoardDoc` 在版本对不上时
- * 会把整份数据判死并回退到这里，两者一旦不同步就会陷入
- * "每次刷新都静默重置为演示数据"的循环（见 schema.ts 的 SCHEMA_VERSION）。
+ * 初始演示数据。写成函数：每次调用产出全新 id，避免模块级副作用。
+ * ⚠️ `version` 引用 SCHEMA_VERSION 而不写死数字：`sanitizeBoardDoc` 在版本对不上时把整份数据
+ * 判死并回退到这里，两者不同步会陷入「每次刷新都静默重置为演示数据」的循环（见 schema.ts）。
  */
 export function createDefaultBoard(): BoardDoc {
   return {

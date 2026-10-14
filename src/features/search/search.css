@@ -1,12 +1,8 @@
 /* 搜索弹窗：内联 fixed overlay、输入区与结果区、键盘高亮与回车键帽。 */
 /*
- * 搜索弹窗
- *
- * 内联 fixed overlay，**不用 antd Modal**：搜索面板需要跟随 visualViewport 适配移动端键盘，
- * 并由搜索交互统一管理输入焦点与结果列表。
- *
- * 尺寸链路：overlay 用 flex 居中，高度跟随 --vv-height（visualViewport），
- * 卡片 max-height 再扣掉上下边距——移动端键盘弹出时卡片不会被顶出屏幕。
+ * 搜索弹窗：内联 fixed overlay 而不用 antd Modal —— 面板要跟随 visualViewport 适配移动端键盘，
+ * 且输入焦点与结果列表由搜索交互统一管理。尺寸链路：overlay 用 flex 居中、高度跟随 --vv-height（visualViewport），
+ * 卡片 max-height 再扣上下边距 —— 移动端键盘弹出时卡片不会被顶出屏幕。
  */
 .dash-search-overlay {
   position: fixed;
@@ -20,9 +16,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  /*
-   * 纯半透明遮罩。
-   */
+  /* 纯半透明遮罩 */
   background: rgba(24, 21, 35, 0.32);
   animation: dash-search-fade-in 0.2s ease;
 }
@@ -58,8 +52,7 @@
 .dash-search-input-row .dash-search-input.ant-input-affix-wrapper {
   height: 48px;
   padding: 0 6px 0 14px;
-  /* 必顶：外层 48px 而内部 .ant-input 只有 34px，不给 center 的话
-     输入框会贴在外层顶部，文字看起来偏高约 6px */
+  /* 必顶：外层 48px 而内部 .ant-input 只有 34px，不给 center 时输入框贴外层顶部、文字偏高约 6px */
   align-items: center;
   border-radius: 14px !important;
   background: var(--ant-color-fill-quaternary);
@@ -231,8 +224,8 @@
 
 .dash-search-item-title {
   /*
-   * 名称优先显示：按内容宽度占位（0 1 auto），且**不会被右边的长网址挤掉** ——
-   * 让位的是 `.dash-search-item-sub`（它的 flex-basis 是 0，见下）。
+   * 名称优先显示：按内容宽度占位（0 1 auto）且不会被右边的长网址挤掉 ——
+   * 让位的是 .dash-search-item-sub（flex-basis 为 0，见下）。
    */
   flex: 0 1 auto;
   min-width: 0;
@@ -252,11 +245,9 @@
 /* 描述 / 网址：吃掉剩余宽度并靠右，过长就省略而不是换行 */
 .dash-search-item-sub {
   /*
-   * ⚠️ `flex-basis` 必须是 **0**，不能写 `auto`：
-   * 写 `auto` 时基准宽度就是整条网址，一行装不下时负的剩余空间会按「基准宽度」
-   * 分摊到两个子项上 —— 名称也会被压缩，表现就是“网址太长，名称被省略”。
-   * 基准为 0 时它完全靠 `flex-grow` 去拿剩余宽度，于是**只压自己**：
-   * 名称拿满自然宽度，网址先省略、实在不够再缩到 0。
+   * ⚠️ flex-basis 必须是 0 而不能写 auto：auto 时基准宽度是整条网址，一行装不下时负的剩余空间
+   * 会按基准宽度分摊到两个子项上 —— 名称也被压缩（表现是"网址太长，名称被省略"）；
+   * 基准为 0 时完全靠 flex-grow 拿剩余宽度、于是只压自己：名称拿满自然宽度，网址先省略、不够再缩到 0。
    */
   flex: 1 1 0;
   min-width: 0;
@@ -268,10 +259,7 @@
   white-space: nowrap;
 }
 
-/*
-  缩写：紧跟在名称右边、不吃剩余宽度（`flex: none`），描述仍靠右。
-  比正文小一档 + 三级色，是"顺带看一眼"的提示，不抢名称的注意力。
-*/ 
+/* 缩写：紧跟名称右边、不吃剩余宽度（flex: none），描述仍靠右；小一档 + 三级色，是"顺带看一眼"的提示 */
 .dash-search-item-abbr {
   flex: none;
   max-width: 40%;

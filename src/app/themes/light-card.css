@@ -1,22 +1,14 @@
 /*
- * 亮色卡片上的 antd 组件翻色 —— evercold 与 endwalker 共用的那一块。
- *
- * 两套主题的卡面都是亮色（白 / 近白），而 antd 的令牌按页面整体深色算好并在每个组件根上
- * 下发，白字会压在亮卡上。这里把卡片作用域内的 antd 颜色变量整体调回深色系（原理见
- * docs/themes.md）。
- *
- * ⚠️ 连 `*` 一起选：antd 6 给每个组件根元素都挂 CSS 变量作用域，只写卡片根会被盖回去。
- * ⚠️ 顶栏排除在外（`:not(.dash-topbar)`）：它也挂 `dash-card-surface` 共用毛玻璃，但底色各自另给。
- *
- * 主题之间唯一随主题变化的是强调色一族的取值，由各主题在 `[data-dash-theme]` 根上
- * 以 --dash-lightcard-* 下发（取数与来源见各主题的 theme.css）：
- *   --dash-lightcard-primary       主色（progress 等按名字点名的组件级 token 也用它）
- *   --dash-lightcard-hue           填充 / 描边族共用的 RGB 通道（"蓝灰"或"蓝紫"三数一组）
- *   --dash-lightcard-primary-hue   主色淡底（primary-bg / border）用的 RGB 通道 ——
- *                                  ⚠️ 它与填充族的基色在两套主题里都不同，不能共用
- *   --dash-lightcard-link*         链接色三件
- *
- * ⚠️ 选择器列表里 evercold 与 endwalker 必须保持成对出现：给其中一套加选择器时另一套同步。
+ * 亮色卡片上的 antd 组件翻色 —— evercold 与 endwalker 共用：卡面是亮色而 antd 颜色令牌
+ * 按页面整体深色算好并在组件根上下发，这里把卡片作用域内的 antd 变量整体调回深色系（原理见 docs/themes.md）。
+ * ⚠️ 连 `*` 一起选：antd 6 给每个组件根都挂 CSS 变量作用域，只写卡片根会被盖回去。
+ * ⚠️ 顶栏排除（`:not(.dash-topbar)`）：它也挂 dash-card-surface 共用毛玻璃，但底色各自另给。
+ * 随主题变化的只有强调色一族，由各主题在 `[data-dash-theme]` 根上以 --dash-lightcard-* 下发（取值见各 theme.css）：
+ *   --dash-lightcard-primary      主色（progress 等按名字点名的组件级 token 也用它）
+ *   --dash-lightcard-hue          填充 / 描边族共用的 RGB 通道（"蓝灰"或"蓝紫"三数一组）
+ *   --dash-lightcard-primary-hue  主色淡底（primary-bg / border）的 RGB —— ⚠️ 与填充族基色在两套主题里都不同，不能共用
+ *   --dash-lightcard-link*        链接色三件
+ * ⚠️ 选择器列表里 evercold 与 endwalker 必须成对出现：给一套加选择器时另一套同步。
  */
 
 [data-dash-theme='evercold'] .dash-card-surface:not(.dash-topbar),
@@ -76,8 +68,7 @@
   --ant-color-shadow: rgba(51, 51, 51, 0.14);
 
   /*
-   * 组件级 token：构建时按 colorText 等算好后写死在组件根上，
-   * 使用时**不**回头读 --ant-color-*，必须按名字点掉。
+   * 组件级 token：构建时按 colorText 等算好写死在组件根上，使用时不回头读 --ant-color-*，必须按名字点掉。
    */
   /* 进度环的颜色也是组件级 token，不跟 --ant-color-primary */
   --ant-progress-default-color: var(--dash-lightcard-primary);
@@ -87,9 +78,8 @@
   --ant-button-text-text-hover-color: rgba(51, 51, 51, 0.88);
   --ant-button-text-text-active-color: rgba(51, 51, 51, 0.88);
   --ant-button-text-hover-bg: rgb(var(--dash-lightcard-hue) / 0.12);
-  /* 危险按钮换浅色主题那套红（深色算法给的红底落在亮卡上会脏）
-   * ⚠️ 只改 error，不要动 success：进度环满值/异常态的 stroke 是 antd **内联**写死的，
-   * 改 --ant-color-success 只会让环和读数不同色。
+  /* 危险按钮换浅色主题那套红（深色算法的红底落在亮卡上会脏）。
+   * ⚠️ 只改 error，不动 success：进度环满值/异常态的 stroke 是 antd 内联写死的，改 --ant-color-success 会让环和读数不同色。
    */
   --ant-color-error: #cf1322;
   --ant-color-error-hover: #ff4d4f;

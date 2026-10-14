@@ -1,9 +1,7 @@
 /**
- * 活动日历接口与读数计算（纯逻辑，无 React；可以脱离浏览器单独验证）。
- *
- * 接口：`GET https://ffxiv-api.neeeel.com/api/getActiveCalendarMonth` →
- * HTTP 200，`Content-Type: application/json`，**原文透传**上游石之家日历：
- *
+ * 活动日历接口与读数计算（纯逻辑，无 React；可脱离浏览器单独验证）。
+ * 接口 `GET https://ffxiv-api.neeeel.com/api/getActiveCalendarMonth`，HTTP 200、
+ * `Content-Type: application/json`，**原文透传**上游石之家日历。
  * ⚠️ `begin_time` / `end_time` 是 **Unix 秒**，这里统一 × 1000 归一到毫秒，
  * 卡面与时钟（`Date.now()`）才能直接比较。
  */
@@ -87,7 +85,7 @@ function parseActivity(value: unknown): CalendarActivity | null {
 }
 
 /**
- * 把接口原文窄化成卡面要用的数据（接口改版 / 字段缺失都不会抛错，只会少几行）。
+ * 把接口原文窄化成卡面要用的数据（接口改版 / 字段缺失都不会抛错，只会少几行）；
  * `data` 不是数组时按空列表处理。
  */
 export function parseCalendarPayload(payload: unknown, fetchedAt: number): ActivityCalendarData {
@@ -102,9 +100,8 @@ export function parseCalendarPayload(payload: unknown, fetchedAt: number): Activ
 
 /**
  * 按本地时钟判定活动状态。
- *
- * 顺序：先看还没开始（`now < begin`），再看是否已结束（`now > end`），其余都算进行中。
- * `begin === end`（单日活动）也随之自然覆盖，无需特判。
+ * 顺序：先看还没开始（`now < begin`），再看是否已结束（`now > end`），其余都算进行中；
+ * `begin === end`（单日活动）随之自然覆盖，无需特判。
  */
 export function resolveActivityState(activity: CalendarActivity, now: number): ActivityState {
   const { beginTime, endTime } = activity
@@ -121,11 +118,9 @@ export function resolveActivityState(activity: CalendarActivity, now: number): A
 export const DAY_MS = 86_400_000
 
 /**
- * 剩余时长：
- * - 剩余 ≥ 1 天：**只显示天数**（向下取整），如 `6天`；
- * - 剩余 < 1 天：显示时分，如 `5时20分` / `45分`（最小单位到分，卡面按分钟粒度刷新）。
- *
- * 已过期的时刻夹到 `0分`，不会出现负数读数。
+ * 剩余时长：剩余 ≥ 1 天**只显示天数**（向下取整），如 `6天`；
+ * 剩余 < 1 天显示时分（如 `5时20分` / `45分`，最小单位到分，卡面按分钟粒度刷新）；
+ * 已过期的时刻夹到 `0分`，不出现负数读数。
  */
 export function formatCountdown(until: number, now: number): string {
   const remaining = Math.max(0, until - now)
@@ -170,7 +165,7 @@ function remainingMs(activity: CalendarActivity, now: number): number | null {
 
 /**
  * 按**剩余时间升序**排列（最紧急的在前）；已结束与时间未知的排最后（彼此按开始时间）。
- * 剩余时间随时钟变化，所以这一步放在渲染期用当前 `now` 现算，而不是取数时排一次。
+ * 剩余时间随时钟变化，放到渲染期用当前 `now` 现算，而非取数时排一次。
  */
 export function sortByRemaining(activities: CalendarActivity[], now: number): CalendarActivity[] {
   return [...activities].sort((a, b) => {
@@ -186,7 +181,7 @@ export function sortByRemaining(activities: CalendarActivity[], now: number): Ca
 }
 
 /**
- * 是否该用强调色：**只按结束时间算**（不看开始时间）——距结束不超过 `emphasisDays` 天即高亮。
+ * 是否该用强调色：**只按结束时间算**（不看开始时间）—— 距结束不超过 `emphasisDays` 天即高亮。
  * 已结束（`now > endTime`）与没有结束时间的不高亮；`emphasisDays <= 0` 视为关闭高亮。
  */
 export function isActivityEmphasized(

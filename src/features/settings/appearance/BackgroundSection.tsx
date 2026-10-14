@@ -35,13 +35,9 @@ function formatBytes(bytes: number): string {
 
 /**
  * 输入框的草稿态：颜色与图片地址两个编辑器共用。
- *
- * 两者的规则完全一致 —— 打字过程中允许"还不合法"的中间态（比如刚敲下 `#`），
- * 只有合法值才写进 store；失焦时丢掉草稿，回到已生效的值
- * （不合法时正是我们要的"退回"，合法时也只是把首尾空白去掉）。
- *
- * `draft` 只在用户正在改的时候非空（`null` = 跟随已生效的值），所以外部写入
- * （换编辑对象、恢复默认）会自动跟上 —— **不需要 effect 去同步**。
+ * 规则一致——打字中允许不合法的中间态（如刚敲下 `#`），只有合法值才写进 store；失焦丢草稿回到已生效值
+ * （不合法时即退回，合法时只是去掉首尾空白）。
+ * `draft` 仅在用户正在改时非空（`null` = 跟随已生效值），外部写入（换编辑对象、恢复默认）自动跟上，无需 effect 同步。
  */
 function useDraft(
   committed: string,
@@ -57,7 +53,7 @@ function useDraft(
     change: (next) => {
       setDraft(next)
       if (canUse(next)) {
-        // 存进去的是去掉首尾空白的值：失焦后输入框显示的就是 store 里的那一份
+        // 存去首尾空白的值：失焦后输入框显示的就是 store 里的那一份
         apply(next.trim())
       }
     },
@@ -83,7 +79,7 @@ function ColorEditor(): React.ReactNode {
         onChange={(event) => draft.change(event.target.value)}
         onBlur={draft.commit}
         placeholder="#1f2937"
-        // 颜色框留空也是不合法（不像地址那样可以用"清空"表示不设背景）
+        // 颜色留空也不合法（地址可用「清空」表示不设背景，颜色不行）
         status={draft.usable ? undefined : 'error'}
         style={{ flex: 1, minWidth: 0 }}
         maxLength={32}
@@ -93,8 +89,8 @@ function ColorEditor(): React.ReactNode {
 }
 
 /**
- * 图片链接。校验规则沿用链接卡片那套（只认协议头，不猜扩展名）+ **根相对路径**
- * （主题自带的背景图是 `/bg/x.jpg`，出厂档案会把它填到这里）。
+ * 图片链接。校验沿用链接卡片那套（只认协议头，不猜扩展名）加根相对路径：
+ * 主题自带的背景图是 `/bg/x.jpg`，出厂档案会把它填到这里。
  */
 function UrlEditor(): React.ReactNode {
   const { profile, set } = useThemeProfile()
@@ -106,7 +102,7 @@ function UrlEditor(): React.ReactNode {
       onChange={(event) => draft.change(event.target.value)}
       onBlur={draft.commit}
       placeholder="https://…/wallpaper.jpg"
-      // 留空表示"还没填"，不算写错
+      // 留空表示还没填，不算写错
       status={draft.value.trim() === '' || draft.usable ? undefined : 'error'}
       maxLength={2048}
     />
@@ -114,14 +110,9 @@ function UrlEditor(): React.ReactNode {
 }
 
 /**
- * 上传图片。
- *
- * 文件不经过 antd 的上传流程（`beforeUpload` 返回 false），我们自己写进 IndexedDB。
- * 超限的文件在选中那一刻就被拒，不会落盘。
- *
- * ⚠️ 图片本体与文件名 / 大小都是**逐主题一份**（IndexedDB 键 `background:<主题键>`），
- * 彼此完全独立 —— 所以这里读写的一律是"当前编辑对象"（`useThemeProfile()` 的 `key`），
- * 而不是"某个当前的图"。上传成功时只写回**这套主题**的档案，别的主题一点不动。
+ * 上传图片。文件不走 antd 上传流程（`beforeUpload` 返回 false），由我们写进 IndexedDB；超限文件在选中那一刻即拒、不落盘。
+ * ⚠️ 图片本体与文件名 / 大小都是逐主题一份（IndexedDB 键 `background:<主题键>`），彼此完全独立：
+ * 读写的一律是当前编辑对象（`useThemeProfile()` 的 `key`）；上传成功只写回这套主题的档案，别的主题不动。
  */
 function UploadEditor(): React.ReactNode {
   const { key: themeKey, profile, set } = useThemeProfile()
@@ -147,7 +138,7 @@ function UploadEditor(): React.ReactNode {
       message.success('背景图片已更新')
     })
 
-    // 返回 false：阻止 antd 自己发起上传，这次由我们全权处理
+    // 返回 false：阻止 antd 自己上传，由我们全权处理
     return false
   }
 
@@ -194,12 +185,8 @@ const EDITORS: Record<AppearanceSource, React.ComponentType | null> = {
 }
 
 /**
- * 背景来源四选一 + 对应的编辑器 + 图片专属的显示调节。
- *
- * 改的是**当前编辑对象**的档案（无 Provider 时 = 当前生效主题）：
- * 「主题编辑」把它换成下拉里选中的那套，于是每套主题各有一份背景。
- *
- * 两节都放在这里：它们讲的是同一件事（背景），面板只负责把它们排在合适的位置。
+ * 背景来源四选一 + 对应编辑器 + 图片专属的显示调节。
+ * 改的是当前编辑对象的档案（无 Provider 时 = 当前生效主题）：「主题编辑」把它换成下拉选中的那套，每套主题各有一份背景。
  */
 export function BackgroundSection(): React.ReactNode {
   const { profile, set } = useThemeProfile()

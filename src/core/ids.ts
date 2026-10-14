@@ -1,8 +1,6 @@
 /**
  * 全项目唯一的 id 生成入口。
- *
- * `crypto.randomUUID` 只在安全上下文（https / localhost）可用，
- * 因此这里带一个降级实现，保证在 http 或旧浏览器下依然可用。
+ * ⚠️ `crypto.randomUUID` 只在安全上下文（https / localhost）可用，带降级实现保证 http / 旧浏览器可用。
  */
 export function createId(): string {
   const cryptoObj = globalThis.crypto

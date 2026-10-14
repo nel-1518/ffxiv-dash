@@ -3,14 +3,8 @@ import type { ThemeSpec } from '../types.ts'
 import './theme.css'
 
 /**
- * 苍穹（Heavensward）。
- *
- * 色值取自官方专题站 <https://na.finalfantasyxiv.com/heavensward/> 的样式表：
- * 主内容区 `#141414` + 正文 `#bfbfbf` + 表头深蓝黑 `#1f2633` + 面板描边深蓝 `#324366`，
- * 标题是冰蓝白 `#e5f4ff`、导航 hover/选中是淡冰蓝 `#cceaff`、子导航蓝灰 `#5c7f99`。
- *
- * ⚠️ 官网模板里那个 `#73bfe6`（Lodestone 公共站的蓝）与左侧 `#e30613`（SE 品牌红）
- * 都不是本主题的色（见 `docs/themes.md`）。
+ * 苍穹（Heavensward）。取色见 `docs/themes.md`（来源：官方专题站 na.finalfantasyxiv.com/heavensward/ 的样式表）。
+ * ⚠️ 官网模板的 `#73bfe6`（Lodestone 公共站蓝）与左侧 `#e30613`（SE 品牌红）都不是本主题的色。
  */
 export const heavenswardSpec: ThemeSpec = {
   key: 'heavensward',

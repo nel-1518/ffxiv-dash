@@ -4,10 +4,7 @@ import { parseLinks, setAutoOpenLinks } from '../../core/auto-open/store.ts'
 
 /**
  * 跳转：每天首次进入页面时自动打开一批链接。
- *
- * 改动即时生效（与「外观」一节同一个做法，没有"保存"按钮）：内容就是几行文本，
- * 多一步确认反而碍事。输入框每次按键都写回 store —— 半截的输入只是"暂时认不出来"，
- * 认不出来的行会在下面的提示里点一下，不影响其它行。
+ * 与「外观」同做法：无保存按钮，按键即写回 store。认不出的行会在下方提示，不影响其它行。
  */
 export function AutoOpenSettingsPanel(): React.ReactNode {
   const links = useAutoOpenLinks()

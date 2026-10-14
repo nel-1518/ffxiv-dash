@@ -4,9 +4,8 @@ import { takeTodayLinks } from '../core/auto-open/store.ts'
 
 /**
  * 打开一条链接；被浏览器拦下时返回 false。
- *
- * ⚠️ 不能用 `window.open(url, '_blank', 'noopener')`：带 `noopener` 时规范要求永远返回 null，
- * 就无法判断是否被拦。改为先开、再清掉 `opener`，效果与 `rel="noopener noreferrer"` 一致。
+ * ⚠️ 不能用 `window.open(url, '_blank', 'noopener')`：带 `noopener` 时规范要求永远返回 null，无法判断是否被拦。
+ * 改为先开、再清掉 `opener`，效果与 `rel="noopener noreferrer"` 一致。
  */
 function openLink(url: string): boolean {
   const opened = window.open(url, '_blank')
@@ -24,8 +23,7 @@ function openLink(url: string): boolean {
 /**
  * 「跳转」：每天首次进入页面时自动打开设置里填的那批链接。
  * 做成渲染 null 的副作用组件挂在 `<App>` 里：只有拿得到 `App.useApp()`，才能在被拦时给出提示。
- *
- * ⚠️ 浏览器会拦截没有用户手势的 `window.open`，表现是"什么都没发生"。因此统计失败条数，
+ * ⚠️ 浏览器会拦没有用户手势的 `window.open`，表现是什么都没发生。因此统计失败条数，
  * 给一条常驻通知 + 「全部打开」按钮：点按钮是真实手势，浏览器会放行。
  */
 export function AutoOpenLinks(): React.ReactNode {

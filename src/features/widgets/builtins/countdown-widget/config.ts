@@ -31,10 +31,7 @@ export function normalizeCountdownConfig(raw: unknown): CountdownConfig {
   const trimmed = typeof source.event === 'string' ? source.event.trim() : ''
   const event = (trimmed || EVENT_FALLBACK).slice(0, MAX_EVENT_LENGTH)
 
-  /*
-   * 非法日期直接置空，交给渲染层提示「请选择日期」，不做任何猜测性修补。
-   * 注意这里只校验、不改写：日期就是用户选的那一天，组件不该替他挑一个。
-   */
+  // 非法日期直接置空、交给渲染层提示「请选择日期」；只校验不改写，组件不替用户挑日期
   const date = typeof source.date === 'string' && isValidDateKey(source.date) ? source.date : ''
 
   return {

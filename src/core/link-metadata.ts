@@ -1,19 +1,15 @@
 /**
  * LinkMetadata 接口客户端（https://linkmetadata.com/docs/api-reference）。
- *
- * 放在 `core/` 而不是某个 feature 下：设置的「批量添加链接」与编辑弹窗的「自动获取数据」
- * 都在用它，放 feature 里会造成反向依赖。请求实现照 market-widget / house-widget 的惯例：
- * 模块内拼 URL、自己校验未知 JSON、按 URL 在飞去重。
- *
- * ⚠️ 这是第三方公开服务：无需 API key，但按 IP 限流（每 10 秒 20 次，超了封 10 秒）。
- * 批量调用方必须顺序或低并发发请求，别在这里加并发池。
+ * 放 `core/`：设置的「批量添加链接」与编辑弹窗的「自动获取」都用它，放 feature 会反向依赖。
+ * 实现照 market-widget / house-widget 惯例：模块内拼 URL、自校验未知 JSON、按 URL 飞去重。
+ * ⚠️ 第三方公开服务：无需 key，按 IP 限流（每 10 秒 20 次，超了封 10 秒）；批量调用方须顺序或低并发，别在这里加并发池。
  */
 
 const METADATA_ENDPOINT = 'https://api.linkmetadata.com/v1/metadata'
 
 /**
  * 描述写进看板前的上限，与 `storage/schema.ts` 的 `MAX_TEXT_LENGTH` 一致：
- * 元数据的 description 可能是一整段，不切会让落盘时被 schema 静默截断。
+ * 元数据 description 可能是一整段，不切会被 schema 落盘时静默截断。
  */
 export const MAX_METADATA_DESCRIPTION_LENGTH = 500
 
@@ -47,9 +43,7 @@ const inFlight = new Map<string, Promise<LinkMetadata>>()
 
 /**
  * 把用户输入收敛成绝对 HTTP(S) URL；认不出来返回 null。
- *
- * 没写协议头的补 `https://`（与「跳转」设置、便签里的链接规则一致），
- * `javascript:` 之类非 http(s) 一律拒绝。
+ * 没协议头补 `https://`（与「跳转」设置、便签链接规则一致）；`javascript:` 等非 http(s) 一律拒绝。
  */
 export function normalizeLinkUrl(value: string): string | null {
   const trimmed = value.trim()
@@ -112,9 +106,7 @@ function optionalText(value: unknown): string | undefined {
 }
 
 /**
- * 元数据 → 可落盘字段。
- *
- * 只取标题 / 描述 / favicon：不用 `url`（canonical 会改写用户填的地址），
+ * 元数据 → 可落盘字段。只取标题 / 描述 / favicon：不用 `url`（canonical 会改写用户填的地址），
  * 也不用 `image` 与原始 OG/Twitter 数据。
  */
 export function linkFieldsFromMetadata(metadata: LinkMetadata): LinkMetadataFields {

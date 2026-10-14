@@ -13,14 +13,11 @@ import type { ErrorInfo, ReactNode } from 'react'
 export type ErrorBoundaryProps = {
   children: ReactNode
   /**
-   * 捕获到错误时的降级 UI；不传则用内置的整站降级页。
-   * 拿到 `error`（供展示/上报）与 `reset`（重试按钮调用，清空错误重新渲染子树）。
+   * 捕获到错误时的降级 UI；不传用内置的整站降级页。
+   * 拿到 `error`（展示/上报）与 `reset`（重试按钮调用，清空错误重新渲染子树）。
    */
   renderFallback?: (error: unknown, reset: () => void) => ReactNode
-  /**
-   * 该值变化时自动清除已捕获的错误（"改完自动重试"）。
-   * 传入"出错后可能被修复的那个引用"即可，例如卡片数据对象。
-   */
+  /** 该值变化时自动清除已捕获的错误（「改完自动重试」）；传出错后可能被修复的引用即可。 */
   resetKey?: unknown
 }
 
@@ -39,8 +36,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   ): Partial<ErrorBoundaryState> | null {
     /*
      * resetKey 变化时清掉已捕获的错误，让子树重新渲染。
-     * 在渲染期对齐 prev 值而非 `componentDidUpdate` 里 `setState`：少跑一帧，
-     * 也不触发 react/no-did-update-set-state。
+     * 在渲染期对齐 prev 值而不用 `componentDidUpdate` 里 setState：少跑一帧，也不触发 react/no-did-update-set-state。
      */
     if (state.prevResetKey !== props.resetKey) {
       return { prevResetKey: props.resetKey, error: undefined }

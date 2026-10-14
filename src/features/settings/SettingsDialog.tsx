@@ -20,9 +20,8 @@ type SettingsSection = {
 /**
  * 左侧分组。
  *
- * **扩展点**：新增一组设置只需要往这里追加一项（label / icon / 面板各一个）——
- * 面板与 tab 是同一份数据驱动的，不必再去下面补分支。
- * 「外观」只管色调与两个槽位选哪套主题，改动落在**哪套主题的档案**上由「主题编辑」决定。
+ * **扩展点**：新增一组只需在 `SECTIONS` 追加一项（label / icon / 面板），面板与 tab 由同一份数据驱动，无需补分支。
+ * 「外观」只管色调与两个槽位选哪套主题；改动落在哪套主题的档案上由「主题编辑」决定。
  */
 const SECTIONS = [
   { key: 'appearance', label: '外观', icon: <BgColorsOutlined />, Panel: AppearanceSettingsPanel },
@@ -34,15 +33,13 @@ const SECTIONS = [
   { key: 'about', label: '关于', icon: <InfoCircleOutlined />, Panel: AboutSettingsPanel },
 ] as const satisfies readonly SettingsSection[]
 
-/** 分区键由 `SECTIONS` 推导，保证"导航里有、面板分发里没有"这种空档不可能出现。 */
+/** 分区键由 `SECTIONS` 推导，保证导航里有、面板分发里也有的键不会出现空档。 */
 export type SettingsSectionKey = (typeof SECTIONS)[number]['key']
 
 export type SettingsDialogProps = {
   /**
-   * 打开时落在哪一页；缺省「外观」。
-   *
-   * 由调用方决定而不是弹窗自己推：读盘失败的提示条要把用户直接送到「数据管理」
-   * （见 `views/DashboardPage.tsx`），这种"从别处带着目的进来"的场景不该散落在弹窗内部。
+   * 打开时落在哪一页；缺省「外观」。由调用方决定而不是弹窗自己推：
+   * 读盘失败的提示条要把用户直接送到「数据管理」（见 `views/DashboardPage.tsx`）。
    */
   initialSection?: SettingsSectionKey
   onClose: () => void
@@ -51,9 +48,8 @@ export type SettingsDialogProps = {
 /**
  * 设置弹窗：左侧分组导航 + 右侧内容。
  *
- * 用 antd `Modal` 而不是像搜索弹窗那样自绘浮层：这里不需要 visualViewport 适配，
- * 也没有"边打字边保持焦点"的需求，交给 Modal 处理焦点陷阱与 Esc 更省事。
- * Portal 上的 `.ant-modal-root` 保留 antd CSS 变量作用域，因此弹窗内部照样能用 `var(--ant-color-*)`。
+ * 用 antd `Modal` 而非自绘浮层：无需 visualViewport 适配与打字焦点保持，焦点陷阱与 Esc 交给 Modal。
+ * Portal 上的 `.ant-modal-root` 保留 antd CSS 变量作用域，弹窗内仍可用 `var(--ant-color-*)`。
  */
 export function SettingsDialog({ initialSection, onClose }: SettingsDialogProps): React.ReactNode {
   const [active, setActive] = useState<SettingsSectionKey>(initialSection ?? 'appearance')
@@ -92,10 +88,7 @@ export function SettingsDialog({ initialSection, onClose }: SettingsDialogProps)
             ))}
           </nav>
 
-          {/*
-           * 仓库入口：点了不切面板，所以刻意留在 tablist **外面**，
-           * 否则会多出一个"能选中却没有对应内容"的 tab。
-           */}
+          {/* 仓库入口不切面板，刻意留在 tablist 外，避免多出能选中却无内容的 tab */}
           <a className="dash-settings-nav-item" href={'https://github.com/nel-1518/ffxiv-dash'} target="_blank" rel="noopener noreferrer">
             <span className="dash-settings-nav-icon" aria-hidden="true">
               <GithubOutlined />
